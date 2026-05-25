@@ -18,14 +18,42 @@ cr libs readme respo.calcit -f docs/Respo-Agent.md
 
 优先用查询命令定位，再做最小修改：
 
-```bash
+````bash
 cr query config
-cr query ns <ns>
-cr query defs <ns>
-cr query def <ns/def>
-cr query search '<keyword>' -f '<ns/def>'
-cr tree show <ns/def> -p '<path>'
-```
+
+## 浏览器验证命令
+
+前端联调时，优先使用 `chrome-devtools` 启动隔离浏览器，不要混用日常浏览器 profile。
+
+常用命令：
+
+```bash
+chrome-devtools status
+chrome-devtools start
+chrome-devtools list_pages
+chrome-devtools new_page 'http://127.0.0.1:3010'
+chrome-devtools select_page <pageId> --bringToFront
+chrome-devtools take_snapshot
+chrome-devtools list_console_messages
+chrome-devtools evaluate_script '() => document.body.innerText'
+chrome-devtools click <uid>
+chrome-devtools fill <uid> 'value'
+````
+
+推荐工作流：
+
+- 先 `chrome-devtools status`，确认 daemon 已启动；需要时用 `chrome-devtools start` 重启隔离浏览器。
+- 用 `new_page` 打开本地页面，再用 `list_pages` / `select_page` 切换目标页。
+- 优先 `take_snapshot` 查看 a11y 树文本和元素 uid；只有需要看视觉细节时再截图。
+- 先看 `list_console_messages`，再决定是否需要 `evaluate_script`、`click`、`fill`。
+- 验证 websocket 或 `genui` 链路时，页面打开后先确认快照里出现 `Relay status: ready`，再从命令行发送请求。
+  cr query ns <ns>
+  cr query defs <ns>
+  cr query def <ns/def>
+  cr query search '<keyword>' -f '<ns/def>'
+  cr tree show <ns/def> -p '<path>'
+
+````
 
 高频修改命令：
 
@@ -34,7 +62,7 @@ cr tree replace <ns/def> -p '<path>' -e '<code>'
 cr tree target-replace <ns/def> -p '<parent-path>' -e '<old>' -r '<new>'
 cr edit def <ns/def>
 cr edit add-import <ns> -e 'src.ns :refer $ symbol'
-```
+````
 
 高频验证命令：
 

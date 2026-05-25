@@ -1,35 +1,105 @@
-## Respo workflow in Calcit-js
+# edn-renderer
 
-> Respo web page based on [calcit-js](https://github.com/calcit-lang/calcit).
+`edn-renderer` is the browser frontend for the `edn-relay` workflow.
 
-Demo https://repo.calcit-lang.org/respo-calcit-workflow/ .
+It keeps a websocket connection to the relay, listens on the `genui` channel,
+stores the incoming Cirru EDN layout DSL, renders the layout, and sends an ack
+back to the CLI.
 
-### Usages
+## Current Status
 
-To develop:
+The current implementation already supports the full loop:
+
+1. start `edn-relay serve`
+2. open `edn-renderer` in a browser
+3. run `edn-relay genui <LAYOUT>` from the CLI
+4. render the DSL in the page
+5. confirm success with a returned layout id
+
+Reference screenshot:
+
+- [artifacts/edn-renderer-genui-final.png](artifacts/edn-renderer-genui-final.png)
+
+## Development
 
 ```bash
 corepack enable && corepack prepare yarn@4.12.0 --activate
-yarn install --immutable
+yarn install
 
-cr js -w
-yarn vite # watching and running on localhost:3000
+cr js
+yarn vite --host 127.0.0.1 --port 3010
 ```
 
-calcit-js is using [Calcit Editor](https://github.com/calcit-lang/editor).
+If Vite fails because `rolldown` native bindings are missing, run `yarn install`
+again so the unplugged package is materialized on disk.
 
-To build:
+## End-to-End Usage
+
+Start the frontend dev server:
 
 ```bash
-yarn compile
-yarn release
-http-server dist/
+yarn vite --host 127.0.0.1 --port 3010
 ```
 
-### Workflow
+Open the page in a browser. In parallel, run the relay:
 
-https://github.com/calcit-lang/respo-calcit-workflow
+```bash
+edn-relay serve
+```
 
-### License
+Then send a layout DSL from the CLI:
+
+```bash
+LAYOUT=$(cat <<'EOF'
+{}
+	:type |card
+	:text "|CLI Demo"
+	:children $ []
+		{} (:type |badge) (:text |preview)
+		{} (:type |divider)
+		{} (:type |text) (:text "|Hello from installed CLI")
+		{} (:type |row)
+			:children $ []
+				{} (:type |button) (:text |Confirm)
+				{} (:type |input) (:name |email) (:placeholder |Email)
+EOF
+)
+
+edn-relay genui --server ws://127.0.0.1:9001 "$LAYOUT"
+```
+
+Expected result:
+
+- CLI prints `genui ok <layout-id>`
+- the page shows the layout id and request id
+- the renderer preview updates immediately
+
+## DSL Components
+
+Current built-in nodes:
+
+- `column`
+- `row`
+- `card`
+- `text`
+- `badge`
+- `divider`
+- `button`
+- `input`
+
+Detailed DSL rules and examples live in [COMPONENTS.md](COMPONENTS.md).
+
+## Validation
+
+Compile the Calcit app with:
+
+```bash
+cr js
+```
+
+For isolated browser validation, use the `chrome-devtools` workflow described in
+[Agents.md](Agents.md).
+
+## License
 
 MIT
