@@ -6,14 +6,54 @@
   :files $ {}
     |app.comp.container $ %{} :FileEntry
       :defs $ {}
+        |comp-chart-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defcomp comp-chart-block (series)
+              let
+                  safe-series series
+                  raw-max $ reduce safe-series 0
+                    fn (acc item)
+                      if
+                        > (:value item) acc
+                        :value item
+                        , acc
+                  max-value $ if (> raw-max 0) raw-max 1
+                list->
+                  {} $ :style
+                    {} (:display |flex) (:flex-direction |column) (:gap 12)
+                  -> safe-series .to-list $ map-indexed
+                    fn (idx item)
+                      let
+                          label $ or (:label item) |Item
+                          value $ :value item
+                          bar-width $ str
+                            * 100 $ / value max-value
+                            , |%
+                        [] idx $ div
+                          {} $ :style
+                            {} (:display |flex) (:flex-direction |column) (:gap 6)
+                          div
+                            {} $ :style
+                              {} (:display |flex) (:justify-content |space-between) (:gap 16) (:font-size 13) (:font-weight |600) (:color |#6d4a31)
+                            <> label
+                            <> $ str value
+                          div
+                            {} $ :style
+                              {} (:height 12) (:border-radius 999) (:background-color |#efdfd1) (:overflow |hidden)
+                            div $ {}
+                              :style $ {} (:width bar-width) (:height |100%) (:border-radius 999) (:background "|linear-gradient(90deg, #c96f2d, #e5aa6f)")
+          :examples $ []
         |comp-container $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-container (reel)
               let
                   store $ :store reel
                   states $ :states store
+                  ui $ or (:ui store) ({})
                   relay $ or (:relay store) ({})
                   renderer $ or (:renderer store) ({})
+                  sidebar-collapsed? $ not
+                    = false $ :sidebar-collapsed? ui
                 div
                   {} $ :style
                     {} (:min-height |100vh) (:padding 24) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
@@ -22,57 +62,95 @@
                       {} (:display |flex) (:gap 20) (:align-items |flex-start)
                     div
                       {} $ :style
-                        {} (:width |320px) (:display |flex) (:flex-direction |column) (:gap 12) (:padding 18) (:border-radius 20) (:background-color |#fffaf4) (:border "|1px solid #ead8c7")
+                        {}
+                          :width $ if sidebar-collapsed? |96px |320px
+                          :display |flex
+                          :flex-direction |column
+                          :gap 12
+                          :padding 18
+                          :border-radius 20
+                          :background-color |#fffaf4
+                          :border "|1px solid #ead8c7"
+                          :box-sizing |border-box
+                          :flex-shrink |0
                       div
                         {} $ :style
-                          {} (:font-size 28) (:font-weight |700) (:line-height |1.1)
-                        <> "|EDN Renderer"
-                      div
-                        {} $ :style
-                          {} (:font-size 13) (:line-height |1.6) (:color |#7e6650)
-                        <> "|Listening on relay channel genui, validating incoming Cirru EDN layouts and rendering the accepted result."
+                          {} (:display |flex) (:align-items |center) (:justify-content |space-between) (:gap 8)
+                        div
+                          {} $ :style
+                            {}
+                              :font-size $ if sidebar-collapsed? 18 28
+                              :font-weight |700
+                              :line-height |1.1
+                          <> $ if sidebar-collapsed? |EDN "|EDN Renderer"
+                        button $ {}
+                          :inner-text $ if sidebar-collapsed? |>> |Collapse
+                          :on-click $ fn (e d!)
+                            d! $ :: :toggle-sidebar
+                          :style $ {}
+                            :padding $ if sidebar-collapsed? 8 10
+                            :border "|1px solid #d7bca4"
+                            :background-color |#f7e4d0
+                            :color |#5d4028
+                            :border-radius 999
+                            :font-size 12
+                            :font-weight |600
+                            :cursor |pointer
+                      if (not sidebar-collapsed?)
+                        div
+                          {} $ :style
+                            {} (:font-size 13) (:line-height |1.6) (:color |#7e6650)
+                          <> "|Listening on relay channel genui, validating incoming Cirru EDN layouts and rendering the accepted result."
                       div
                         {} $ :style
                           {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 12) (:border-radius 14) (:background-color |#f4e7d8)
                         div ({})
-                          <> $ str "|Relay status: "
+                          <> $ if sidebar-collapsed?
                             or (:status relay) |idle
-                        if-let
-                          client-id $ :client-id relay
-                          div ({})
-                            <> $ str "|Client: " client-id
+                            str "|Relay status: " $ or (:status relay) |idle
+                        if (not sidebar-collapsed?)
+                          if-let
+                            client-id $ :client-id relay
+                            div ({})
+                              <> $ str "|Client: " client-id
                         if-let
                           relay-error $ :last-error relay
                           div
                             {} $ :style
                               {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                            <> $ str "|Relay error: " relay-error
+                            <> $ if sidebar-collapsed? |ERR (str "|Relay error: " relay-error)
                       div
                         {} $ :style
                           {} (:display |flex) (:flex-direction |column) (:gap 8)
                         div ({})
-                          <> $ str "|Layout id: "
+                          <> $ if sidebar-collapsed?
                             or (:layout-id renderer) |waiting
-                        if-let
-                          request-id $ :last-request renderer
-                          div ({})
-                            <> $ str "|Request: " request-id
-                        if-let
-                          render-error $ :last-error renderer
-                          div
-                            {} $ :style
-                              {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                            <> $ str "|Validation error: " render-error
-                      textarea $ {}
-                        :value $ or (:layout-source renderer) |
-                        :read-only true
-                        :spell-check false
-                        :placeholder "|Incoming Cirru EDN layout payload will appear here."
-                        :style $ {} (:width |100%) (:min-height |260px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
-                      when dev? $ comp-reel (>> states :reel) reel ({})
+                            str "|Layout id: " $ or (:layout-id renderer) |waiting
+                        if (not sidebar-collapsed?)
+                          if-let
+                            request-id $ :last-request renderer
+                            div ({})
+                              <> $ str "|Request: " request-id
+                        if (not sidebar-collapsed?)
+                          if-let
+                            render-error $ :last-error renderer
+                            div
+                              {} $ :style
+                                {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
+                              <> $ str "|Validation error: " render-error
+                      if (not sidebar-collapsed?)
+                        textarea $ {}
+                          :value $ or (:layout-source renderer) |
+                          :read-only true
+                          :spell-check false
+                          :placeholder "|Incoming Cirru EDN layout payload will appear here."
+                          :style $ {} (:width |100%) (:min-height |260px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
+                      when
+                        and dev? $ not sidebar-collapsed?
+                        comp-reel (>> states :reel) reel $ {}
                     div
                       {} $ :style
-                        {} (:flex |1) (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf")
+                        {} (:flex |1) (:min-width |0) (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf")
                       div
                         {} $ :style
                           {} (:font-size 20) (:font-weight |600)
@@ -144,6 +222,85 @@
                       :placeholder $ or (:placeholder node)
                         or (:name node) |Input
                       :style $ {} (:padding 10) (:border "|1px solid #d8c8ba") (:border-radius 12) (:font-size 14) (:background-color |#fff) (:min-width |160px)
+                  |markdown $ div
+                    {} $ :style
+                      {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca")
+                    comp-markdown-block $ :text node
+                  |mermaid $ comp-mermaid-block (:text node)
+                  |chart $ div
+                    {} $ :style
+                      {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca")
+                    comp-chart-block $ :series node
+          :examples $ []
+        |comp-markdown-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defcomp comp-markdown-block (text)
+              let
+                  lines $ split-lines text
+                list->
+                  {} $ :style
+                    {} (:display |flex) (:flex-direction |column) (:gap 8)
+                  -> lines .to-list $ map-indexed
+                    fn (idx line)
+                      [] idx $ cond
+                          blank? line
+                          div $ {}
+                            :style $ {} (:height 6)
+                        (starts-with? line "|### ")
+                          div
+                            {} $ :style
+                              {} (:font-size 18) (:font-weight |600) (:color |#6b4528)
+                            <> $ slice line 4
+                        (starts-with? line "|## ")
+                          div
+                            {} $ :style
+                              {} (:font-size 22) (:font-weight |700) (:color |#583722)
+                            <> $ slice line 3
+                        (starts-with? line "|# ")
+                          div
+                            {} $ :style
+                              {} (:font-size 28) (:font-weight |700) (:color |#3a2417)
+                            <> $ slice line 2
+                        (starts-with? line "|- ")
+                          div
+                            {} $ :style
+                              {} (:display |flex) (:align-items |flex-start) (:gap 8) (:font-size 15) (:line-height |1.7) (:color |#2e241c)
+                            span
+                              {} $ :style
+                                {} (:color |#b36a36) (:font-weight |700)
+                              <> "|•"
+                            <> $ slice line 2
+                        (starts-with? line "|> ")
+                          div
+                            {} $ :style
+                              {} (:padding-left 14) (:border-left "|3px solid #d7bca4") (:font-size 15) (:line-height |1.7) (:color |#6e553d)
+                            <> $ slice line 2
+                        true $ div
+                          {} $ :style
+                            {} (:font-size 15) (:line-height |1.7) (:color |#2e241c) (:white-space |pre-wrap)
+                          <> line
+          :examples $ []
+        |comp-mermaid-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defcomp comp-mermaid-block (text)
+              let
+                  lines $ split-lines text
+                div
+                  {} $ :style
+                    {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 16) (:border-radius 16) (:border "|1px solid #d9cabf") (:background-color |#fffdf9)
+                  div
+                    {} $ :style
+                      {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                    <> |Mermaid
+                  list->
+                    {} $ :style
+                      {} (:display |flex) (:flex-direction |column) (:gap 4) (:padding 14) (:border-radius 12) (:background-color |#1f1712) (:color |#f8eadb) (:font-family |Monaco) (:font-size 13) (:line-height |1.6)
+                    -> lines .to-list $ map-indexed
+                      fn (idx line)
+                        [] idx $ div
+                          {} $ :style
+                            {} $ :white-space |pre-wrap
+                          <> $ if (blank? line) "| " line
           :examples $ []
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -158,6 +315,7 @@
                 let
                     node-type $ :type node
                     children $ or (:children node) ([])
+                    series $ or (:series node) ([])
                   if
                     not $ string? node-type
                     raise $ str path "| is missing string field :type"
@@ -215,6 +373,36 @@
                           some? $ :placeholder node
                         , node
                           raise $ str path "| input node requires :name or :placeholder"
+                      |markdown $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        , node
+                          raise $ str path "| markdown node requires non-empty :text"
+                      |mermaid $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        , node
+                          raise $ str path "| mermaid node requires non-empty :text"
+                      |chart $ do
+                        if
+                          not $ list? series
+                          raise $ str path "| chart node requires list field :series"
+                        every? series $ fn (item)
+                          if
+                            not $ map? item
+                            raise $ str path "| chart series item should be a map"
+                            if
+                              and
+                                string? $ :label item
+                                number? $ :value item
+                              , item $ raise (str path "| chart series item requires string :label and number :value")
+                        , node
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote
@@ -379,6 +567,7 @@
             def store $ {}
               :states $ {}
                 :cursor $ []
+              :ui $ {} (:sidebar-collapsed? true)
               :relay $ {} (:status |idle) (:client-id nil) (:last-error nil)
               :renderer $ {} (:layout nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
           :examples $ []
@@ -392,6 +581,9 @@
               tag-match op
                 (:states cursor s) (update-states store cursor s)
                 (:hydrate-storage data) data
+                (:toggle-sidebar)
+                  assoc-in store ([] :ui :sidebar-collapsed?)
+                    not $ get-in store ([] :ui :sidebar-collapsed?)
                 (:relay-connected client-id)
                   -> store
                     assoc-in ([] :relay :status) |ready

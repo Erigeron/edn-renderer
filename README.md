@@ -6,6 +6,9 @@ It keeps a websocket connection to the relay, listens on the `genui` channel,
 stores the incoming Cirru EDN layout DSL, renders the layout, and sends an ack
 back to the CLI.
 
+The sidebar is collapsed by default so more horizontal space is reserved for the
+rendered result.
+
 ## Current Status
 
 The current implementation already supports the full loop:
@@ -84,10 +87,19 @@ Current built-in nodes:
 - `text`
 - `badge`
 - `divider`
+- `markdown`
+- `mermaid`
+- `chart`
 - `button`
 - `input`
 
 Detailed DSL rules and examples live in [COMPONENTS.md](COMPONENTS.md).
+
+Current analysis-oriented rendering behavior:
+
+- `markdown` renders headings, bullets, quotes, and wrapped paragraphs
+- `mermaid` currently renders a styled source block for analysis and prompt iteration
+- `chart` renders a compact horizontal bar chart from `:series`
 
 ## Validation
 

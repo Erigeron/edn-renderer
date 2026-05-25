@@ -14,6 +14,7 @@ Common fields:
 - `:text` optional, string
 - `:name` optional, string
 - `:placeholder` optional, string
+- `:series` optional, list of `{:label string :value number}` for charts
 
 Example root:
 
@@ -129,6 +130,73 @@ Example:
   :type |divider
 ```
 
+### `markdown`
+
+Structured analysis notes rendered from a text block.
+
+Required fields:
+
+- `:text`
+
+Notes:
+
+- headings starting with `#`, `##`, `###` are emphasized
+- lines starting with `- ` render as bullets
+- lines starting with `> ` render as quotes
+
+Example:
+
+```cirru
+{}
+  :type |markdown
+  :text "|# Analysis\n- Revenue drift\n- Margin recovery\n> Review channel mix"
+```
+
+### `mermaid`
+
+Mermaid source block for diagram-oriented analysis.
+
+Required fields:
+
+- `:text`
+
+Notes:
+
+- the current renderer shows Mermaid source in a styled code block
+- this is useful for reviewing or iterating diagram prompts before adding a full diagram engine
+
+Example:
+
+```cirru
+{}
+  :type |mermaid
+  :text "|flowchart TD\n  A[Signal] --> B[Hypothesis]\n  B --> C[Action]"
+```
+
+### `chart`
+
+Simple horizontal bar chart for numeric comparisons.
+
+Required fields:
+
+- non-empty `:series`
+
+Each series item must provide:
+
+- `:label` string
+- `:value` number
+
+Example:
+
+```cirru
+{}
+  :type |chart
+  :series $ []
+    {} (:label |North) (:value 42)
+    {} (:label |South) (:value 27)
+    {} (:label |West) (:value 35)
+```
+
 ### `button`
 
 Disabled preview button used to show intent in generated UI.
@@ -173,21 +241,21 @@ The current validator enforces:
 - root must be a map
 - every node must have a string `:type`
 - `column`, `row`, and `card` recursively validate `:children`
-- `text`, `badge`, and `button` require non-empty `:text`
+- `text`, `badge`, `button`, `markdown`, and `mermaid` require non-empty `:text`
+- `chart` requires a non-empty `:series`, and every item must provide string `:label` plus numeric `:value`
 - `input` requires `:name` or `:placeholder`
 
 ## Full Example
 
 ```cirru
 {}
-  :type |card
-  :text "|CLI Demo"
+  :type |column
   :children $ []
-    {} (:type |badge) (:text |preview)
-    {} (:type |divider)
-    {} (:type |text) (:text "|Hello from installed CLI")
-    {} (:type |row)
-      :children $ []
-        {} (:type |button) (:text |Confirm)
-        {} (:type |input) (:name |email) (:placeholder |Email)
+    {} (:type |markdown) (:text "|# Analysis\n- Revenue drift\n- Margin recovery\n> Review channel mix")
+    {} (:type |mermaid) (:text "|flowchart TD\n  A[Signal] --> B[Hypothesis]\n  B --> C[Action]")
+    {} (:type |chart)
+      :series $ []
+        {} (:label |North) (:value 42)
+        {} (:label |South) (:value 27)
+        {} (:label |West) (:value 35)
 ```
