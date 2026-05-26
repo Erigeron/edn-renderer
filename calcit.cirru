@@ -6,16 +6,84 @@
   :files $ {}
     |app.comp.container $ %{} :FileEntry
       :defs $ {}
+        |*mermaid-ready $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (defatom *mermaid-ready false)
+          :examples $ []
+        |*rendered-svgs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defatom *rendered-svgs $ {} (:_init_ true)
+          :examples $ []
         |LayoutNode $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def LayoutNode $ defenum LayoutNode (:column :list) (:row :list) (:card :dynamic :list) (:text :string) (:badge :string) (:divider) (:button :string) (:input :dynamic :dynamic :dynamic) (:markdown :string) (:mermaid :string) (:chart :dynamic :dynamic :list)
           :examples $ []
+        |build-echarts-option $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-echarts-option (series kind title)
+              let
+                  normalized-kind $ if (string? kind) kind |bar
+                  normalized-series $ if (list? series) series ([])
+                  names $ -> normalized-series .to-list
+                    map $ fn (item) (:label item)
+                  values $ -> normalized-series .to-list
+                    map $ fn (item) (:value item)
+                  title-part $ if
+                    or (nil? title) (= title |)
+                    {}
+                    {} $ :title
+                      {} $ :text title
+                  base $ merge
+                    {} (:animation false)
+                      :tooltip $ {}
+                    , title-part
+                case-default normalized-kind
+                  merge base $ {}
+                    :xAxis $ {} (:type |category) (:data names)
+                    :yAxis $ {} (:type |value)
+                    :series $ []
+                      {} (:type |bar) (:data values)
+                  |line $ merge base
+                    {}
+                      :xAxis $ {} (:type |category) (:data names)
+                      :yAxis $ {} (:type |value)
+                      :series $ []
+                        {} (:type |line) (:data values)
+                  |pie $ merge base
+                    {} $ :series
+                      [] $ {}
+                          :type |pie
+                          :data $ -> normalized-series .to-list
+                            map $ fn (item)
+                              {}
+                                :name $ :label item
+                                :value $ :value item
+                  |scatter $ merge base
+                    {}
+                      :xAxis $ {} (:type |category) (:data names)
+                      :yAxis $ {} (:type |value)
+                      :series $ []
+                        {} (:type |scatter) (:data values)
+          :examples $ []
+        |build-mermaid-render-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-mermaid-render-payload (text)
+              let
+                  source $ if (string? text) text |
+                  trimmed $ trim source
+                if (= trimmed |)
+                  {} (:empty? true) (:source |) (:graph-id |)
+                  {} (:empty? false) (:source source)
+                    :graph-id $ str |mermaid- (count source) |-
+                      count $ split-lines source
+          :examples $ []
         |comp-chart-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-chart-block (series kind title)
-              [] (effect-echarts series kind title)
-                div $ {} (:class-name |echarts-host)
-                  :style $ {} (:width |100%) (:height |300px)
+              let
+                  option $ build-echarts-option series kind title
+                [] (effect-echarts option)
+                  div $ {} (:class-name |echarts-host)
+                    :style $ {} (:width |100%) (:height |300px)
           :examples $ []
         |comp-container $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -258,25 +326,62 @@
         |comp-mermaid-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-mermaid-block (text)
-              div
-                {} (:class-name |mermaid-host) (:title text)
-                  :style $ {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 16) (:border-radius 16) (:border "|1px solid #d9cabf") (:background-color |#fffdf9)
-                div
-                  {} $ :style
-                    {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
-                  <> |Mermaid
-                div
-                  {} (:class-name |mermaid-output)
-                    :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
-                  <> "|Rendering Mermaid diagram..."
+              let
+                  payload $ build-mermaid-render-payload text
+                  svg-str $ if (:empty? payload) nil
+                    let
+                        result $ get @*rendered-svgs (:source payload)
+                      if (string? result) result nil
+                [] (effect-mermaid text)
+                  div
+                    {} (:class-name |mermaid-host)
+                      :style $ {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 16) (:border-radius 16) (:border "|1px solid #d9cabf") (:background-color |#fffdf9)
+                    div
+                      {} $ :style
+                        {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                      <> |Mermaid
+                    div
+                      {}
+                        :class-name |mermaid-output
+                        :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
+                        :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
           :examples $ []
         |effect-echarts $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defeffect effect-echarts (series kind title) (action el at?)
-              case-default action nil
-                :mount $ .!renderEcharts js/window el series kind title
-                :update $ .!renderEcharts js/window el series kind title
-                :unmount $ .!disposeEcharts js/window el
+            defeffect effect-echarts (option) (action el at?)
+              let
+                  render-chart $ fn ()
+                    let
+                        existing $ echarts-lib/getInstanceByDom el
+                        chart $ if (nil? existing) (echarts-lib/init el) existing
+                      do (.!debug js/console "|[echarts] render" option) (.!setOption chart option true)
+                  dispose-chart $ fn ()
+                    let
+                        chart $ echarts-lib/getInstanceByDom el
+                      when (some? chart) (.!dispose chart)
+                case-default action nil
+                  :mount $ do (.!debug js/console "|[echarts] mount") (render-chart)
+                  :update $ do (.!debug js/console "|[echarts] update") (render-chart)
+                  :unmount $ do (.!debug js/console "|[echarts] unmount") (dispose-chart)
+          :examples $ []
+        |effect-mermaid $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defeffect effect-mermaid (text) (action el at?)
+              let
+                  payload $ build-mermaid-render-payload text
+                case-default action nil
+                  :mount $ do (.!debug js/console "|[mermaid] mount" payload)
+                    when (not (:empty? payload)) (render-mermaid-on el payload)
+                  :update $ do (.!debug js/console "|[mermaid] update" payload)
+                    when (not (:empty? payload)) (render-mermaid-on el payload)
+                  :unmount $ .!debug js/console "|[mermaid] unmount"
+          :examples $ []
+        |ensure-mermaid! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn ensure-mermaid! () $ when
+              not $ deref *mermaid-ready
+              .!initialize mermaid-lib $ js-object (:startOnLoad false) (:securityLevel |loose) (:theme |neutral)
+              reset! *mermaid-ready true
           :examples $ []
         |parse-layout-children $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -371,6 +476,39 @@
                           or (:title node) |
                           , series
           :examples $ []
+        |render-mermaid-on $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn render-mermaid-on (el payload)
+              hint-fn $ {} (:async true)
+              let
+                  source $ :source payload
+                  graph-id $ :graph-id payload
+                  output $ .!querySelector el |.mermaid-output
+                if (nil? output) (.!warn js/console "|[mermaid] missing .mermaid-output" el)
+                  if (some? (get @*rendered-svgs source))
+                    .!debug js/console "|[mermaid] skip rendered"
+                    do
+                      reset! *rendered-svgs (assoc @*rendered-svgs source :rendering)
+                      ensure-mermaid!
+                      let
+                          render-fn $ .-render mermaid-lib
+                        try
+                          let
+                              result $ js-await (.!call render-fn mermaid-lib graph-id source)
+                              svg $ .-svg result
+                              bind-fns $ .-bindFunctions result
+                            do
+                              set! (.-innerHTML output) svg
+                              when (some? bind-fns) (bind-fns output)
+                              reset! *rendered-svgs (assoc @*rendered-svgs source svg)
+                              .!debug js/console "|[mermaid] render" $ js-object
+                                :length $ count source
+                                :graphId graph-id
+                          fn (error)
+                            do
+                              reset! *rendered-svgs (assoc @*rendered-svgs source false)
+                              .!error js/console "|[mermaid] render failed" error
+          :examples $ []
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn validate-layout (layout) (parse-layout-node layout |root)
@@ -387,6 +525,8 @@
             respo.comp.space :refer $ =<
             reel.comp.reel :refer $ comp-reel
             app.config :refer $ dev?
+            |echarts :as echarts-lib
+            |mermaid :default mermaid-lib
     |app.config $ %{} :FileEntry
       :defs $ {}
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
