@@ -154,7 +154,7 @@ Example:
 
 ### `mermaid`
 
-Mermaid source block for diagram-oriented analysis.
+Mermaid diagram block rendered from source text.
 
 Required fields:
 
@@ -162,8 +162,8 @@ Required fields:
 
 Notes:
 
-- the current renderer shows Mermaid source in a styled code block
-- this is useful for reviewing or iterating diagram prompts before adding a full diagram engine
+- the renderer turns the Mermaid source into an SVG diagram in the preview area
+- diagram rendering is triggered automatically when relay updates insert or replace Mermaid nodes
 
 Example:
 

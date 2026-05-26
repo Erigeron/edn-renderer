@@ -283,24 +283,17 @@
         |comp-mermaid-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-mermaid-block (text)
-              let
-                  lines $ split-lines text
+              div
+                {} (:class-name |mermaid-host) (:title text)
+                  :style $ {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 16) (:border-radius 16) (:border "|1px solid #d9cabf") (:background-color |#fffdf9)
                 div
                   {} $ :style
-                    {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 16) (:border-radius 16) (:border "|1px solid #d9cabf") (:background-color |#fffdf9)
-                  div
-                    {} $ :style
-                      {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
-                    <> |Mermaid
-                  list->
-                    {} $ :style
-                      {} (:display |flex) (:flex-direction |column) (:gap 4) (:padding 14) (:border-radius 12) (:background-color |#1f1712) (:color |#f8eadb) (:font-family |Monaco) (:font-size 13) (:line-height |1.6)
-                    -> lines .to-list $ map-indexed
-                      fn (idx line)
-                        [] idx $ div
-                          {} $ :style
-                            {} $ :white-space |pre-wrap
-                          <> $ if (blank? line) "| " line
+                    {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                  <> |Mermaid
+                div
+                  {} (:class-name |mermaid-output)
+                    :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
+                  <> "|Rendering Mermaid diagram..."
           :examples $ []
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote

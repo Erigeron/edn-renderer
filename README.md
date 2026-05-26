@@ -98,7 +98,7 @@ Detailed DSL rules and examples live in [COMPONENTS.md](COMPONENTS.md).
 Current analysis-oriented rendering behavior:
 
 - `markdown` renders headings, bullets, quotes, and wrapped paragraphs
-- `mermaid` currently renders a styled source block for analysis and prompt iteration
+- `mermaid` renders a Mermaid SVG diagram from the provided source text
 - `chart` renders a compact horizontal bar chart from `:series`
 
 ## Validation
