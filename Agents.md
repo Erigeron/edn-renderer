@@ -29,7 +29,8 @@ cr query config
 
 ```bash
 chrome-devtools status
-chrome-devtools start
+chrome-devtools start                       # headless 无界面模式（默认）
+chrome-devtools start --headless false      # 界面模式，方便用户直接确认页面状态
 chrome-devtools list_pages
 chrome-devtools new_page 'http://127.0.0.1:3010'
 chrome-devtools select_page <pageId> --bringToFront
@@ -42,7 +43,7 @@ chrome-devtools fill <uid> 'value'
 
 推荐工作流：
 
-- 先 `chrome-devtools status`，确认 daemon 已启动；需要时用 `chrome-devtools start` 重启隔离浏览器。
+- 先 `chrome-devtools status`，确认 daemon 已启动；需要时用 `chrome-devtools start --headless false` 以界面模式重启，方便用户直接看到浏览器窗口确认。
 - 用 `new_page` 打开本地页面，再用 `list_pages` / `select_page` 切换目标页。
 - 优先 `take_snapshot` 查看 a11y 树文本和元素 uid；只有需要看视觉细节时再截图。
 - 先看 `list_console_messages`，再决定是否需要 `evaluate_script`、`click`、`fill`。
@@ -69,6 +70,23 @@ cr edit add-import <ns> -e 'src.ns :refer $ symbol'
 ```bash
 cr js
 yarn vite
+```
+
+relay 联调命令（端口 9100，系统 9001/9002 被 macOS 占用）：
+
+```bash
+edn-relay serve --bind 127.0.0.1:9100
+edn-relay genui --server ws://127.0.0.1:9100 "$(cat /tmp/layout.cirru)" --timeout-secs 10
+```
+
+genui 布局文件用 2 空格缩进（不要用 tab），示例：
+
+```
+{}
+  :type |card
+  :text "|Hello"
+  :children $ []
+    {} (:type |text) (:text "|world")
 ```
 
 ## 高频工作流

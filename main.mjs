@@ -1,5 +1,96 @@
 import mermaid from "mermaid";
+import * as echarts from "echarts";
+import { CalcitTag, CalcitSliceList, listToArray } from "@calcit/procs";
 import { main_$x_ } from "./js-out/app.main.mjs";
+
+function ednToJs(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number" || typeof v === "boolean") return v;
+  if (typeof v === "string") return v;
+  if (v instanceof CalcitTag) return v.value;
+  if (v instanceof CalcitSliceList) return listToArray(v).map(ednToJs);
+  if (v && v.constructor && v.constructor.name === "CalcitSliceMap") {
+    const obj = {};
+    for (const [k, val] of v.pairs()) {
+      const key = k instanceof CalcitTag ? k.value : String(k);
+      obj[key] = ednToJs(val);
+    }
+    return obj;
+  }
+  return String(v);
+}
+
+function buildEchartsOption({ kind, title, series }) {
+  const base = {
+    animation: false,
+    tooltip: {},
+    ...(title ? { title: { text: title } } : {}),
+  };
+  const names = (series || []).map((s) => s.label);
+  const values = (series || []).map((s) => s.value);
+  switch (kind) {
+    case "line":
+      return {
+        ...base,
+        xAxis: { type: "category", data: names },
+        yAxis: { type: "value" },
+        series: [{ type: "line", data: values }],
+      };
+    case "pie":
+      return {
+        ...base,
+        series: [
+          {
+            type: "pie",
+            data: (series || []).map((s) => ({
+              name: s.label,
+              value: s.value,
+            })),
+          },
+        ],
+      };
+    case "scatter":
+      return {
+        ...base,
+        xAxis: { type: "category", data: names },
+        yAxis: { type: "value" },
+        series: [{ type: "scatter", data: values }],
+      };
+    default:
+      return {
+        ...base,
+        xAxis: { type: "category", data: names },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", data: values }],
+      };
+  }
+}
+
+window.renderEcharts = (el, seriesCalcit, kindCalcit, titleCalcit) => {
+  try {
+    const series = ednToJs(seriesCalcit);
+    const kind = ednToJs(kindCalcit);
+    const title = ednToJs(titleCalcit);
+    const option = buildEchartsOption({ kind, title, series });
+    let chart = echarts.getInstanceByDom(el);
+    if (!chart) chart = echarts.init(el);
+    chart.setOption(option, true);
+  } catch (e) {
+    console.error("ECharts render error:", e);
+  }
+};
+
+window.disposeEcharts = (el) => {
+  const chart = echarts.getInstanceByDom(el);
+  if (chart) chart.dispose();
+};
+
+window.addEventListener("resize", () => {
+  for (const host of document.querySelectorAll(".echarts-host")) {
+    const chart = echarts.getInstanceByDom(host);
+    if (chart) chart.resize();
+  }
+});
 
 mermaid.initialize({
   startOnLoad: false,

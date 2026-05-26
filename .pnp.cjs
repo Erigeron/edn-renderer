@@ -30,6 +30,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@calcit/procs", "npm:0.12.35"],\
           ["bottom-tip", "npm:0.1.5"],\
+          ["echarts", "npm:6.1.0"],\
           ["mermaid", "npm:11.15.0"],\
           ["root-workspace-0b6124", "workspace:."],\
           ["vite", "virtual:dc3fc578bfa5e06182a4d2be39ede0bc5b74940b1ffe0d70c26892ab140a4699787750fba175dc306292e80b4aa2c8c5f68c2a821e69b2c37e360c0dff36ff66#npm:8.0.12"]\
@@ -1406,6 +1407,17 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["echarts", [\
+      ["npm:6.1.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/echarts-npm-6.1.0-517b8ad5ee-10c0.zip/node_modules/echarts/",\
+        "packageDependencies": [\
+          ["echarts", "npm:6.1.0"],\
+          ["tslib", "npm:2.3.0"],\
+          ["zrender", "npm:6.1.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["encoding", [\
       ["npm:0.1.13", {\
         "packageLocation": "../../../.yarn/berry/cache/encoding-npm-0.1.13-82a1837d30-10c0.zip/node_modules/encoding/",\
@@ -2259,6 +2271,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@calcit/procs", "npm:0.12.35"],\
           ["bottom-tip", "npm:0.1.5"],\
+          ["echarts", "npm:6.1.0"],\
           ["mermaid", "npm:11.15.0"],\
           ["root-workspace-0b6124", "workspace:."],\
           ["vite", "virtual:dc3fc578bfa5e06182a4d2be39ede0bc5b74940b1ffe0d70c26892ab140a4699787750fba175dc306292e80b4aa2c8c5f68c2a821e69b2c37e360c0dff36ff66#npm:8.0.12"]\
@@ -2428,6 +2441,13 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["tslib", [\
+      ["npm:2.3.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/tslib-npm-2.3.0-277e75e108-10c0.zip/node_modules/tslib/",\
+        "packageDependencies": [\
+          ["tslib", "npm:2.3.0"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
       ["npm:2.8.1", {\
         "packageLocation": "../../../.yarn/berry/cache/tslib-npm-2.8.1-66590b21b8-10c0.zip/node_modules/tslib/",\
         "packageDependencies": [\
@@ -2601,6 +2621,16 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/yallist-npm-5.0.0-8732dd9f1c-10c0.zip/node_modules/yallist/",\
         "packageDependencies": [\
           ["yallist", "npm:5.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["zrender", [\
+      ["npm:6.1.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/zrender-npm-6.1.0-025f06fccb-10c0.zip/node_modules/zrender/",\
+        "packageDependencies": [\
+          ["tslib", "npm:2.3.0"],\
+          ["zrender", "npm:6.1.0"]\
         ],\
         "linkType": "HARD"\
       }]\
