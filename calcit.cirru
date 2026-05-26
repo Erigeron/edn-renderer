@@ -163,74 +163,186 @@
                             {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
                           <> "|Waiting for a validated genui layout from the relay."
           :examples $ []
+        |LayoutNode $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def LayoutNode $ defenum LayoutNode
+              :column :list
+              :row :list
+              :card :dynamic :list
+              :text :string
+              :badge :string
+              :divider
+              :button :string
+              :input :dynamic :dynamic :dynamic
+              :markdown :string
+              :mermaid :string
+              :chart :list
+          :examples $ []
+        |parse-layout-children $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn parse-layout-children (children path)
+              if
+                not $ list? children
+                raise $ str path "| field :children should be a list"
+                foldl children ([])
+                  fn (acc child)
+                    append acc $ parse-layout-node child (str path |.children)
+          :examples $ []
+        |parse-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn parse-layout-node (node path)
+              if
+                not $ map? node
+                raise $ str path "| expected a map node"
+                let
+                    node-type $ :type node
+                    children $ or (:children node) ([])
+                    series $ or (:series node) ([])
+                  if
+                    not $ string? node-type
+                    raise $ str path "| is missing string field :type"
+                    case-default node-type
+                      raise $ str path "| does not support node type " node-type
+                      |column $ %:: LayoutNode :column $ parse-layout-children children path
+                      |row $ %:: LayoutNode :row $ parse-layout-children children path
+                      |card $ %:: LayoutNode :card (:text node) $ parse-layout-children children path
+                      |text $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        %:: LayoutNode :text $ :text node
+                        raise $ str path "| text node requires non-empty :text"
+                      |badge $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        %:: LayoutNode :badge $ :text node
+                        raise $ str path "| badge node requires non-empty :text"
+                      |divider $ %:: LayoutNode :divider
+                      |button $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        %:: LayoutNode :button $ :text node
+                        raise $ str path "| button node requires non-empty :text"
+                      |input $ if
+                        or
+                          some? $ :name node
+                          some? $ :placeholder node
+                        %:: LayoutNode :input (:name node) (:placeholder node) (:text node)
+                        raise $ str path "| input node requires :name or :placeholder"
+                      |markdown $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        %:: LayoutNode :markdown $ :text node
+                        raise $ str path "| markdown node requires non-empty :text"
+                      |mermaid $ if
+                        and
+                          string? $ :text node
+                          >
+                            count $ :text node
+                            , 0
+                        %:: LayoutNode :mermaid $ :text node
+                        raise $ str path "| mermaid node requires non-empty :text"
+                      |chart $ do
+                        if
+                          not $ list? series
+                          raise $ str path "| chart node requires list field :series"
+                        every? series $ fn (item)
+                          if
+                            not $ map? item
+                            raise $ str path "| chart series item should be a map"
+                            if
+                              and
+                                string? $ :label item
+                                number? $ :value item
+                              , item $ raise (str path "| chart series item requires string :label and number :value")
+                        %:: LayoutNode :chart series
+          :examples $ []
         |comp-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-layout-node (node)
-              let
-                  node-type $ :type node
-                  children $ or (:children node) ([])
-                case-default node-type
-                  div
-                    {} $ :style
-                      {} (:padding 12) (:border "|1px solid #f08c6c") (:border-radius 12) (:background-color |#fff4ef) (:color |#9b3d15)
-                    <> $ str "|Unsupported node type: " node-type
-                  |column $ list->
+              match node
+                (:column children)
+                  list->
                     {} $ :style
                       {} (:display |flex) (:flex-direction |column) (:gap 12) (:align-items |stretch)
                     -> children .to-list $ map-indexed
                       fn (idx child)
                         [] idx $ comp-layout-node child
-                  |row $ list->
+                (:row children)
+                  list->
                     {} $ :style
                       {} (:display |flex) (:flex-direction |row) (:gap 12) (:flex-wrap |wrap) (:align-items |center)
                     -> children .to-list $ map-indexed
                       fn (idx child)
                         [] idx $ comp-layout-node child
-                  |card $ div
+                (:card title children)
+                  div
                     {} $ :style
                       {} (:display |flex) (:flex-direction |column) (:gap 12) (:padding 16) (:border "|1px solid #e4d4c6") (:border-radius 16) (:background-color |#fffdf9)
                     if-let
-                      title $ :text node
+                      title-text title
                       div
                         {} $ :style
                           {} (:font-size 18) (:font-weight |600) (:color |#7e4f2c)
-                        <> title
+                        <> title-text
                     list->
                       {} $ :style
                         {} (:display |flex) (:flex-direction |column) (:gap 10)
                       -> children .to-list $ map-indexed
                         fn (idx child)
                           [] idx $ comp-layout-node child
-                  |text $ div
+                (:text text)
+                  div
                     {} $ :style
                       {} (:font-size 16) (:line-height |1.6) (:color |#2e241c)
-                    <> $ :text node
-                  |badge $ div
+                    <> text
+                (:badge text)
+                  div
                     {} $ :style
                       {} (:display |inline-flex) (:align-items |center) (:padding 8) (:border-radius 999) (:background-color |#f3d7ba) (:color |#7d4d27) (:font-size 12) (:font-weight |600) (:width |fit-content)
-                    <> $ :text node
-                  |divider $ div
+                    <> text
+                (:divider)
+                  div
                     {} $ :style
                       {} (:height 1) (:width |100%) (:background-color |#e6d4c4)
-                  |button $ button
+                (:button text)
+                  button
                     {} (:disabled true)
-                      :inner-text $ :text node
+                      :inner-text text
                       :style $ {} (:padding 10) (:border "|1px solid #cf8b5d") (:background-color |#e8b488) (:color |#3e2515) (:border-radius 999) (:font-size 14) (:font-weight |600) (:cursor |not-allowed)
-                  |input $ input
+                (:input name placeholder value)
+                  input
                     {} (:disabled true)
-                      :value $ or (:text node) |
-                      :placeholder $ or (:placeholder node)
-                        or (:name node) |Input
+                      :value $ or value |
+                      :placeholder $ or placeholder
+                        or name |Input
                       :style $ {} (:padding 10) (:border "|1px solid #d8c8ba") (:border-radius 12) (:font-size 14) (:background-color |#fff) (:min-width |160px)
-                  |markdown $ div
+                (:markdown text)
+                  div
                     {} $ :style
                       {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca")
-                    comp-markdown-block $ :text node
-                  |mermaid $ comp-mermaid-block (:text node)
-                  |chart $ div
+                    comp-markdown-block text
+                (:mermaid text) $ comp-mermaid-block text
+                (:chart series)
+                  div
                     {} $ :style
                       {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca")
-                    comp-chart-block $ :series node
+                    comp-chart-block series
+                _ $ div
+                  {} $ :style
+                    {} (:padding 12) (:border "|1px solid #f08c6c") (:border-radius 12) (:background-color |#fff4ef) (:color |#9b3d15)
+                  <> "|Unsupported layout node"
           :examples $ []
         |comp-markdown-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -297,105 +409,11 @@
           :examples $ []
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn validate-layout (layout) (validate-layout-node layout |root) layout
+            defn validate-layout (layout) $ parse-layout-node layout |root
           :examples $ []
         |validate-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn validate-layout-node (node path)
-              if
-                not $ map? node
-                raise $ str path "| expected a map node"
-                let
-                    node-type $ :type node
-                    children $ or (:children node) ([])
-                    series $ or (:series node) ([])
-                  if
-                    not $ string? node-type
-                    raise $ str path "| is missing string field :type"
-                    case-default node-type
-                      raise $ str path "| does not support node type " node-type
-                      |column $ do
-                        if
-                          not $ list? children
-                          raise $ str path "| field :children should be a list"
-                        every? children $ fn (child)
-                          validate-layout-node child $ str path |.children
-                        , node
-                      |row $ do
-                        if
-                          not $ list? children
-                          raise $ str path "| field :children should be a list"
-                        every? children $ fn (child)
-                          validate-layout-node child $ str path |.children
-                        , node
-                      |card $ do
-                        if
-                          not $ list? children
-                          raise $ str path "| field :children should be a list"
-                        every? children $ fn (child)
-                          validate-layout-node child $ str path |.children
-                        , node
-                      |text $ if
-                        and
-                          string? $ :text node
-                          >
-                            count $ :text node
-                            , 0
-                        , node
-                          raise $ str path "| text node requires non-empty :text"
-                      |badge $ if
-                        and
-                          string? $ :text node
-                          >
-                            count $ :text node
-                            , 0
-                        , node
-                          raise $ str path "| badge node requires non-empty :text"
-                      |divider $ do node
-                      |button $ if
-                        and
-                          string? $ :text node
-                          >
-                            count $ :text node
-                            , 0
-                        , node
-                          raise $ str path "| button node requires non-empty :text"
-                      |input $ if
-                        or
-                          some? $ :name node
-                          some? $ :placeholder node
-                        , node
-                          raise $ str path "| input node requires :name or :placeholder"
-                      |markdown $ if
-                        and
-                          string? $ :text node
-                          >
-                            count $ :text node
-                            , 0
-                        , node
-                          raise $ str path "| markdown node requires non-empty :text"
-                      |mermaid $ if
-                        and
-                          string? $ :text node
-                          >
-                            count $ :text node
-                            , 0
-                        , node
-                          raise $ str path "| mermaid node requires non-empty :text"
-                      |chart $ do
-                        if
-                          not $ list? series
-                          raise $ str path "| chart node requires list field :series"
-                        every? series $ fn (item)
-                          if
-                            not $ map? item
-                            raise $ str path "| chart series item should be a map"
-                            if
-                              and
-                                string? $ :label item
-                                number? $ :value item
-                              , item $ raise (str path "| chart series item requires string :label and number :value")
-                        , node
+            defn validate-layout-node (node path) $ parse-layout-node node path
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote

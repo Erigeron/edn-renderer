@@ -52,20 +52,23 @@ const scheduleRenderMermaidBlocks = () => {
 };
 
 const containsMermaidHost = (node) => {
-  if (!(node instanceof Element)) return false
-  return node.matches(".mermaid-host") || node.querySelector(".mermaid-host") !== null
-}
+  if (!(node instanceof Element)) return false;
+  return (
+    node.matches(".mermaid-host") ||
+    node.querySelector(".mermaid-host") !== null
+  );
+};
 
 const mermaidObserver = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     if (mutation.type !== "childList" || mutation.addedNodes.length === 0) {
-      continue
+      continue;
     }
 
     for (const node of mutation.addedNodes) {
       if (containsMermaidHost(node)) {
-        scheduleRenderMermaidBlocks()
-        return
+        scheduleRenderMermaidBlocks();
+        return;
       }
     }
   }
