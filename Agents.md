@@ -107,9 +107,19 @@ genui 布局文件用 2 空格缩进（不要用 tab），示例：
 - 避免生成“可调用字符串”。错误写法如 `(<> ((str ...)))`，正确写法是 `<> $ str ...`。
 - 变量必须保持 leaf。像 `week-start` 这种变量不要变成单元素 list，否则会被当成调用。
 - Respo 样式里的纯数字会自动补 `px`。`flex`、`font-weight`、`line-height`、`z-index` 这类属性要显式写字符串，例如 `:flex "\"1"`。
+- 当前编译链里，空 map 字面量 `{}` 在生成的 JS 中可能落到 `$clt._$M_`，运行时是 `undefined`，不要拿它做 `defatom` 初始值后再 `assoc`。需要可写 map 时，先放一个占位键，例如 `{} (:_init_ true)`。
+- Respo 和命令式 DOM 更新会互相打架。像 Mermaid 这种库如果直接写 `innerHTML`/SVG，不要再给同一个容器挂虚拟 DOM children；优先只保留 `:innerHTML` prop。
+- Mermaid 的 `render` 需要并发保护。同一份 source 在一次渲染未完成前，要先写入 `:rendering` 之类的锁状态，避免重复调用同一个 graph id/source。
 
 ## 修改约束
 
 - 严禁直接手改 `calcit.cirru`，必须使用 `cr tree` 或 `cr edit`。
 - 路径不要猜。先用 `cr query search` 拿路径，再用 `cr tree show` 确认。
 - 静态样式优先抽到 `defstyle`，动态列表中尽量少写内联 `:style`。
+
+## Mermaid/异步渲染补充约定
+
+- 维护 Mermaid 节点时，优先检查三个面：Respo diff 是否会清空 DOM、缓存 atom 是否真的是 map、`render` 是否被重复触发。
+- `comp-mermaid-block` 当前约定是：`.mermaid-output` 只承载 `:innerHTML`，不再放 placeholder 子节点；占位文案也通过 `:innerHTML` 切换。
+- `render-mermaid-on` 当前约定是：先写缓存状态，再 `ensure-mermaid!`，再 `await mermaid.render(...)`，失败时把缓存写成 `false`，成功时写回 svg 字符串。
+- 浏览器联调时，先看 `chrome-devtools list_console_messages`，再查 `.mermaid-output.innerHTML` 是否真的变成 `<svg...`，不要只看页面上有没有文字变化。

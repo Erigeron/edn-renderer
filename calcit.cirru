@@ -1,7 +1,7 @@
 
 {} (:about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `cr query` to inspect and `cr edit`/`cr tree` to modify. Run `cr docs agents --full` first. Manual edits must follow format and schema conventions, then run `cr edit format`.") (:package |app)
   :configs $ {} (:init-fn |app.main/main!) (:reload-fn |app.main/reload!) (:version |0.0.1)
-    :modules $ [] |respo.calcit/ |memof/ |respo-ui.calcit/ |reel.calcit/
+    :modules $ [] |respo.calcit/ |memof/ |respo-ui.calcit/ |reel.calcit/ |alerts.calcit/
   :entries $ {}
   :files $ {}
     |app.comp.container $ %{} :FileEntry
@@ -50,13 +50,12 @@
                         {} (:type |line) (:data values)
                   |pie $ merge base
                     {} $ :series
-                      [] $ {}
-                          :type |pie
-                          :data $ -> normalized-series .to-list
-                            map $ fn (item)
-                              {}
-                                :name $ :label item
-                                :value $ :value item
+                      [] $ {} (:type |pie)
+                        :data $ -> normalized-series .to-list
+                          map $ fn (item)
+                            {}
+                              :name $ :label item
+                              :value $ :value item
                   |scatter $ merge base
                     {}
                       :xAxis $ {} (:type |category) (:data names)
@@ -91,119 +90,165 @@
               let
                   store $ :store reel
                   states $ :states store
-                  ui $ or (:ui store) ({})
                   relay $ or (:relay store) ({})
                   renderer $ or (:renderer store) ({})
-                  sidebar-collapsed? $ not
-                    = false $ :sidebar-collapsed? ui
-                div
-                  {} $ :style
-                    {} (:min-height |100vh) (:padding 24) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
-                  div
-                    {} $ :style
-                      {} (:display |flex) (:gap 20) (:align-items |flex-start)
-                    div
-                      {} $ :style
+                  drawer-open? $ get-in states ([] :drawer :data :show?)
+                  drawer-plugin $ use-drawer (>> states :drawer)
+                    {}
+                      :style $ {} (:width 420) (:min-width 0) (:max-width "|calc(100vw - 20px)") (:padding "|14px 14px 18px") (:gap 14) (:background-color |#fffaf4) (:border-left "|1px solid #ead8c7") (:box-shadow "|-10px 0 30px hsla(24, 35%, 18%, 0.12)") (:overflow |auto)
+                      :container-style $ if drawer-open?
+                        {} (:position :fixed) (:top 0) (:right 0) (:bottom 0) (:left 0) (:z-index |40)
                         {}
-                          :width $ if sidebar-collapsed? |96px |320px
-                          :display |flex
-                          :flex-direction |column
-                          :gap 12
-                          :padding 18
-                          :border-radius 20
-                          :background-color |#fffaf4
-                          :border "|1px solid #ead8c7"
-                          :box-sizing |border-box
-                          :flex-shrink |0
-                      div
-                        {} $ :style
-                          {} (:display |flex) (:align-items |center) (:justify-content |space-between) (:gap 8)
+                      :backdrop-style $ {} (:background-color "|hsla(28, 40%, 16%, 0.16)") (:backdrop-filter "|blur(10px)")
+                      :render $ fn (on-close)
                         div
                           {} $ :style
-                            {}
-                              :font-size $ if sidebar-collapsed? 18 28
-                              :font-weight |700
-                              :line-height |1.1
-                          <> $ if sidebar-collapsed? |EDN "|EDN Renderer"
-                        button $ {}
-                          :inner-text $ if sidebar-collapsed? |>> |Collapse
-                          :on-click $ fn (e d!)
-                            d! $ :: :toggle-sidebar
-                          :style $ {}
-                            :padding $ if sidebar-collapsed? 8 10
-                            :border "|1px solid #d7bca4"
-                            :background-color |#f7e4d0
-                            :color |#5d4028
-                            :border-radius 999
-                            :font-size 12
-                            :font-weight |600
-                            :cursor |pointer
-                      if (not sidebar-collapsed?)
-                        div
-                          {} $ :style
-                            {} (:font-size 13) (:line-height |1.6) (:color |#7e6650)
-                          <> "|Listening on relay channel genui, validating incoming Cirru EDN layouts and rendering the accepted result."
-                      div
-                        {} $ :style
-                          {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 12) (:border-radius 14) (:background-color |#f4e7d8)
-                        div ({})
-                          <> $ if sidebar-collapsed?
-                            or (:status relay) |idle
-                            str "|Relay status: " $ or (:status relay) |idle
-                        if (not sidebar-collapsed?)
-                          if-let
-                            client-id $ :client-id relay
-                            div ({})
-                              <> $ str "|Client: " client-id
-                        if-let
-                          relay-error $ :last-error relay
+                            {} (:display |flex) (:flex-direction |column) (:gap 14)
                           div
                             {} $ :style
-                              {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                            <> $ if sidebar-collapsed? |ERR (str "|Relay error: " relay-error)
-                      div
-                        {} $ :style
-                          {} (:display |flex) (:flex-direction |column) (:gap 8)
-                        div ({})
-                          <> $ if sidebar-collapsed?
-                            or (:layout-id renderer) |waiting
-                            str "|Layout id: " $ or (:layout-id renderer) |waiting
-                        if (not sidebar-collapsed?)
-                          if-let
-                            request-id $ :last-request renderer
-                            div ({})
-                              <> $ str "|Request: " request-id
-                        if (not sidebar-collapsed?)
-                          if-let
-                            render-error $ :last-error renderer
+                              {} (:display |flex) (:justify-content |space-between) (:align-items |flex-start) (:gap 12)
                             div
                               {} $ :style
-                                {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                              <> $ str "|Validation error: " render-error
-                      if (not sidebar-collapsed?)
-                        textarea $ {}
-                          :value $ or (:layout-source renderer) |
-                          :read-only true
-                          :spell-check false
-                          :placeholder "|Incoming Cirru EDN layout payload will appear here."
-                          :style $ {} (:width |100%) (:min-height |260px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
-                      when
-                        and dev? $ not sidebar-collapsed?
-                        comp-reel (>> states :reel) reel $ {}
+                                {} (:display |flex) (:flex-direction |column) (:gap 6)
+                              div
+                                {} $ :style
+                                  {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                                <> "|Live session"
+                              div
+                                {} $ :style
+                                  {} (:font-size 22) (:font-weight |700) (:line-height |1.1) (:color |#2b2018)
+                                <> "|Renderer diagnostics"
+                              div
+                                {} $ :style
+                                  {} (:font-size 13) (:line-height |1.6) (:color |#7b6451)
+                                <> "|Inspect relay status, latest request ids, and the exact Cirru EDN payload being rendered."
+                            button $ {} (:class-name css/button) (:inner-text |Close)
+                              :style $ {} (:padding "|8px 12px") (:align-self |flex-start)
+                              :on-click $ fn (e d!) (on-close d!)
+                          div
+                            {} $ :style
+                              {} (:display |flex) (:gap 10) (:flex-wrap |wrap)
+                            div
+                              {} $ :style
+                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
+                              <> $ str "|Relay: "
+                                or (:status relay) |idle
+                            div
+                              {} $ :style
+                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
+                              <> $ str "|Layout: "
+                                or (:layout-id renderer) |waiting
+                            if-let
+                              request-id $ :last-request renderer
+                              div
+                                {} $ :style
+                                  {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
+                                <> $ str "|Request: " request-id
+                          div
+                            {} $ :style
+                              {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 18) (:background-color |#fff7ef) (:border "|1px solid #ead8c7")
+                            div
+                              {} $ :style
+                                {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                              <> |Relay
+                            div ({}) (<> "|Listening on relay channel genui.")
+                            if-let
+                              client-id $ :client-id relay
+                              div ({})
+                                <> $ str "|Client: " client-id
+                            if-let
+                              relay-error $ :last-error relay
+                              div
+                                {} $ :style
+                                  {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
+                                <> $ str "|Relay error: " relay-error
+                          div
+                            {} $ :style
+                              {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #ead8c7")
+                            div
+                              {} $ :style
+                                {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
+                              <> "|Latest payload"
+                            if-let
+                              render-error $ :last-error renderer
+                              div
+                                {} $ :style
+                                  {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
+                                <> $ str "|Validation error: " render-error
+                            textarea $ {}
+                              :value $ or (:layout-source renderer) |
+                              :read-only true
+                              :spell-check false
+                              :placeholder "|Incoming Cirru EDN layout payload will appear here."
+                              :style $ {} (:width |100%) (:min-height |280px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
+                          when dev? $ comp-reel (>> states :reel) reel ({})
+                  help-alert $ use-alert (>> states :help)
+                    {} $ :text "|Use the drawer to inspect relay status, request ids, and incoming Cirru EDN without reserving a permanent sidebar."
+                div
+                  {} $ :style
+                    {} (:min-height |100vh) (:padding 20) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
+                  div
+                    {} $ :style
+                      {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 12) (:padding "|12px 14px") (:border-radius 20) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:flex-wrap |wrap)
                     div
                       {} $ :style
-                        {} (:flex |1) (:min-width |0) (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf")
+                        {} (:display |flex) (:align-items |center) (:gap 10) (:flex-wrap |wrap)
                       div
                         {} $ :style
-                          {} (:font-size 20) (:font-weight |600)
-                        <> "|Rendered Preview"
-                      if-let
-                        layout $ :layout renderer
-                        comp-layout-node layout
-                        div
-                          {} $ :style
-                            {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
-                          <> "|Waiting for a validated genui layout from the relay."
+                          {} (:font-size 22) (:font-weight |700) (:line-height |1.1)
+                        <> "|EDN Renderer"
+                      div
+                        {} $ :style
+                          {} (:padding "|4px 10px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#8b6244)
+                        <> "|Preview-first workspace"
+                    div
+                      {} $ :style
+                        {} (:display |flex) (:gap 8) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
+                      div
+                        {} $ :style
+                          {} (:padding "|6px 10px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#6b4a32)
+                        <> $ str "|Relay: "
+                          or (:status relay) |idle
+                      div
+                        {} $ :style
+                          {} (:padding "|6px 10px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#6b4a32)
+                        <> $ if
+                          some? $ :layout-id renderer
+                          , "|Layout ready" "|Layout waiting"
+                      button $ {} (:class-name css/button) (:inner-text "|Open drawer")
+                        :style $ {} (:padding "|8px 12px")
+                        :on-click $ fn (e d!) (.show drawer-plugin d!)
+                      button $ {} (:class-name css/button) (:inner-text |Tips)
+                        :style $ {} (:padding "|8px 12px")
+                        :on-click $ fn (e d!) (.show help-alert d!)
+                  if-let
+                    relay-error $ :last-error relay
+                    div
+                      {} $ :style
+                        {} (:padding "|12px 14px") (:border-radius 16) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 12)
+                      <> $ str "|Relay error: " relay-error
+                  if-let
+                    render-error $ :last-error renderer
+                    div
+                      {} $ :style
+                        {} (:padding "|12px 14px") (:border-radius 16) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 12)
+                      <> $ str "|Validation error: " render-error
+                  div
+                    {} $ :style
+                      {} (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf") (:min-height |420px) (:margin-top 12)
+                    div
+                      {} $ :style
+                        {} (:font-size 20) (:font-weight |600)
+                      <> "|Rendered Preview"
+                    if-let
+                      layout $ :layout renderer
+                      comp-layout-node layout
+                      div
+                        {} $ :style
+                          {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
+                        <> "|Waiting for a validated genui layout from the relay."
+                  .render drawer-plugin
+                  .render help-alert
           :examples $ []
         |comp-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -340,11 +385,9 @@
                       {} $ :style
                         {} (:font-size 13) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
                       <> |Mermaid
-                    div
-                      {}
-                        :class-name |mermaid-output
-                        :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
-                        :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
+                    div $ {} (:class-name |mermaid-output)
+                      :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
+                      :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
           :examples $ []
         |effect-echarts $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -354,7 +397,11 @@
                     let
                         existing $ echarts-lib/getInstanceByDom el
                         chart $ if (nil? existing) (echarts-lib/init el) existing
-                      do (.!debug js/console "|[echarts] render" option) (.!setOption chart option true)
+                        plain-option $ to-js-data option
+                      do (.!debug js/console "|[echarts] render/raw" option) (.!log js/console "|[echarts] render/plain" plain-option)
+                        .!log js/console "|[echarts] render/plain-json" $ js/JSON.stringify plain-option nil 2
+                        .!log js/console "|[echarts] host-size" (.-clientWidth el) (.-clientHeight el)
+                        .!setOption chart plain-option true
                   dispose-chart $ fn ()
                     let
                         chart $ echarts-lib/getInstanceByDom el
@@ -371,9 +418,13 @@
                   payload $ build-mermaid-render-payload text
                 case-default action nil
                   :mount $ do (.!debug js/console "|[mermaid] mount" payload)
-                    when (not (:empty? payload)) (render-mermaid-on el payload)
+                    when
+                      not $ :empty? payload
+                      render-mermaid-on el payload
                   :update $ do (.!debug js/console "|[mermaid] update" payload)
-                    when (not (:empty? payload)) (render-mermaid-on el payload)
+                    when
+                      not $ :empty? payload
+                      render-mermaid-on el payload
                   :unmount $ .!debug js/console "|[mermaid] unmount"
           :examples $ []
         |ensure-mermaid! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -485,10 +536,11 @@
                   graph-id $ :graph-id payload
                   output $ .!querySelector el |.mermaid-output
                 if (nil? output) (.!warn js/console "|[mermaid] missing .mermaid-output" el)
-                  if (some? (get @*rendered-svgs source))
+                  if
+                    some? $ get @*rendered-svgs source
                     .!debug js/console "|[mermaid] skip rendered"
                     do
-                      reset! *rendered-svgs (assoc @*rendered-svgs source :rendering)
+                      reset! *rendered-svgs $ assoc @*rendered-svgs source :rendering
                       ensure-mermaid!
                       let
                           render-fn $ .-render mermaid-lib
@@ -500,13 +552,13 @@
                             do
                               set! (.-innerHTML output) svg
                               when (some? bind-fns) (bind-fns output)
-                              reset! *rendered-svgs (assoc @*rendered-svgs source svg)
+                              reset! *rendered-svgs $ assoc @*rendered-svgs source svg
                               .!debug js/console "|[mermaid] render" $ js-object
                                 :length $ count source
                                 :graphId graph-id
                           fn (error)
                             do
-                              reset! *rendered-svgs (assoc @*rendered-svgs source false)
+                              reset! *rendered-svgs $ assoc @*rendered-svgs source false
                               .!error js/console "|[mermaid] render failed" error
           :examples $ []
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -527,6 +579,7 @@
             app.config :refer $ dev?
             |echarts :as echarts-lib
             |mermaid :default mermaid-lib
+            respo-alerts.core :refer $ use-alert use-drawer
     |app.config $ %{} :FileEntry
       :defs $ {}
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -682,7 +735,6 @@
             def store $ {}
               :states $ {}
                 :cursor $ []
-              :ui $ {} (:sidebar-collapsed? true)
               :relay $ {} (:status |idle) (:client-id nil) (:last-error nil)
               :renderer $ {} (:layout nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
           :examples $ []
@@ -696,9 +748,6 @@
               tag-match op
                 (:states cursor s) (update-states store cursor s)
                 (:hydrate-storage data) data
-                (:toggle-sidebar)
-                  assoc-in store ([] :ui :sidebar-collapsed?)
-                    not $ get-in store ([] :ui :sidebar-collapsed?)
                 (:relay-connected client-id)
                   -> store
                     assoc-in ([] :relay :status) |ready
