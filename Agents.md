@@ -116,6 +116,9 @@ genui 布局文件用 2 空格缩进（不要用 tab），示例：
 - 严禁直接手改 `calcit.cirru`，必须使用 `cr tree` 或 `cr edit`。
 - 路径不要猜。先用 `cr query search` 拿路径，再用 `cr tree show` 确认。
 - 静态样式优先抽到 `defstyle`，动态列表中尽量少写内联 `:style`。
+- `SKILL.md` 属于对外暴露文档；如果需要在页面运行时提供 `skill`，应通过 macro 把文本加载进 renderer，而不是让外部直接读仓库文件。
+- 组件说明要用可检索的数据结构维护，方便 renderer 按名称或批量返回组件帮助。
+- 面向 CLI 的帮助信息优先通过 renderer 协议暴露；实现细节不要堆回 `SKILL.md`。
 
 ## Mermaid/异步渲染补充约定
 

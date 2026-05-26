@@ -582,13 +582,142 @@
             respo-alerts.core :refer $ use-alert use-drawer
     |app.config $ %{} :FileEntry
       :defs $ {}
+        |build-help-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-help-payload (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                {} (:status |ok) (:kind |help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics normalized-topics)
+                  :components $ select-component-docs normalized-topics
+                  :protocol_docs $ select-protocol-docs normalized-topics
+                  :examples $ select-example-docs normalized-topics
+          :examples $ []
+        |build-skill-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-skill-payload () $ {} (:status |ok) (:kind |skill) (:renderer |edn-renderer) (:title "|edn-renderer Skill") (:text skill-text)
+          :examples $ []
+        |build-status-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-status-payload () $ {} (:status |ok) (:kind |status) (:renderer |edn-renderer) (:title current-page-title) (:page_url current-page-url) (:commands relay-commands)
+          :examples $ []
+        |component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def component-docs $ []
+              {} (:name |column) (:summary "|纵向容器，使用 `:children` 顺序渲染子节点。")
+                :fields $ [] |children
+                :example "|{}\n  :type |column\n  :children $ []\n    {} (:type |text) (:text \"|Hello\")"
+              {} (:name |row) (:summary "|横向容器，使用 `:children` 横向排列子节点。")
+                :fields $ [] |children
+                :example "|{}\n  :type |row\n  :children $ []\n    {} (:type |badge) (:text |A)\n    {} (:type |badge) (:text |B)"
+              {} (:name |card) (:summary "|带标题的内容容器，常用于组合多个子节点。")
+                :fields $ [] |text |children
+                :example "|{}\n  :type |card\n  :text \"|Title\"\n  :children $ []\n    {} (:type |text) (:text \"|Body\")"
+              {} (:name |text) (:summary "|普通文本节点。")
+                :fields $ [] |text
+                :example "|{} (:type |text) (:text \"|Hello\")"
+              {} (:name |badge) (:summary "|紧凑状态标签。")
+                :fields $ [] |text
+                :example "|{} (:type |badge) (:text |preview)"
+              {} (:name |divider) (:summary "|水平分隔线。")
+                :fields $ []
+                :example "|{} (:type |divider)"
+              {} (:name |markdown) (:summary "|Markdown 富文本块。")
+                :fields $ [] |text
+                :example "|{} (:type |markdown) (:text \"|## Title\")"
+              {} (:name |mermaid) (:summary "|Mermaid 图节点，` :text ` 为 Mermaid DSL。")
+                :fields $ [] |text
+                :example "|{} (:type |mermaid) (:text \"|flowchart LR\\n  A --> B\")"
+              {} (:name |chart) (:summary "|ECharts 图表节点，支持 `bar`/`line`/`pie`/`scatter`。")
+                :fields $ [] |kind |title |series
+                :example "|{}\n  :type |chart\n  :kind |line\n  :title \"|Traffic\"\n  :series $ []\n    {} (:label |Mon) (:value 120)"
+              {} (:name |button) (:summary "|只读展示按钮。")
+                :fields $ [] |text
+                :example "|{} (:type |button) (:text |Confirm)"
+              {} (:name |input) (:summary "|只读展示输入框。")
+                :fields $ [] |name |placeholder |text
+                :example "|{} (:type |input) (:name |email) (:placeholder |Email)"
+          :examples $ []
+        |current-page-title $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def current-page-title $ .-title js/document
+          :examples $ []
+        |current-page-url $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def current-page-url $ .-href js/location
+          :examples $ []
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def dev? $ = |dev (get-env |mode |release)
           :examples $ []
+        |example-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def example-docs $ []
+              {} (:name |card-demo) (:summary "|最小 card 示例。") (:payload "|{}\n  :type |card\n  :text \"|CLI Demo\"\n  :children $ []\n    {} (:type |badge) (:text |preview)\n    {} (:type |text) (:text \"|Hello from CLI\")")
+              {} (:name |chart-demo) (:summary "|折线图示例。") (:payload "|{}\n  :type |chart\n  :kind |line\n  :title \"|Traffic trend\"\n  :series $ []\n    {} (:label |Mon) (:value 120)\n    {} (:label |Tue) (:value 132)\n    {} (:label |Wed) (:value 148)")
+              {} (:name |mermaid-demo) (:summary "|Mermaid 流程图示例。") (:payload "|{}\n  :type |mermaid\n  :text \"|flowchart LR\\n  A --> B\\n  B --> C\"")
+          :examples $ []
+        |protocol-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def protocol-docs $ []
+              {} (:name |genui) (:summary "|`genui` 频道用于发送布局树，renderer 校验并渲染后回 ack。")
+              {} (:name |renderer) (:summary "|`renderer` 频道用于查询帮助文档、skill 和状态信息。")
+              {} (:name |hello) (:summary "|浏览器连接 relay 后先发送 `hello`，并订阅 `genui`/`renderer` 频道。")
+              {} (:name |ack) (:summary "|CLI 请求最终通过 `ack` 拿到 renderer 的处理结果。")
+          :examples $ []
+        |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def relay-commands $ [] |genui |help |skill |status |current |open
+          :examples $ []
+        |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def renderer-help-overview "|使用 `edn-relay help` 查询当前 renderer 支持的能力；可以用 `edn-relay help protocol` 看协议摘要，用 `edn-relay help examples` 看示例，用 `edn-relay help chart mermaid` 过滤组件帮助。")
+          :examples $ []
+        |select-component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn select-component-docs (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                if (empty? normalized-topics) component-docs $ foldl component-docs ([])
+                  fn (acc item)
+                    if
+                      includes? normalized-topics $ :name item
+                      append acc item
+                      , acc
+          :examples $ []
+        |select-example-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn select-example-docs (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                if (includes? normalized-topics |examples) example-docs $ foldl example-docs ([])
+                  fn (acc item)
+                    if
+                      includes? normalized-topics $ :name item
+                      append acc item
+                      , acc
+          :examples $ []
+        |select-protocol-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn select-protocol-docs (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                if (includes? normalized-topics |protocol) protocol-docs $ foldl protocol-docs ([])
+                  fn (acc item)
+                    if
+                      includes? normalized-topics $ :name item
+                      append acc item
+                      , acc
+          :examples $ []
         |site $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100) (:relay-channel |genui)
+            def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100) (:relay-channel |genui) (:relay-docs-channel |renderer)
+          :examples $ []
+        |skill-text $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def skill-text $ slurp-file |SKILL.md
+          :examples $ []
+        |slurp-file $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defmacro slurp-file (file-path) (read-file file-path)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.config)
@@ -620,7 +749,7 @@
                 reset! *ws ws
                 .!addEventListener ws |open $ fn (event)
                   send-relay-frame! ws $ {} (:kind |hello) (:role |browser) (:client_id client-id)
-                    :channels $ [] (:relay-channel config/site)
+                    :channels $ [] (:relay-channel config/site) (:relay-docs-channel config/site)
                 .!addEventListener ws |message $ fn (event)
                   handle-relay-message! ws $ .-data event
                 .!addEventListener ws |error $ fn (event)
@@ -655,11 +784,37 @@
                     if
                       = (:channel frame) (:relay-channel config/site)
                       handle-genui-event! ws frame
-                      do |ignored
+                      if
+                        = (:channel frame) (:relay-docs-channel config/site)
+                        handle-renderer-event! ws frame
+                        do |ignored
                     if (= kind |error)
                       dispatch! $ :: :relay-status |error
                         or (:error frame) "|Relay error"
                       do |ignored
+          :examples $ []
+        |handle-renderer-event! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn handle-renderer-event! (ws frame)
+              let
+                  request-id $ :id frame
+                  payload $ :payload frame
+                  op $ if (map? payload) (:op payload) nil
+                  topics $ if
+                    and (map? payload)
+                      list? $ :topics payload
+                    :topics payload
+                    []
+                do (.!debug js/console "|[renderer] request" payload)
+                  if (= op |help)
+                    let
+                        response-payload $ config/build-help-payload topics
+                      send-genui-ack! ws request-id true response-payload nil
+                    if (= op |skill)
+                      send-genui-ack! ws request-id true (config/build-skill-payload) nil
+                      if (= op |status)
+                        send-genui-ack! ws request-id true (config/build-status-payload) nil
+                        send-genui-ack! ws request-id false nil $ str "|Unsupported renderer op: " op
           :examples $ []
         |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
