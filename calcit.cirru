@@ -90,9 +90,14 @@
               let
                   store $ :store reel
                   states $ :states store
-                  relay $ or (:relay store) ({})
-                  renderer $ or (:renderer store) ({})
+                  relay $ or (:relay store) {}
+                  renderer $ or (:renderer store) {}
                   drawer-open? $ get-in states ([] :drawer :data :show?)
+                  selected-channel $ :selected-channel relay
+                  channels $ if
+                    list? $ :channels relay
+                    :channels relay
+                    []
                   drawer-plugin $ use-drawer (>> states :drawer)
                     {}
                       :style $ {} (:width 420) (:min-width 0) (:max-width "|calc(100vw - 20px)") (:padding "|14px 14px 18px") (:gap 14) (:background-color |#fffaf4) (:border-left "|1px solid #ead8c7") (:box-shadow "|-10px 0 30px hsla(24, 35%, 18%, 0.12)") (:overflow |auto)
@@ -121,7 +126,7 @@
                               div
                                 {} $ :style
                                   {} (:font-size 13) (:line-height |1.6) (:color |#7b6451)
-                                <> "|Inspect relay status, latest request ids, and the exact Cirru EDN payload being rendered."
+                                <> "|Inspect relay status, request ids, available channels, and the exact Cirru EDN payload being rendered."
                             button $ {} (:class-name css/button) (:inner-text |Close)
                               :style $ {} (:padding "|8px 12px") (:align-self |flex-start)
                               :on-click $ fn (e d!) (on-close d!)
@@ -133,17 +138,16 @@
                                 {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
                               <> $ str "|Relay: "
                                 or (:status relay) |idle
-                            div
-                              {} $ :style
-                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
-                              <> $ str "|Layout: "
-                                or (:layout-id renderer) |waiting
                             if-let
                               request-id $ :last-request renderer
                               div
                                 {} $ :style
                                   {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
                                 <> $ str "|Request: " request-id
+                            div
+                              {} $ :style
+                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
+                              <> $ str "|Channels: " (count channels)
                           div
                             {} $ :style
                               {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 18) (:background-color |#fff7ef) (:border "|1px solid #ead8c7")
@@ -151,7 +155,25 @@
                               {} $ :style
                                 {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
                               <> |Relay
-                            div ({}) (<> "|Listening on relay channel genui.")
+                            div ({})
+                              if (some? selected-channel)
+                                <> $ str "|Selected channel: " selected-channel
+                                <> "|No channel selected yet."
+                            if
+                              > (count channels) 0
+                              list->
+                                {} $ :style
+                                  {} (:display |flex) (:gap 8) (:flex-wrap |wrap)
+                                -> channels .to-list $ map-indexed
+                                  fn (idx channel)
+                                    [] idx $ div
+                                      {} $ :style
+                                        {} (:padding "|6px 10px") (:border-radius 999)
+                                          :background-color $ if (= channel selected-channel) |#f3d7ba |#fff
+                                          :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
+                                          :font-size 12
+                                          :color |#6b4a32
+                                      <> channel
                             if-let
                               client-id $ :client-id relay
                               div ({})
@@ -183,7 +205,7 @@
                               :style $ {} (:width |100%) (:min-height |280px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
                           when dev? $ comp-reel (>> states :reel) reel ({})
                   help-alert $ use-alert (>> states :help)
-                    {} $ :text "|Use the drawer to inspect relay status, request ids, and incoming Cirru EDN without reserving a permanent sidebar."
+                    {} $ :text "|Use the drawer to inspect relay status, request ids, channel state, and incoming Cirru EDN without reserving a permanent sidebar."
                 div
                   {} $ :style
                     {} (:min-height |100vh) (:padding 20) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
@@ -200,7 +222,9 @@
                       div
                         {} $ :style
                           {} (:padding "|4px 10px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#8b6244)
-                        <> "|Preview-first workspace"
+                        if (some? selected-channel)
+                          <> $ str "|Channel: " selected-channel
+                          <> "|Choose channel"
                     div
                       {} $ :style
                         {} (:display |flex) (:gap 8) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
@@ -212,9 +236,10 @@
                       div
                         {} $ :style
                           {} (:padding "|6px 10px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#6b4a32)
-                        <> $ if
+                        if
                           some? $ :layout-id renderer
-                          , "|Layout ready" "|Layout waiting"
+                          <> "|Layout ready"
+                          <> "|Layout waiting"
                       button $ {} (:class-name css/button) (:inner-text "|Open drawer")
                         :style $ {} (:padding "|8px 12px")
                         :on-click $ fn (e d!) (.show drawer-plugin d!)
@@ -233,6 +258,27 @@
                       {} $ :style
                         {} (:padding "|12px 14px") (:border-radius 16) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 12)
                       <> $ str "|Validation error: " render-error
+                  if
+                    > (count channels) 1
+                    div
+                      {} $ :style
+                        {} (:display |flex) (:flex-direction |column) (:gap 12) (:padding 18) (:border-radius 20) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:margin-top 12)
+                      div
+                        {} $ :style
+                          {} (:font-size 15) (:font-weight |600) (:color |#6b4528)
+                        <> "|Available channels"
+                      list->
+                        {} $ :style
+                          {} (:display |flex) (:gap 10) (:flex-wrap |wrap)
+                        -> channels .to-list $ map-indexed
+                          fn (idx channel)
+                            [] idx $ button
+                              {} (:class-name css/button) (:inner-text channel)
+                                :style $ {} (:padding "|8px 12px")
+                                  :background-color $ if (= channel selected-channel) |#e8b488 |#fff
+                                  :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
+                                :on-click $ fn (e d!)
+                                  d! $ :: :select-channel channel
                   div
                     {} $ :style
                       {} (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf") (:min-height |420px) (:margin-top 12)
@@ -240,13 +286,21 @@
                       {} $ :style
                         {} (:font-size 20) (:font-weight |600)
                       <> "|Rendered Preview"
-                    if-let
-                      layout $ :layout renderer
-                      comp-layout-node layout
+                    if (nil? selected-channel)
                       div
                         {} $ :style
                           {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
-                        <> "|Waiting for a validated genui layout from the relay."
+                        if
+                          > (count channels) 1
+                          <> "|Select a channel to start receiving validated layouts."
+                          <> "|Waiting for an active relay channel. Open this page with `?channel=<name>` and send payloads with `edn-relay send --channel <name> '<INPUT>'`."
+                      if-let
+                        layout $ :layout renderer
+                        comp-layout-node layout
+                        div
+                          {} $ :style
+                            {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
+                          <> "|Waiting for a validated payload from the relay."
                   .render drawer-plugin
                   .render help-alert
           :examples $ []
@@ -598,7 +652,10 @@
           :examples $ []
         |build-status-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn build-status-payload () $ {} (:status |ok) (:kind |status) (:renderer |edn-renderer) (:title current-page-title) (:page_url current-page-url) (:commands relay-commands)
+            defn build-status-payload (relay)
+              {} (:status |ok) (:kind |status) (:renderer |edn-renderer) (:title current-page-title) (:page_url current-page-url) (:commands relay-commands)
+                :channel $ :selected-channel relay
+                :channels $ or (:channels relay) ([])
           :examples $ []
         |component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -645,6 +702,16 @@
           :code $ quote
             def current-page-url $ .-href js/location
           :examples $ []
+        |current-url-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn current-url-channel () $ let
+                params $ new js/URLSearchParams (.-search js/location)
+                value $ .!get params |channel
+              if
+                and (some? value)
+                  > (count value) 0
+                , value nil
+          :examples $ []
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def dev? $ = |dev (get-env |mode |release)
@@ -659,14 +726,14 @@
         |protocol-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def protocol-docs $ []
-              {} (:name |genui) (:summary "|`genui` 频道用于发送布局树，renderer 校验并渲染后回 ack。")
-              {} (:name |renderer) (:summary "|`renderer` 频道用于查询帮助文档、skill 和状态信息。")
-              {} (:name |hello) (:summary "|浏览器连接 relay 后先发送 `hello`，并订阅 `genui`/`renderer` 频道。")
-              {} (:name |ack) (:summary "|CLI 请求最终通过 `ack` 拿到 renderer 的处理结果。")
+              {} (:name |channel) (:summary "|每个 renderer 连接只订阅一个当前 channel；URL 上的 `?channel=` 可以直接指定或创建它。")
+              {} (:name |hello) (:summary "|浏览器连接 relay 后先发送 `hello`，服务端会返回 `hello-ok` 和当前活跃 channel 列表。")
+              {} (:name |channel-state) (:summary "|当活跃 channel 列表变化时，relay 会广播 `channel-state`。")
+              {} (:name |ack) (:summary "|同一个请求允许多个 receiver 收到事件，但 sender 只接受第一条 `ack`。")
           :examples $ []
         |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def relay-commands $ [] |genui |help |skill |status |current |open
+            def relay-commands $ [] |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote (def renderer-help-overview "|使用 `edn-relay help` 查询当前 renderer 支持的能力；可以用 `edn-relay help protocol` 看协议摘要，用 `edn-relay help examples` 看示例，用 `edn-relay help chart mermaid` 过滤组件帮助。")
@@ -709,7 +776,7 @@
           :examples $ []
         |site $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100) (:relay-channel |genui) (:relay-docs-channel |renderer)
+            def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
           :examples $ []
         |skill-text $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -736,7 +803,15 @@
               when
                 and config/dev? $ not= op :states
                 js/console.log |Dispatch: op
-              reset! *reel $ reel-updater updater @*reel op
+              let
+                  next-reel $ reel-updater updater @*reel op
+                reset! *reel next-reel
+                when
+                  and (some? @*ws)
+                    tag-match op
+                      (:select-channel _) true
+                      _ false
+                  sync-selected-channel! @*ws
           :examples $ []
         |ensure-relay! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -748,8 +823,8 @@
                     .!toISOString $ new js/Date
                 reset! *ws ws
                 .!addEventListener ws |open $ fn (event)
-                  send-relay-frame! ws $ {} (:kind |hello) (:role |browser) (:client_id client-id)
-                    :channels $ [] (:relay-channel config/site) (:relay-docs-channel config/site)
+                  dispatch! $ :: :relay-connected client-id ([])
+                  sync-selected-channel! ws
                 .!addEventListener ws |message $ fn (event)
                   handle-relay-message! ws $ .-data event
                 .!addEventListener ws |error $ fn (event)
@@ -757,6 +832,20 @@
                 .!addEventListener ws |close $ fn (event) (reset! *ws nil)
                   dispatch! $ :: :relay-status |closed "|Relay connection closed, retrying..."
                   flipped js/setTimeout 2000 ensure-relay!
+          :examples $ []
+        |handle-channel-state! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn handle-channel-state! (ws client-id channels)
+              let
+                  normalized $ if (list? channels) channels ([])
+                if (some? client-id)
+                  dispatch! $ :: :relay-connected client-id normalized
+                  dispatch! $ :: :relay-channels normalized
+                when
+                  and
+                    nil? $ selected-relay-channel
+                    = 1 $ count normalized
+                  dispatch! $ :: :select-channel (first normalized)
           :examples $ []
         |handle-genui-event! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -778,20 +867,28 @@
               let
                   frame $ parse-cirru-edn raw
                   kind $ :kind frame
+                  payload $ :payload frame
+                  op $ if (map? payload) (:op payload) nil
+                  selected $ selected-relay-channel
                 if (= kind |hello-ok)
-                  dispatch! $ :: :relay-connected (:client_id frame)
-                  if (= kind |event)
-                    if
-                      = (:channel frame) (:relay-channel config/site)
-                      handle-genui-event! ws frame
+                  handle-channel-state! ws (:client_id frame) (:channels frame)
+                  if (= kind |channel-state)
+                    handle-channel-state! ws nil $ :channels frame
+                    if (= kind |event)
                       if
-                        = (:channel frame) (:relay-docs-channel config/site)
-                        handle-renderer-event! ws frame
+                        and (some? selected)
+                          = (:channel frame) selected
+                        if
+                          includes? ([] |help |skill |status) op
+                          handle-renderer-event! ws frame
+                          handle-genui-event! ws frame
                         do |ignored
-                    if (= kind |error)
-                      dispatch! $ :: :relay-status |error
-                        or (:error frame) "|Relay error"
-                      do |ignored
+                      if (= kind |warning)
+                        .!warn js/console $ or (:error frame) "|Relay warning"
+                        if (= kind |error)
+                          dispatch! $ :: :relay-status |error
+                            or (:error frame) "|Relay error"
+                          do |ignored
           :examples $ []
         |handle-renderer-event! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -805,6 +902,7 @@
                       list? $ :topics payload
                     :topics payload
                     []
+                  relay $ get-in @*reel ([] :store :relay)
                 do (.!debug js/console "|[renderer] request" payload)
                   if (= op |help)
                     let
@@ -813,7 +911,7 @@
                     if (= op |skill)
                       send-genui-ack! ws request-id true (config/build-skill-payload) nil
                       if (= op |status)
-                        send-genui-ack! ws request-id true (config/build-status-payload) nil
+                        send-genui-ack! ws request-id true (config/build-status-payload relay) nil
                         send-genui-ack! ws request-id false nil $ str "|Unsupported renderer op: " op
           :examples $ []
         |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -832,6 +930,9 @@
                   raw $ js/localStorage.getItem (:storage-key config/site)
                 when (some? raw)
                   dispatch! $ :: :hydrate-storage (parse-cirru-edn raw)
+              if-let
+                url-channel $ config/current-url-channel
+                dispatch! $ :: :select-channel url-channel
               ensure-relay!
               println "|App started."
           :examples $ []
@@ -860,6 +961,10 @@
           :code $ quote
             defn render-app! () $ render! mount-target (comp-container @*reel) dispatch!
           :examples $ []
+        |selected-relay-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn selected-relay-channel () $ get-in @*reel ([] :store :relay :selected-channel)
+          :examples $ []
         |send-genui-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn send-genui-ack! (ws request-id ok? payload error-message)
@@ -869,6 +974,15 @@
           :code $ quote
             defn send-relay-frame! (ws frame)
               .!send ws $ format-cirru-edn frame
+          :examples $ []
+        |sync-selected-channel! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn sync-selected-channel! (ws)
+              let
+                  client-id $ get-in @*reel ([] :store :relay :client-id)
+                  selected $ selected-relay-channel
+                  channels $ if (some? selected) ([] selected) ([])
+                send-relay-frame! ws $ {} (:kind |hello) (:role |receiver) (:client_id client-id) (:channels channels)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote
@@ -890,7 +1004,8 @@
             def store $ {}
               :states $ {}
                 :cursor $ []
-              :relay $ {} (:status |idle) (:client-id nil) (:last-error nil)
+              :relay $ {} (:status |idle) (:client-id nil) (:last-error nil) (:selected-channel nil)
+                :channels $ []
               :renderer $ {} (:layout nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
@@ -903,11 +1018,22 @@
               tag-match op
                 (:states cursor s) (update-states store cursor s)
                 (:hydrate-storage data) data
-                (:relay-connected client-id)
+                (:relay-connected client-id channels)
                   -> store
                     assoc-in ([] :relay :status) |ready
                     assoc-in ([] :relay :client-id) client-id
+                    assoc-in ([] :relay :channels) channels
                     assoc-in ([] :relay :last-error) nil
+                (:relay-channels channels)
+                  assoc-in store ([] :relay :channels) channels
+                (:select-channel channel)
+                  -> store
+                    assoc-in ([] :relay :selected-channel) channel
+                    assoc-in ([] :renderer :layout) nil
+                    assoc-in ([] :renderer :layout-id) nil
+                    assoc-in ([] :renderer :layout-source) |
+                    assoc-in ([] :renderer :last-request) nil
+                    assoc-in ([] :renderer :last-error) nil
                 (:relay-status status message)
                   -> store
                     assoc-in ([] :relay :status) status
