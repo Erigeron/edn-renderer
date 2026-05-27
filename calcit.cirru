@@ -15,7 +15,18 @@
           :examples $ []
         |LayoutNode $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def LayoutNode $ defenum LayoutNode (:column :list) (:row :list) (:card :dynamic :list) (:text :string) (:badge :string) (:divider) (:button :string) (:input :dynamic :dynamic :dynamic) (:markdown :string) (:mermaid :string) (:chart :dynamic :dynamic :list)
+            def LayoutNode $ defenum LayoutNode (:column :list) (:row :list) (:card :dynamic :list) (:text :string) (:badge :string) (:divider) (:button :string) (:input :dynamic :dynamic :dynamic) (:markdown :string) (:mermaid :string) (:chart :dynamic :dynamic :list) (:math :dynamic :dynamic)
+          :examples $ []
+        |append-mathml-child! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn append-mathml-child! (el child path)
+              if (string? child)
+                .!appendChild el $ .!createTextNode js/document child
+                if (number? child)
+                  .!appendChild el $ .!createTextNode js/document (str child)
+                  if (list? child)
+                    .!appendChild el $ build-mathml-element child path
+                    raise $ str path "| invalid MathML child, expected string, number, or list"
           :examples $ []
         |build-echarts-option $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -62,6 +73,30 @@
                       :yAxis $ {} (:type |value)
                       :series $ []
                         {} (:type |scatter) (:data values)
+          :examples $ []
+        |build-mathml-element $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-mathml-element (expr path)
+              let
+                  tag-name $ first expr
+                  children $ or (rest expr) ([])
+                  el $ .!createElementNS js/document mathml-namespace tag-name
+                do
+                  foldl children nil $ fn (acc child)
+                    do
+                      append-mathml-child! el child $ str path |/ tag-name
+                      , acc
+                  , el
+          :examples $ []
+        |build-mathml-root $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-mathml-root (expr display)
+              let
+                  root $ .!createElementNS js/document mathml-namespace |math
+                do
+                  .!setAttribute root |display $ math-display-value display
+                  .!appendChild root $ build-mathml-element expr |math
+                  , root
           :examples $ []
         |build-mermaid-render-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -206,103 +241,104 @@
                           when dev? $ comp-reel (>> states :reel) reel ({})
                   help-alert $ use-alert (>> states :help)
                     {} $ :text "|Use the drawer to inspect relay status, request ids, channel state, and incoming Cirru EDN without reserving a permanent sidebar."
-                div
-                  {} $ :style
-                    {} (:min-height |100vh) (:padding 20) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
+                [] (effect-page-title selected-channel)
                   div
                     {} $ :style
-                      {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 12) (:padding "|12px 14px") (:border-radius 20) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:flex-wrap |wrap)
+                      {} (:min-height |100vh) (:padding 16) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
                     div
                       {} $ :style
-                        {} (:display |flex) (:align-items |center) (:gap 10) (:flex-wrap |wrap)
+                        {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 8) (:padding "|8px 10px") (:border-radius 16) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:flex-wrap |wrap)
                       div
                         {} $ :style
-                          {} (:font-size 22) (:font-weight |700) (:line-height |1.1)
-                        <> "|EDN Renderer"
-                      div
-                        {} $ :style
-                          {} (:padding "|4px 10px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#8b6244)
-                        if (some? selected-channel)
-                          <> $ str "|Channel: " selected-channel
-                          <> "|Choose channel"
-                    div
-                      {} $ :style
-                        {} (:display |flex) (:gap 8) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
-                      div
-                        {} $ :style
-                          {} (:padding "|6px 10px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#6b4a32)
-                        <> $ str "|Relay: "
-                          or (:status relay) |idle
-                      div
-                        {} $ :style
-                          {} (:padding "|6px 10px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 12) (:color |#6b4a32)
-                        if
-                          some? $ :layout-id renderer
-                          <> "|Layout ready"
-                          <> "|Layout waiting"
-                      button $ {} (:class-name css/button) (:inner-text "|Open drawer")
-                        :style $ {} (:padding "|8px 12px")
-                        :on-click $ fn (e d!) (.show drawer-plugin d!)
-                      button $ {} (:class-name css/button) (:inner-text |Tips)
-                        :style $ {} (:padding "|8px 12px")
-                        :on-click $ fn (e d!) (.show help-alert d!)
-                  if-let
-                    relay-error $ :last-error relay
-                    div
-                      {} $ :style
-                        {} (:padding "|12px 14px") (:border-radius 16) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 12)
-                      <> $ str "|Relay error: " relay-error
-                  if-let
-                    render-error $ :last-error renderer
-                    div
-                      {} $ :style
-                        {} (:padding "|12px 14px") (:border-radius 16) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 12)
-                      <> $ str "|Validation error: " render-error
-                  if
-                    > (count channels) 1
-                    div
-                      {} $ :style
-                        {} (:display |flex) (:flex-direction |column) (:gap 12) (:padding 18) (:border-radius 20) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:margin-top 12)
-                      div
-                        {} $ :style
-                          {} (:font-size 15) (:font-weight |600) (:color |#6b4528)
-                        <> "|Available channels"
-                      list->
-                        {} $ :style
-                          {} (:display |flex) (:gap 10) (:flex-wrap |wrap)
-                        -> channels .to-list $ map-indexed
-                          fn (idx channel)
-                            [] idx $ button
-                              {} (:class-name css/button) (:inner-text channel)
-                                :style $ {} (:padding "|8px 12px")
-                                  :background-color $ if (= channel selected-channel) |#e8b488 |#fff
-                                  :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
-                                :on-click $ fn (e d!)
-                                  d! $ :: :select-channel channel
-                  div
-                    {} $ :style
-                      {} (:display |flex) (:flex-direction |column) (:gap 16) (:padding 22) (:border-radius 24) (:background-color |#fff7ef) (:border "|1px solid #ecdccf") (:min-height |420px) (:margin-top 12)
-                    div
-                      {} $ :style
-                        {} (:font-size 20) (:font-weight |600)
-                      <> "|Rendered Preview"
-                    if (nil? selected-channel)
-                      div
-                        {} $ :style
-                          {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
-                        if
-                          > (count channels) 1
-                          <> "|Select a channel to start receiving validated layouts."
-                          <> "|Waiting for an active relay channel. Open this page with `?channel=<name>` and send payloads with `edn-relay send --channel <name> '<INPUT>'`."
-                      if-let
-                        layout $ :layout renderer
-                        comp-layout-node layout
+                          {} (:display |flex) (:align-items |center) (:gap 8) (:flex-wrap |wrap)
                         div
                           {} $ :style
-                            {} (:padding 32) (:border-radius 18) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 15) (:line-height |1.7) (:color |#8b6c52)
-                          <> "|Waiting for a validated payload from the relay."
-                  .render drawer-plugin
-                  .render help-alert
+                            {} (:font-size 18) (:font-weight |700) (:line-height |1)
+                          <> "|EDN Renderer"
+                        div
+                          {} $ :style
+                            {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#8b6244)
+                          if (some? selected-channel)
+                            <> $ str "|Channel: " selected-channel
+                            <> "|Choose channel"
+                      div
+                        {} $ :style
+                          {} (:display |flex) (:gap 6) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
+                        div
+                          {} $ :style
+                            {} (:padding "|4px 8px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#6b4a32)
+                          <> $ str "|Relay: "
+                            or (:status relay) |idle
+                        div
+                          {} $ :style
+                            {} (:padding "|4px 8px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#6b4a32)
+                          if
+                            some? $ :layout-id renderer
+                            <> |Ready
+                            <> |Waiting
+                        button $ {} (:class-name css/button) (:inner-text |Drawer)
+                          :style $ {} (:padding "|6px 10px")
+                          :on-click $ fn (e d!) (.show drawer-plugin d!)
+                        button $ {} (:class-name css/button) (:inner-text |Tips)
+                          :style $ {} (:padding "|6px 10px")
+                          :on-click $ fn (e d!) (.show help-alert d!)
+                    if-let
+                      relay-error $ :last-error relay
+                      div
+                        {} $ :style
+                          {} (:padding "|10px 12px") (:border-radius 14) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 10)
+                        <> $ str "|Relay error: " relay-error
+                    if-let
+                      render-error $ :last-error renderer
+                      div
+                        {} $ :style
+                          {} (:padding "|10px 12px") (:border-radius 14) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 10)
+                        <> $ str "|Validation error: " render-error
+                    if
+                      > (count channels) 1
+                      div
+                        {} $ :style
+                          {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 16) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:margin-top 10)
+                        div
+                          {} $ :style
+                            {} (:font-size 13) (:font-weight |600) (:color |#6b4528)
+                          <> "|Available channels"
+                        list->
+                          {} $ :style
+                            {} (:display |flex) (:gap 8) (:flex-wrap |wrap)
+                          -> channels .to-list $ map-indexed
+                            fn (idx channel)
+                              [] idx $ button
+                                {} (:class-name css/button) (:inner-text channel)
+                                  :style $ {} (:padding "|6px 10px")
+                                    :background-color $ if (= channel selected-channel) |#e8b488 |#fff
+                                    :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
+                                  :on-click $ fn (e d!)
+                                    d! $ :: :select-channel channel
+                    div
+                      {} $ :style
+                        {} (:display |flex) (:flex-direction |column) (:gap 14) (:padding 18) (:border-radius 20) (:background-color |#fff7ef) (:border "|1px solid #ecdccf") (:min-height |420px) (:margin-top 10)
+                      div
+                        {} $ :style
+                          {} (:font-size 18) (:font-weight |600)
+                        <> "|Rendered Preview"
+                      if (nil? selected-channel)
+                        div
+                          {} $ :style
+                            {} (:padding 28) (:border-radius 16) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 14) (:line-height |1.7) (:color |#8b6c52)
+                          if
+                            > (count channels) 1
+                            <> "|Select a channel to start receiving validated layouts."
+                            <> "|Waiting for an active relay channel. Open this page with `?channel=<name>` and send payloads with `edn-relay send --channel <name> '<INPUT>'`."
+                        if-let
+                          layout $ :layout renderer
+                          comp-layout-node layout
+                          div
+                            {} $ :style
+                              {} (:padding 28) (:border-radius 16) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 14) (:line-height |1.7) (:color |#8b6c52)
+                            <> "|Waiting for a validated payload from the relay."
+                    .render drawer-plugin
+                    .render help-alert
           :examples $ []
         |comp-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -369,6 +405,7 @@
                     {} $ :style
                       {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca")
                     comp-chart-block series kind title
+                (:math expr display) (comp-math-block expr display)
                 _ $ div
                   {} $ :style
                     {} (:padding 12) (:border "|1px solid #f08c6c") (:border-radius 12) (:background-color |#fff4ef) (:color |#9b3d15)
@@ -422,6 +459,19 @@
                             {} (:font-size 15) (:line-height |1.7) (:color |#2e241c) (:white-space |pre-wrap)
                           <> line
           :examples $ []
+        |comp-math-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defcomp comp-math-block (expr display)
+              let
+                  block? $ = (math-display-value display) |block
+                [] (effect-mathml expr display)
+                  div $ {} (:class-name |mathml-host)
+                    :style $ merge
+                      {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca") (:overflow |auto) (:color |#2e241c) (:max-width |100%) (:align-self |flex-start)
+                      if block?
+                        {} $ :width |100%
+                        {} $ :width |fit-content
+          :examples $ []
         |comp-mermaid-block $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defcomp comp-mermaid-block (text)
@@ -465,6 +515,14 @@
                   :update $ do (.!debug js/console "|[echarts] update") (render-chart)
                   :unmount $ do (.!debug js/console "|[echarts] unmount") (dispose-chart)
           :examples $ []
+        |effect-mathml $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defeffect effect-mathml (expr display) (action el at?)
+              case-default action nil
+                :mount $ render-mathml-on el expr display
+                :update $ render-mathml-on el expr display
+                :unmount $ set! (.-innerHTML el) |
+          :examples $ []
         |effect-mermaid $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defeffect effect-mermaid (text) (action el at?)
@@ -481,12 +539,35 @@
                       render-mermaid-on el payload
                   :unmount $ .!debug js/console "|[mermaid] unmount"
           :examples $ []
+        |effect-page-title $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defeffect effect-page-title (selected-channel) (action el at?)
+              let
+                  next-title $ page-title-text selected-channel
+                case-default action nil
+                  :mount $ set! (.-title js/document) next-title
+                  :update $ set! (.-title js/document) next-title
+                  :unmount $ set! (.-title js/document) (page-title-text nil)
+          :examples $ []
         |ensure-mermaid! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn ensure-mermaid! () $ when
               not $ deref *mermaid-ready
               .!initialize mermaid-lib $ js-object (:startOnLoad false) (:securityLevel |loose) (:theme |neutral)
               reset! *mermaid-ready true
+          :examples $ []
+        |math-display-value $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn math-display-value (display)
+              if (= display |block) |block |inline
+          :examples $ []
+        |mathml-namespace $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def mathml-namespace |http://www.w3.org/1998/Math/MathML)
+          :examples $ []
+        |page-title-text $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn page-title-text (selected-channel)
+              str |EDN-Renderer/ $ or selected-channel |waiting
           :examples $ []
         |parse-layout-children $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -575,11 +656,24 @@
                               and
                                 string? $ :label item
                                 number? $ :value item
-                              , item $ raise (str path "| chart series item requires string :label and number :value")
+                              , true $ raise (str path "| chart series item requires string :label and number :value")
                         %:: LayoutNode :chart
                           or (:kind node) |bar
                           or (:title node) |
                           , series
+                      |math $ do
+                        validate-mathml-expr (:expr node) (str path |.expr)
+                        %:: LayoutNode :math (:expr node)
+                          math-display-value $ :display node
+          :examples $ []
+        |render-mathml-on $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn render-mathml-on (el expr display)
+              let
+                  root $ build-mathml-root expr display
+                do
+                  set! (.-innerHTML el) |
+                  .!appendChild el root
           :examples $ []
         |render-mermaid-on $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -623,6 +717,35 @@
           :code $ quote
             defn validate-layout-node (node path) (parse-layout-node node path)
           :examples $ []
+        |validate-mathml-child $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn validate-mathml-child (child path)
+              if
+                or (string? child) (number? child)
+                , child $ if (list? child) (validate-mathml-expr child path)
+                  raise $ str path "| invalid MathML child, expected string, number, or list"
+          :examples $ []
+        |validate-mathml-expr $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn validate-mathml-expr (expr path)
+              if
+                not $ list? expr
+                raise $ str path "| math node requires list field :expr"
+                if (empty? expr)
+                  raise $ str path "| math expression should not be empty"
+                  let
+                      tag-name $ first expr
+                      children $ or (rest expr) ([])
+                    if
+                      not $ string? tag-name
+                      raise $ str path "| math expression requires string tag name"
+                      do
+                        foldl children nil $ fn (acc child)
+                          do
+                            validate-mathml-child child $ str path |/ tag-name
+                            , acc
+                        , expr
+          :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require (respo-ui.css :as css)
@@ -641,19 +764,39 @@
             defn build-help-payload (topics)
               let
                   normalized-topics $ if (list? topics) topics ([])
-                {} (:status |ok) (:kind |help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics normalized-topics)
+                {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics normalized-topics)
                   :components $ select-component-docs normalized-topics
                   :protocol_docs $ select-protocol-docs normalized-topics
                   :examples $ select-example-docs normalized-topics
           :examples $ []
         |build-skill-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn build-skill-payload () $ {} (:status |ok) (:kind |skill) (:renderer |edn-renderer) (:title "|edn-renderer Skill") (:text skill-text)
+            defn build-skill-payload (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                  full? $ includes? normalized-topics |full
+                  text $ if full? skill-text
+                    if (empty? normalized-topics) skill-overview $ build-skill-text normalized-topics
+                {} (:status :ok) (:kind :skill) (:renderer |edn-renderer)
+                  :title $ if full? "|edn-renderer Skill (full)" "|edn-renderer Skill"
+                  :text text
+          :examples $ []
+        |build-skill-text $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-skill-text (topics)
+              let
+                  sections $ select-skill-sections topics
+                if (empty? sections) skill-overview $ foldl sections skill-overview
+                  fn (acc item)
+                    str acc "|\n\n## " (:title item) "|\n\n" $ :text item
           :examples $ []
         |build-status-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn build-status-payload (relay)
-              {} (:status |ok) (:kind |status) (:renderer |edn-renderer) (:title current-page-title) (:page_url current-page-url) (:commands relay-commands)
+              {} (:status :ok) (:kind :status) (:renderer |edn-renderer)
+                :title $ current-page-title
+                :page_url $ current-page-url
+                :commands relay-commands
                 :channel $ :selected-channel relay
                 :channels $ or (:channels relay) ([])
           :examples $ []
@@ -687,6 +830,9 @@
               {} (:name |chart) (:summary "|ECharts 图表节点，支持 `bar`/`line`/`pie`/`scatter`。")
                 :fields $ [] |kind |title |series
                 :example "|{}\n  :type |chart\n  :kind |line\n  :title \"|Traffic\"\n  :series $ []\n    {} (:label |Mon) (:value 120)"
+              {} (:name |math) (:summary "|MathML Core 节点，使用 Cirru EDN list 简写 `:expr` 描述公式，再由浏览器原生 MathML 渲染。")
+                :fields $ [] |expr |display
+                :example "|{}\n  :type |math\n  :display |block\n  :expr $ [] |mfrac\n    [] |mrow\n      [] |mi |a\n      [] |mo |+\n      [] |mi |b\n    [] |msqrt\n      [] |mi |c"
               {} (:name |button) (:summary "|只读展示按钮。")
                 :fields $ [] |text
                 :example "|{} (:type |button) (:text |Confirm)"
@@ -696,34 +842,33 @@
           :examples $ []
         |current-page-title $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def current-page-title $ .-title js/document
+            defn current-page-title () $ .-title js/document
           :examples $ []
         |current-page-url $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def current-page-url $ .-href js/location
-          :examples $ []
-        |current-url-param $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn current-url-param (key) $ let
-                params $ new js/URLSearchParams (.-search js/location)
-                value $ .!get params key
-              if
-                and (some? value)
-                  > (count value) 0
-                , value nil
-          :examples $ []
-        |current-url-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn current-url-channel () $ current-url-param |channel
+            defn current-page-url () $ .-href js/location
           :examples $ []
         |current-relay-url $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn current-relay-url () $ let
                 server $ current-url-param |server
                 port $ current-url-param |port
-              or server $ if (some? port)
-                str |ws://127.0.0.1: port
-                :relay-url site
+              or server $ if (some? port) (str |ws://127.0.0.1: port) (:relay-url site)
+          :examples $ []
+        |current-url-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn current-url-channel () $ current-url-param |channel
+          :examples $ []
+        |current-url-param $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn current-url-param (key)
+              let
+                  params $ new js/URLSearchParams (.-search js/location)
+                  value $ .!get params key
+                if
+                  and (some? value)
+                    > (count value) 0
+                  , value nil
           :examples $ []
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -734,6 +879,8 @@
             def example-docs $ []
               {} (:name |card-demo) (:summary "|最小 card 示例。") (:payload "|{}\n  :type |card\n  :text \"|CLI Demo\"\n  :children $ []\n    {} (:type |badge) (:text |preview)\n    {} (:type |text) (:text \"|Hello from CLI\")")
               {} (:name |chart-demo) (:summary "|折线图示例。") (:payload "|{}\n  :type |chart\n  :kind |line\n  :title \"|Traffic trend\"\n  :series $ []\n    {} (:label |Mon) (:value 120)\n    {} (:label |Tue) (:value 132)\n    {} (:label |Wed) (:value 148)")
+              {} (:name |math-fraction-demo) (:summary "|MathML 分式示例。") (:payload "|{}\n  :type |math\n  :display |block\n  :expr $ [] |mfrac\n    [] |mrow\n      [] |mi |a\n      [] |mo |+\n      [] |mi |b\n    [] |msqrt\n      [] |mi |c")
+              {} (:name |math-quadratic-demo) (:summary "|MathML 二次方程求根公式。") (:payload "|{}\n  :type |math\n  :display |block\n  :expr $ [] |mfrac\n    [] |mrow\n      [] |mo |−\n      [] |mi |b\n      [] |mo |±\n      [] |msqrt\n        [] |mrow\n          [] |msup\n            [] |mi |b\n            [] |mn |2\n          [] |mo |−\n          [] |mn |4\n          [] |mi |a\n          [] |mi |c\n    [] |mrow\n      [] |mn |2\n      [] |mi |a")
               {} (:name |mermaid-demo) (:summary "|Mermaid 流程图示例。") (:payload "|{}\n  :type |mermaid\n  :text \"|flowchart LR\\n  A --> B\\n  B --> C\"")
           :examples $ []
         |protocol-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -746,17 +893,17 @@
           :examples $ []
         |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def relay-commands $ [] |channels |open-published |send |help |skill |status |open
+            def relay-commands $ [] |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def renderer-help-overview "|使用 `edn-relay help` 查询当前 renderer 支持的能力；可以用 `edn-relay help protocol` 看协议摘要，用 `edn-relay help examples` 看示例，用 `edn-relay help chart mermaid` 过滤组件帮助。")
+          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`examples`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
           :examples $ []
         |select-component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn select-component-docs (topics)
               let
                   normalized-topics $ if (list? topics) topics ([])
-                if (empty? normalized-topics) component-docs $ foldl component-docs ([])
+                if (includes? normalized-topics |components) component-docs $ foldl component-docs ([])
                   fn (acc item)
                     if
                       includes? normalized-topics $ :name item
@@ -787,9 +934,32 @@
                       append acc item
                       , acc
           :examples $ []
+        |select-skill-sections $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn select-skill-sections (topics)
+              let
+                  normalized-topics $ if (list? topics) topics ([])
+                if (includes? normalized-topics |all) skill-sections $ foldl skill-sections ([])
+                  fn (acc item)
+                    if
+                      includes? normalized-topics $ :name item
+                      append acc item
+                      , acc
+          :examples $ []
         |site $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
+          :examples $ []
+        |skill-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`math`、`validation`；如果确实要整份文档，再用 `full`。")
+          :examples $ []
+        |skill-sections $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def skill-sections $ []
+              {} (:name |workflow) (:title |Workflow) (:text "|1. 先 `edn-relay help --channel <name>` 看总览。\n2. 再用 `help --channel <name> <topic>` 把范围收窄到组件、协议或示例。\n3. 最后才运行 `edn-relay send --channel <name> ...` 发 payload。")
+              {} (:name |help) (:title "|Help Queries") (:text "|默认 `help` 只返回总览。要列出全部组件，用 `edn-relay help --channel <name> components`；要看 MathML，用 `edn-relay help --channel <name> math`；要看具体案例，用 `edn-relay help --channel <name> math-fraction-demo`。")
+              {} (:name |math) (:title |MathML) (:text "|MathML Core 已通过 `math` 节点暴露。推荐顺序是先查 `edn-relay help --channel genui math`，再查 `math-fraction-demo`，最后发送 `:type |math` + `:expr` 的 Cirru EDN payload。")
+              {} (:name |validation) (:title |Validation) (:text "|浏览器验证优先看 `chrome-devtools take_snapshot` 和 `chrome-devtools list_console_messages`；CLI 侧优先看 `status`、`help`、`skill` 是否和当前页面一致。")
           :examples $ []
         |skill-text $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -871,7 +1041,7 @@
                 let
                     layout $ -> payload validate-layout
                     source $ format-cirru-edn payload
-                    ack-payload $ {} (:status |ok) (:layout_id layout-id)
+                    ack-payload $ {} (:status :ok) (:layout_id layout-id)
                   dispatch! $ :: :genui-applied request-id layout-id layout source
                   send-genui-ack! ws request-id true ack-payload nil
           :examples $ []
@@ -880,9 +1050,9 @@
             defn handle-relay-message! (ws raw)
               let
                   frame $ parse-cirru-edn raw
-                  kind $ :kind frame
+                  kind $ protocol-name (:kind frame)
                   payload $ :payload frame
-                  op $ if (map? payload) (:op payload) nil
+                  request $ parse-renderer-request payload
                   selected $ selected-relay-channel
                 if (= kind |hello-ok)
                   handle-channel-state! ws (:client_id frame) (:channels frame)
@@ -892,10 +1062,11 @@
                       if
                         and (some? selected)
                           = (:channel frame) selected
-                        if
-                          includes? ([] |help |skill |status) op
-                          handle-renderer-event! ws frame
-                          handle-genui-event! ws frame
+                        tag-match request
+                          (:help _) (handle-renderer-event! ws frame)
+                          (:skill _) (handle-renderer-event! ws frame)
+                          (:status) (handle-renderer-event! ws frame)
+                          _ $ handle-genui-event! ws frame
                         do |ignored
                       if (= kind |warning)
                         .!warn js/console $ or (:error frame) "|Relay warning"
@@ -910,23 +1081,19 @@
               let
                   request-id $ :id frame
                   payload $ :payload frame
-                  op $ if (map? payload) (:op payload) nil
-                  topics $ if
-                    and (map? payload)
-                      list? $ :topics payload
-                    :topics payload
-                    []
+                  request $ parse-renderer-request payload
                   relay $ get-in @*reel ([] :store :relay)
                 do (.!debug js/console "|[renderer] request" payload)
-                  if (= op |help)
-                    let
-                        response-payload $ config/build-help-payload topics
-                      send-genui-ack! ws request-id true response-payload nil
-                    if (= op |skill)
-                      send-genui-ack! ws request-id true (config/build-skill-payload) nil
-                      if (= op |status)
-                        send-genui-ack! ws request-id true (config/build-status-payload relay) nil
-                        send-genui-ack! ws request-id false nil $ str "|Unsupported renderer op: " op
+                  tag-match request
+                    (:help topics)
+                      let
+                          response-payload $ config/build-help-payload topics
+                        send-genui-ack! ws request-id true response-payload nil
+                    (:skill topics)
+                      send-genui-ack! ws request-id true (config/build-skill-payload topics) nil
+                    (:status)
+                      send-genui-ack! ws request-id true (config/build-status-payload relay) nil
+                    (:invalid) (send-genui-ack! ws request-id false nil "|Unsupported renderer request")
           :examples $ []
         |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -954,12 +1121,56 @@
           :code $ quote
             def mount-target $ js/document.querySelector |.app
           :examples $ []
+        |normalize-renderer-topics $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn normalize-renderer-topics (topics)
+              if (list? topics)
+                foldl topics ([])
+                  fn (acc item)
+                    if
+                      or (string? item) (tag? item)
+                      append acc $ turn-string item
+                      , acc
+                []
+          :examples $ []
+        |parse-renderer-request $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn parse-renderer-request (payload)
+              if (tuple? payload)
+                tag-match payload
+                  (:help)
+                    :: :help $ []
+                  (:help topics)
+                    :: :help $ normalize-renderer-topics topics
+                  (:skill)
+                    :: :skill $ []
+                  (:skill topics)
+                    :: :skill $ normalize-renderer-topics topics
+                  (:status) (:: :status)
+                  _ $ :: :invalid
+                if (map? payload)
+                  let
+                      op-name $ protocol-name (:op payload)
+                      topics $ normalize-renderer-topics (:topics payload)
+                    if (= op-name |help) (:: :help topics)
+                      if (= op-name |skill) (:: :skill topics)
+                        if (= op-name |status) (:: :status) (:: :invalid)
+                  :: :invalid
+          :examples $ []
         |persist-storage! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn persist-storage! ()
               println "|Saved at" $ .!toISOString (new js/Date)
               js/localStorage.setItem (:storage-key config/site)
                 format-cirru-edn $ :store @*reel
+          :examples $ []
+        |protocol-name $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn protocol-name (x)
+              if
+                or (string? x) (tag? x)
+                turn-string x
+                , nil
           :examples $ []
         |reload! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -982,7 +1193,7 @@
         |send-genui-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn send-genui-ack! (ws request-id ok? payload error-message)
-              send-relay-frame! ws $ {} (:kind |ack) (:id request-id) (:ok ok?) (:payload payload) (:error error-message)
+              send-relay-frame! ws $ {} (:kind :ack) (:id request-id) (:ok ok?) (:payload payload) (:error error-message)
           :examples $ []
         |send-relay-frame! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -996,7 +1207,7 @@
                   client-id $ get-in @*reel ([] :store :relay :client-id)
                   selected $ selected-relay-channel
                   channels $ if (some? selected) ([] selected) ([])
-                send-relay-frame! ws $ {} (:kind |hello) (:role |receiver) (:client_id client-id) (:channels channels)
+                send-relay-frame! ws $ {} (:kind :hello) (:role :receiver) (:client_id client-id) (:channels channels)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote
