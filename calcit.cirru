@@ -1037,13 +1037,25 @@
               let
                   request-id $ :id frame
                   payload $ :payload frame
+                  source $ format-cirru-edn payload
                   layout-id $ str |layout- request-id
-                let
-                    layout $ -> payload validate-layout
-                    source $ format-cirru-edn payload
-                    ack-payload $ {} (:status :ok) (:layout_id layout-id)
-                  dispatch! $ :: :genui-applied request-id layout-id layout source
-                  send-genui-ack! ws request-id true ack-payload nil
+                try
+                  let
+                      layout $ -> payload validate-layout
+                      ack-payload $ {} (:status :ok) (:layout_id layout-id)
+                    do
+                      dispatch! $ :: :genui-applied request-id layout-id layout source
+                      send-genui-ack! ws request-id true ack-payload nil
+                  fn (error)
+                    let
+                        message $ if
+                          some? $ .-message error
+                          .-message error
+                          str error
+                      do
+                        dispatch! $ :: :genui-failed request-id message source
+                        .!warn js/console "|[renderer] validation failed" error
+                        send-genui-ack! ws request-id false nil message
           :examples $ []
         |handle-relay-message! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
