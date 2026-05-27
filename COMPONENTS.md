@@ -9,7 +9,7 @@
 
 ```
 CLI / 脚本
-  │  edn-relay genui --server ws://... '<layout>'
+  │  edn-relay send --channel genui '<layout>'
   ▼
 edn-relay (relay)
   │  WebSocket 消息路由 (genui 频道)

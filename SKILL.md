@@ -24,61 +24,52 @@
 
 这份 skill 采用下面这些约定，后续其他项目也建议遵守：
 
-### 2.1 relay 一次只服务一个当前目标
+### 2.1 relay CLI 默认无状态
 
-不再要求命令行里反复指定：
+当前约定是：
 
-- 是哪个服务
-- 连接哪个端口
-- websocket 地址是什么
-
-使用层面的约定应该是：
-
-- 一次只启动一个当前 relay 服务
-- CLI 默认只连接这个当前 relay
-- 业务命令默认都发给这个当前 relay
+- relay 服务默认监听 `127.0.0.1:9100`
+- 请求类命令默认连接 `ws://127.0.0.1:9100`
+- 如果 relay 不在默认地址，命令上显式传 `--server ...`
+- channel 始终由每次命令上的 `--channel ...` 指定
 
 也就是说，使用时优先是这种形式：
 
 - `edn-relay serve`
-- `edn-relay genui '<LAYOUT>'`
-- `edn-relay help`
-- `edn-relay skill`
-- `edn-relay status`
-- `edn-relay current`
-- `edn-relay open`
+- `edn-relay channels`
+- `edn-relay send --channel genui '<LAYOUT>'`
+- `edn-relay help --channel genui`
+- `edn-relay skill --channel genui`
+- `edn-relay status --channel genui`
+- `edn-relay open --channel genui`
 
-而不是每次都写：
+只有 relay 地址不是默认值时，才补充：
 
-- `--server ...`
-- `--bind ...`
-- `ws://127.0.0.1:xxxx`
+- `--server ws://127.0.0.1:xxxx`
+- 或 `serve --bind 127.0.0.1:xxxx`
 
-### 2.2 统一持久化状态
+### 2.2 channel 显式指定，不维护当前上下文
 
-relay 需要维护一份持久化状态，用来记住当前连接上下文。
+relay CLI 不维护“当前 renderer / 当前 channel / 最近一次上下文”这类持久化状态。
 
-这类状态包括但不限于：
+用户体验应该依赖：
 
-- 当前 relay 连接信息
-- 当前目标 renderer 信息
-- 默认 channel
-- 最近一次使用的上下文
-- 文档缓存 / skill 缓存
-
-具体存储位置和实现方式属于 relay 内部实现细节，不应该要求 CLI 使用者记住。
+- 默认 relay 地址
+- 每次命令显式的 `--channel`
+- `edn-relay channels` 查看当前有哪些 receiver 已建立 channel
+- `edn-relay open-published --channel ...` 快速拉起一个浏览器 receiver
 
 ### 2.3 文档通过协议查询，不靠手工记忆
 
 具体业务能力，不应该靠用户记命令细节，而应该通过：
 
-- `edn-relay help`
+- `edn-relay help --channel <name>`
 
-让 relay 按协议向当前 renderer 查询文档，再决定怎么使用。
+让 relay 按协议向目标 channel 上的 renderer 查询文档，再决定怎么使用。
 
 也就是说：
 
-1. 先运行 `edn-relay help`
+1. 先运行 `edn-relay help --channel <name>`
 2. 由 relay 从 renderer 侧拉取可用文档
 3. 再根据返回的文档去发 payload 或查询具体组件
 
@@ -94,12 +85,12 @@ relay 需要维护一份持久化状态，用来记住当前连接上下文。
 
 约定上，renderer 应该在运行时把这份 skill 暴露给：
 
-- `edn-relay skill`
+- `edn-relay skill --channel <name>`
 
 也就是说，后续的使用习惯应该是：
 
-1. `edn-relay skill`
-2. relay 从当前 renderer 拿到 skill 内容
+1. `edn-relay skill --channel <name>`
+2. relay 从目标 channel 上的 renderer 拿到 skill 内容
 3. CLI 侧展示或检索 skill
 
 这样其他项目不必直接读取仓库文件，也能通过运行中的 renderer 获取最新 skill。
@@ -120,7 +111,7 @@ relay 需要维护一份持久化状态，用来记住当前连接上下文。
 - 查询单个组件，比如 `chart`
 - 批量查询多个组件，比如 `chart`、`mermaid`、`markdown`
 
-这样 `edn-relay help` 才能真正成为一个可检索接口，而不只是打印一段静态帮助。
+这样 `edn-relay help --channel <name>` 才能真正成为一个可检索接口，而不只是打印一段静态帮助。
 
 ---
 
@@ -150,7 +141,7 @@ yarn vite
 这里不强调具体端口号，重点是：
 
 - renderer 页面能打开
-- renderer 能连接当前 relay
+- renderer 能连接目标 relay
 - renderer 能通过协议提供文档、skill、组件说明和渲染能力
 
 ### 3.3 打开浏览器页面
@@ -176,7 +167,7 @@ chrome-devtools list_console_messages
 面向使用者时，更推荐展示这种形式：
 
 ```bash
-edn-relay genui '
+edn-relay send --channel genui '
 {}
   :type |card
   :text "|CLI Demo"
@@ -189,21 +180,21 @@ edn-relay genui '
 
 重点是：
 
-- 不再反复出现 `--server`
-- 不再要求用户知道 websocket 地址
-- 当前 relay 目标由 relay 自己维护的持久化上下文决定
+- 默认情况下不需要反复出现 `--server`
+- 不要求用户手动记 websocket 地址
+- channel 由每次命令上的 `--channel` 显式决定
 
 ### 4.2 先问 help，再发业务 payload
 
 推荐流程不是“先猜功能”，而是：
 
-1. 运行 `edn-relay help`
+1. 运行 `edn-relay help --channel <name>`
 2. 从 renderer 返回的文档里看当前支持什么
-3. 再运行 `edn-relay genui ...`
+3. 再运行 `edn-relay send --channel <name> ...`
 
 如果要查询 skill，则走：
 
-1. 运行 `edn-relay skill`
+1. 运行 `edn-relay skill --channel <name>`
 2. 从 renderer 返回 skill 内容
 3. 再根据 skill 决定怎么调试、怎么探索能力
 
@@ -217,28 +208,28 @@ edn-relay genui '
 
 ## 5. 如何发现 renderer 当前支持哪些功能
 
-### 5.1 首选 `edn-relay help`
+### 5.1 首选 `edn-relay help --channel <name>`
 
 后续面向使用者的统一入口，应该是：
 
 ```bash
-edn-relay help
+edn-relay help --channel genui
 ```
 
 这条命令的职责应该是：
 
-- 从当前 renderer 查询可用文档
+- 从目标 channel 上的 renderer 查询可用文档
 - 列出可用能力
 - 提示支持的组件和业务入口
 - 给出下一步可执行的命令建议
 
 已经适合直接使用的形式包括：
 
-- `edn-relay help`
-- `edn-relay help protocol`
-- `edn-relay help examples`
-- `edn-relay help chart mermaid`
-- `edn-relay help card-demo`
+- `edn-relay help --channel genui`
+- `edn-relay help --channel genui protocol`
+- `edn-relay help --channel genui examples`
+- `edn-relay help --channel genui chart mermaid`
+- `edn-relay help --channel genui card-demo`
 
 ### 5.2 组件级帮助应该可检索
 
@@ -261,9 +252,9 @@ edn-relay help
 
 ### 5.3 skill 作为更高层的操作指南
 
-`edn-relay help` 偏向能力目录。
+`edn-relay help --channel <name>` 偏向能力目录。
 
-`edn-relay skill` 偏向操作经验和工作流。
+`edn-relay skill --channel <name>` 偏向操作经验和工作流。
 
 两者的分工建议是：
 
@@ -274,7 +265,7 @@ edn-relay help
 
 ## 6. 在开发 renderer 本身时，仍然可以这样查实现
 
-虽然面向使用者的推荐入口是 `edn-relay help` / `edn-relay skill`，但开发 renderer 自己时，仍然可以直接查代码。
+虽然面向使用者的推荐入口是 `edn-relay help --channel <name>` / `edn-relay skill --channel <name>`，但开发 renderer 自己时，仍然可以直接查代码。
 
 推荐顺序：
 
@@ -331,12 +322,12 @@ chrome-devtools take_screenshot --fullPage --filePath artifacts/debug.png
 优先检查：
 
 - relay 是否已启动
-- relay 的持久化上下文是否已经正确写入
-- renderer 是否成功连接当前 relay
+- `--server` 是否指向了正确的 relay
+- renderer 是否成功连接目标 relay
 
 ### 8.2 文档 / skill 发现问题
 
-如果 `edn-relay help` 或 `edn-relay skill` 没有返回预期内容，优先怀疑：
+如果 `edn-relay help --channel <name>` 或 `edn-relay skill --channel <name>` 没有返回预期内容，优先怀疑：
 
 - renderer 侧没有把文档通过协议暴露出去
 - skill 没有被 renderer 在运行时正确暴露
@@ -366,18 +357,18 @@ chrome-devtools take_screenshot --fullPage --filePath artifacts/debug.png
 
 如果别的项目想复用 `edn-renderer` 这套能力，建议直接沿用下面的接口习惯：
 
-1. `edn-relay serve` 启动当前 relay
-2. `edn-relay current` 查看当前 relay 上下文
-3. `edn-relay status` 查询当前 renderer 状态
-4. `edn-relay help` 查询当前 renderer 暴露的文档
-5. `edn-relay skill` 查询当前 renderer 暴露的操作技能
-6. `edn-relay genui ...` 发送实际 payload
+1. `edn-relay serve` 启动 relay
+2. `edn-relay channels` 查看当前有哪些 channel 已连上 receiver
+3. `edn-relay status --channel <name>` 查询目标 renderer 状态
+4. `edn-relay help --channel <name>` 查询目标 renderer 暴露的文档
+5. `edn-relay skill --channel <name>` 查询目标 renderer 暴露的操作技能
+6. `edn-relay send --channel <name> ...` 发送实际 payload
 7. 浏览器里用 drawer 和 console 做细节验证
 
 也就是说，别的项目最好复用的是：
 
-- 单实例 relay 的交互模型
-- relay 的持久化上下文模型
+- 默认 relay 地址 + 可选 `--server` 的无状态模型
+- channel 显式指定的交互模型
 - renderer 侧帮助文档 / skill 的协议暴露方式
 - 组件文档的可检索暴露方式
 
@@ -388,13 +379,13 @@ chrome-devtools take_screenshot --fullPage --filePath artifacts/debug.png
 为了方便长期复用，建议把下面这些能力稳定下来：
 
 - `edn-relay serve`
-- `edn-relay current`
-- `edn-relay status`
-- `edn-relay open`
-- `edn-relay help`
-- `edn-relay skill`
-- `edn-relay genui`
-- relay 的持久化上下文机制
+- `edn-relay channels`
+- `edn-relay status --channel <name>`
+- `edn-relay open --channel <name>`
+- `edn-relay help --channel <name>`
+- `edn-relay skill --channel <name>`
+- `edn-relay send --channel <name>`
+- 默认 relay 地址 + 可选 `--server` 的连接约定
 - renderer 侧的文档查询协议
 - renderer 侧的 skill 查询协议
 - 组件说明的可检索暴露结构

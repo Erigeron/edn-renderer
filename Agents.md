@@ -76,10 +76,10 @@ relay 联调命令（端口 9100，系统 9001/9002 被 macOS 占用）：
 
 ```bash
 edn-relay serve --bind 127.0.0.1:9100
-edn-relay genui --server ws://127.0.0.1:9100 "$(cat /tmp/layout.cirru)" --timeout-secs 10
+edn-relay send --server ws://127.0.0.1:9100 --channel genui "$(cat /tmp/layout.cirru)" --timeout-secs 10
 ```
 
-genui 布局文件用 2 空格缩进（不要用 tab），示例：
+布局文件用 2 空格缩进（不要用 tab），示例：
 
 ```
 {}

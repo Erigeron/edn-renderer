@@ -2,9 +2,9 @@
 
 `edn-renderer` is the browser frontend for the `edn-relay` workflow.
 
-It keeps a websocket connection to the relay, listens on the `genui` channel,
-stores the incoming Cirru EDN layout DSL, renders the layout, and sends an ack
-back to the CLI.
+It keeps a websocket connection to the relay, subscribes to a chosen channel
+such as `genui`, stores the incoming Cirru EDN layout DSL, renders the layout,
+and sends an ack back to the CLI.
 
 The sidebar is collapsed by default so more horizontal space is reserved for the
 rendered result.
@@ -15,9 +15,9 @@ The current implementation already supports the full loop:
 
 1. start `edn-relay serve`
 2. open `edn-renderer` in a browser
-3. run `edn-relay genui <LAYOUT>` from the CLI
+3. run `edn-relay send --channel genui <LAYOUT>` from the CLI
 4. render the DSL in the page
-5. confirm success with a returned layout id
+5. confirm success with a returned ack payload and layout id
 
 Reference screenshot:
 
@@ -32,6 +32,12 @@ yarn install
 cr js
 yarn vite --host 127.0.0.1 --port 3010
 ```
+
+Published bootstrap page:
+
+- `https://r.tiye.me/Erigeron/edn-renderer/`
+- supports `?channel=<NAME>` to preselect a channel
+- supports `?server=<WS_URL>` or `?port=<PORT>` to override the relay websocket target
 
 If Vite fails because `rolldown` native bindings are missing, run `yarn install`
 again so the unplugged package is materialized on disk.
@@ -48,6 +54,12 @@ Open the page in a browser. In parallel, run the relay:
 
 ```bash
 edn-relay serve
+```
+
+If you want the published bootstrap page instead of a local dev server, run:
+
+```bash
+edn-relay open-published --channel genui
 ```
 
 Then send a layout DSL from the CLI:
@@ -68,12 +80,12 @@ LAYOUT=$(cat <<'EOF'
 EOF
 )
 
-edn-relay genui --server ws://127.0.0.1:9001 "$LAYOUT"
+edn-relay send --channel genui "$LAYOUT"
 ```
 
 Expected result:
 
-- CLI prints `genui ok <layout-id>`
+- CLI prints an `ack` frame whose payload contains `:status |ok` and `:layout_id`
 - the page shows the layout id and request id
 - the renderer preview updates immediately
 

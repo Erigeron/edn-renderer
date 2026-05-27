@@ -702,15 +702,28 @@
           :code $ quote
             def current-page-url $ .-href js/location
           :examples $ []
-        |current-url-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |current-url-param $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn current-url-channel () $ let
+            defn current-url-param (key) $ let
                 params $ new js/URLSearchParams (.-search js/location)
-                value $ .!get params |channel
+                value $ .!get params key
               if
                 and (some? value)
                   > (count value) 0
                 , value nil
+          :examples $ []
+        |current-url-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn current-url-channel () $ current-url-param |channel
+          :examples $ []
+        |current-relay-url $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn current-relay-url () $ let
+                server $ current-url-param |server
+                port $ current-url-param |port
+              or server $ if (some? port)
+                str |ws://127.0.0.1: port
+                :relay-url site
           :examples $ []
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -726,14 +739,14 @@
         |protocol-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def protocol-docs $ []
-              {} (:name |channel) (:summary "|每个 renderer 连接只订阅一个当前 channel；URL 上的 `?channel=` 可以直接指定或创建它。")
+              {} (:name |channel) (:summary "|每个 renderer 连接只订阅一个当前 channel；URL 上的 `?channel=` 可以直接指定或创建它。发布版页面还支持 `?server=` 或 `?port=` 指向 relay。")
               {} (:name |hello) (:summary "|浏览器连接 relay 后先发送 `hello`，服务端会返回 `hello-ok` 和当前活跃 channel 列表。")
               {} (:name |channel-state) (:summary "|当活跃 channel 列表变化时，relay 会广播 `channel-state`。")
               {} (:name |ack) (:summary "|同一个请求允许多个 receiver 收到事件，但 sender 只接受第一条 `ack`。")
           :examples $ []
         |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def relay-commands $ [] |send |help |skill |status |open
+            def relay-commands $ [] |channels |open-published |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote (def renderer-help-overview "|使用 `edn-relay help` 查询当前 renderer 支持的能力；可以用 `edn-relay help protocol` 看协议摘要，用 `edn-relay help examples` 看示例，用 `edn-relay help chart mermaid` 过滤组件帮助。")
@@ -818,7 +831,8 @@
             defn ensure-relay! () $ when (nil? @*ws)
               dispatch! $ :: :relay-status |connecting nil
               let
-                  ws $ new js/WebSocket (:relay-url config/site)
+                  relay-url $ config/current-relay-url
+                  ws $ new js/WebSocket relay-url
                   client-id $ str |renderer-
                     .!toISOString $ new js/Date
                 reset! *ws ws
