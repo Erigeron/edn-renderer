@@ -792,13 +792,16 @@
           :examples $ []
         |build-status-payload $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            defn build-status-payload (relay)
+            defn build-status-payload (relay renderer)
               {} (:status :ok) (:kind :status) (:renderer |edn-renderer)
                 :title $ current-page-title
                 :page_url $ current-page-url
                 :commands relay-commands
                 :channel $ :selected-channel relay
                 :channels $ or (:channels relay) ([])
+                :layout_id $ :layout-id renderer
+                :last_request $ :last-request renderer
+                :layout_ready? $ some? (:layout-dsl renderer)
           :examples $ []
         |component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -890,13 +893,17 @@
               {} (:name |hello) (:summary "|浏览器连接 relay 后先发送 `hello`，服务端会返回 `hello-ok` 和当前活跃 channel 列表。")
               {} (:name |channel-state) (:summary "|当活跃 channel 列表变化时，relay 会广播 `channel-state`。")
               {} (:name |ack) (:summary "|同一个请求允许多个 receiver 收到事件，但 sender 只接受第一条 `ack`。")
+              {} (:name |layout) (:summary "|用 `edn-relay send --channel <name> '{}` + `:op :layout` 查询当前 layout 概览；默认返回隐藏细节的 summary tree，也可带 `:path` 查询某个子树。")
+              {} (:name |node) (:summary "|用 `:op :node` + `:path \"1.2.3\"` 读取某个节点的完整 DSL。路径使用 1-based children 索引，`root` 表示整棵树。")
+              {} (:name |patch) (:summary "|用 `:op :patch` + `:path` + `:changes` 局部合并节点属性，renderer 会重新验证整棵 layout，成功后立即局部更新页面。")
+              {} (:name |replace) (:summary "|用 `:op :replace` + `:path` + `:node` 直接替换某个节点 DSL，适合结构性修改。")
           :examples $ []
         |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def relay-commands $ [] |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`examples`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
+          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`examples`、`layout`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
           :examples $ []
         |select-component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -951,13 +958,14 @@
             def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
           :examples $ []
         |skill-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`math`、`validation`；如果确实要整份文档，再用 `full`。")
+          :code $ quote (def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`layout`、`math`、`validation`；如果确实要整份文档，再用 `full`。")
           :examples $ []
         |skill-sections $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def skill-sections $ []
               {} (:name |workflow) (:title |Workflow) (:text "|1. 先 `edn-relay help --channel <name>` 看总览。\n2. 再用 `help --channel <name> <topic>` 把范围收窄到组件、协议或示例。\n3. 最后才运行 `edn-relay send --channel <name> ...` 发 payload。")
               {} (:name |help) (:title "|Help Queries") (:text "|默认 `help` 只返回总览。要列出全部组件，用 `edn-relay help --channel <name> components`；要看 MathML，用 `edn-relay help --channel <name> math`；要看具体案例，用 `edn-relay help --channel <name> math-fraction-demo`。")
+              {} (:name |layout) (:title "|Layout Editing") (:text "|先用 `edn-relay send --channel <name> '{}` + `:op :layout` 获取隐藏细节的 summary tree，再用 `:op :node` + `:path \"1.2.3\"` 读取完整 DSL。局部修改时优先 `:op :patch` + `:changes` 设置属性；需要换整个节点结构时再用 `:op :replace`。")
               {} (:name |math) (:title |MathML) (:text "|MathML Core 已通过 `math` 节点暴露。推荐顺序是先查 `edn-relay help --channel genui math`，再查 `math-fraction-demo`，最后发送 `:type |math` + `:expr` 的 Cirru EDN payload。")
               {} (:name |validation) (:title |Validation) (:text "|浏览器验证优先看 `chrome-devtools take_snapshot` 和 `chrome-devtools list_console_messages`；CLI 侧优先看 `status`、`help`、`skill` 是否和当前页面一致。")
           :examples $ []
@@ -1044,7 +1052,7 @@
                       layout $ -> payload validate-layout
                       ack-payload $ {} (:status :ok) (:layout_id layout-id)
                     do
-                      dispatch! $ :: :genui-applied request-id layout-id layout source
+                      dispatch! $ :: :genui-applied request-id layout-id layout payload source
                       send-genui-ack! ws request-id true ack-payload nil
                   fn (error)
                     let
@@ -1078,6 +1086,10 @@
                           (:help _) (handle-renderer-event! ws frame)
                           (:skill _) (handle-renderer-event! ws frame)
                           (:status) (handle-renderer-event! ws frame)
+                          (:layout _) (handle-renderer-event! ws frame)
+                          (:node _) (handle-renderer-event! ws frame)
+                          (:patch _ _) (handle-renderer-event! ws frame)
+                          (:replace _ _) (handle-renderer-event! ws frame)
                           _ $ handle-genui-event! ws frame
                         do |ignored
                       if (= kind |warning)
@@ -1095,17 +1107,76 @@
                   payload $ :payload frame
                   request $ parse-renderer-request payload
                   relay $ get-in @*reel ([] :store :relay)
+                  renderer $ get-in @*reel ([] :store :renderer)
                 do (.!debug js/console "|[renderer] request" payload)
-                  tag-match request
-                    (:help topics)
+                  try
+                    tag-match request
+                      (:help topics)
+                        let
+                            response-payload $ config/build-help-payload topics
+                          send-genui-ack! ws request-id true response-payload nil
+                      (:skill topics)
+                        send-genui-ack! ws request-id true (config/build-skill-payload topics) nil
+                      (:status)
+                        send-genui-ack! ws request-id true (config/build-status-payload relay renderer) nil
+                      (:layout path)
+                        if-let
+                          layout-dsl $ :layout-dsl renderer
+                          let
+                              target-node $ layout-node-at-path layout-dsl path
+                              response-payload $ {} (:status :ok) (:kind :layout) (:layout_id (:layout-id renderer)) (:path (layout-path-display path)) (:summary (summarize-layout-node target-node path))
+                            send-genui-ack! ws request-id true response-payload nil
+                          send-genui-ack! ws request-id false nil "|No layout loaded in renderer"
+                      (:node path)
+                        if-let
+                          layout-dsl $ :layout-dsl renderer
+                          let
+                              target-node $ layout-node-at-path layout-dsl path
+                              response-payload $ {} (:status :ok) (:kind :node) (:layout_id (:layout-id renderer)) (:path (layout-path-display path)) (:dsl target-node)
+                                :source $ format-cirru-edn target-node
+                                :summary $ summarize-layout-node target-node path
+                            send-genui-ack! ws request-id true response-payload nil
+                          send-genui-ack! ws request-id false nil "|No layout loaded in renderer"
+                      (:patch path changes)
+                        if-let
+                          layout-dsl $ :layout-dsl renderer
+                          let
+                              next-dsl $ merge-layout-node-at-path layout-dsl path changes
+                              next-layout $ validate-layout next-dsl
+                              next-source $ format-cirru-edn next-dsl
+                              next-layout-id $ str |layout- request-id
+                              response-payload $ {} (:status :ok) (:kind :patch) (:layout_id next-layout-id) (:path (layout-path-display path))
+                                :dsl $ layout-node-at-path next-dsl path
+                                :summary $ summarize-layout-node (layout-node-at-path next-dsl path) path
+                            do
+                              dispatch! $ :: :layout-mutated request-id next-layout-id next-layout next-dsl next-source
+                              send-genui-ack! ws request-id true response-payload nil
+                          send-genui-ack! ws request-id false nil "|No layout loaded in renderer"
+                      (:replace path next-node)
+                        if-let
+                          layout-dsl $ :layout-dsl renderer
+                          let
+                              next-dsl $ replace-layout-node-at-path layout-dsl path next-node
+                              next-layout $ validate-layout next-dsl
+                              next-source $ format-cirru-edn next-dsl
+                              next-layout-id $ str |layout- request-id
+                              response-payload $ {} (:status :ok) (:kind :replace) (:layout_id next-layout-id) (:path (layout-path-display path))
+                                :dsl $ layout-node-at-path next-dsl path
+                                :summary $ summarize-layout-node (layout-node-at-path next-dsl path) path
+                            do
+                              dispatch! $ :: :layout-mutated request-id next-layout-id next-layout next-dsl next-source
+                              send-genui-ack! ws request-id true response-payload nil
+                          send-genui-ack! ws request-id false nil "|No layout loaded in renderer"
+                      (:invalid) (send-genui-ack! ws request-id false nil "|Unsupported renderer request")
+                    fn (error)
                       let
-                          response-payload $ config/build-help-payload topics
-                        send-genui-ack! ws request-id true response-payload nil
-                    (:skill topics)
-                      send-genui-ack! ws request-id true (config/build-skill-payload topics) nil
-                    (:status)
-                      send-genui-ack! ws request-id true (config/build-status-payload relay) nil
-                    (:invalid) (send-genui-ack! ws request-id false nil "|Unsupported renderer request")
+                          message $ if
+                            some? $ .-message error
+                            .-message error
+                            str error
+                        do
+                          .!warn js/console "|[renderer] request failed" error
+                          send-genui-ack! ws request-id false nil message
           :examples $ []
         |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1145,6 +1216,104 @@
                       , acc
                 []
           :examples $ []
+        |layout-path-display $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn layout-path-display (path)
+              if (empty? path)
+                , |root
+                layout-path-display-iter path |
+          :examples $ []
+        |layout-path-display-iter $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn layout-path-display-iter (path acc)
+              if (empty? path)
+                , acc
+                let
+                    step $ str $ first path
+                  recur (rest path)
+                    if (= acc |)
+                      , step
+                      str acc |. step
+          :examples $ []
+        |layout-path-segment-pattern $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def layout-path-segment-pattern $ new js/RegExp "|^([0-9]+)$")
+          :examples $ []
+        |layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn layout-node-at-path (node path)
+              if (empty? path)
+                , node
+                let
+                    children $ or (:children node) ([])
+                    step $ first path
+                    child $ pick-layout-child children step
+                  if
+                    not $ list? children
+                    raise $ str "|Path " (layout-path-display path) "| requires a parent with :children"
+                    if (nil? child)
+                      raise $ str "|Missing layout node at path " (layout-path-display path)
+                      recur child $ rest path
+          :examples $ []
+        |merge-layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn merge-layout-node-at-path (node path changes)
+              if
+                not $ map? changes
+                raise "|Patch request expects map field :changes"
+                if (empty? path)
+                  merge node changes
+                  let
+                      children $ or (:children node) ([])
+                      step $ first path
+                    if
+                      not $ list? children
+                      raise $ str "|Path " (layout-path-display path) "| requires a parent with :children"
+                      if (nil? (pick-layout-child children step))
+                        raise $ str "|Missing layout node at path " (layout-path-display path)
+                        assoc node :children
+                          -> children .to-list $ map-indexed
+                            fn (idx child)
+                              if (= (inc idx) step)
+                                merge-layout-node-at-path child (rest path) changes
+                                , child
+          :examples $ []
+        |normalize-layout-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn normalize-layout-path (path)
+              if (nil? path)
+                []
+                if (number? path)
+                  let
+                      segment $ parse-layout-path-segment path
+                    if (some? segment) ([] segment) $ , nil
+                  if (list? path)
+                    foldl path ([])
+                      fn (acc item)
+                        if (nil? acc)
+                          , nil
+                          let
+                              segment $ parse-layout-path-segment item
+                            if (some? segment)
+                              append acc segment
+                              , nil
+                    if
+                      or (string? path) (tag? path)
+                      let
+                          raw $ turn-string path
+                        if
+                          or (= raw |) (= raw |root)
+                          []
+                          foldl (split raw |.) ([])
+                            fn (acc item)
+                              if (nil? acc)
+                                , nil
+                                let
+                                    segment $ parse-layout-path-segment item
+                                  if (some? segment)
+                                    append acc segment
+                                    , nil
+                      , nil
+          :examples $ []
         |parse-renderer-request $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn parse-renderer-request (payload)
@@ -1159,6 +1328,27 @@
                   (:skill topics)
                     :: :skill $ normalize-renderer-topics topics
                   (:status) (:: :status)
+                  (:layout) (:: :layout $ [])
+                  (:layout path)
+                    if-let
+                      normalized $ normalize-layout-path path
+                      :: :layout normalized
+                      :: :invalid
+                  (:node path)
+                    if-let
+                      normalized $ normalize-layout-path path
+                      :: :node normalized
+                      :: :invalid
+                  (:patch path changes)
+                    if-let
+                      normalized $ normalize-layout-path path
+                      :: :patch normalized changes
+                      :: :invalid
+                  (:replace path next-node)
+                    if-let
+                      normalized $ normalize-layout-path path
+                      :: :replace normalized next-node
+                      :: :invalid
                   _ $ :: :invalid
                 if (map? payload)
                   let
@@ -1166,8 +1356,104 @@
                       topics $ normalize-renderer-topics (:topics payload)
                     if (= op-name |help) (:: :help topics)
                       if (= op-name |skill) (:: :skill topics)
-                        if (= op-name |status) (:: :status) (:: :invalid)
+                        if (= op-name |status)
+                          :: :status
+                          if (= op-name |layout)
+                            if-let
+                              normalized $ normalize-layout-path (:path payload)
+                              :: :layout normalized
+                              :: :invalid
+                            if (= op-name |node)
+                              if-let
+                                normalized $ normalize-layout-path (:path payload)
+                                :: :node normalized
+                                :: :invalid
+                              if (= op-name |patch)
+                                if-let
+                                  normalized $ normalize-layout-path (:path payload)
+                                  :: :patch normalized (:changes payload)
+                                  :: :invalid
+                                if (= op-name |replace)
+                                  if-let
+                                    normalized $ normalize-layout-path (:path payload)
+                                    :: :replace normalized $ or (:node payload) (:dsl payload)
+                                    :: :invalid
+                                  :: :invalid
                   :: :invalid
+          :examples $ []
+        |parse-layout-path-segment $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn parse-layout-path-segment (item)
+              if (number? item)
+                if (> item 0) (, item) $ , nil
+                if
+                  or (string? item) (tag? item)
+                  let
+                      text $ turn-string item
+                    if (some? (.!match text layout-path-segment-pattern))
+                      js/parseInt text 10
+                      , nil
+                  , nil
+          :examples $ []
+        |pick-layout-child $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn pick-layout-child (children position)
+              if
+                not $ list? children
+                , nil
+                if
+                  not $ > position 0
+                  , nil
+                  if (empty? children)
+                    , nil
+                    if (= position 1)
+                      first children
+                      recur (rest children) $ dec position
+          :examples $ []
+        |replace-layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn replace-layout-node-at-path (node path next-node)
+              if (empty? path)
+                , next-node
+                let
+                    children $ or (:children node) ([])
+                    step $ first path
+                  if
+                    not $ list? children
+                    raise $ str "|Path " (layout-path-display path) "| requires a parent with :children"
+                    if (nil? (pick-layout-child children step))
+                      raise $ str "|Missing layout node at path " (layout-path-display path)
+                      assoc node :children
+                        -> children .to-list $ map-indexed
+                          fn (idx child)
+                            if (= (inc idx) step)
+                              replace-layout-node-at-path child (rest path) next-node
+                              , child
+          :examples $ []
+        |summarize-layout-node $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn summarize-layout-node (node path)
+              let
+                  node-type $ :type node
+                  children $ if (list? (:children node)) (:children node) ([])
+                  base $ {} (:path (layout-path-display path)) (:type node-type) (:child-count (count children))
+                  meta $ case-default node-type
+                    {}
+                    |card $ if (string? (:text node)) ({} (:title (:text node))) ({})
+                    |text $ if (string? (:text node)) ({} (:text (first (split-lines (:text node))))) ({})
+                    |badge $ if (string? (:text node)) ({} (:text (:text node))) ({})
+                    |button $ if (string? (:text node)) ({} (:text (:text node))) ({})
+                    |input $ {} (:name (:name node)) (:placeholder (:placeholder node))
+                    |markdown $ {} (:lines (count (split-lines (or (:text node) |))))
+                    |mermaid $ {} (:lines (count (split-lines (or (:text node) |))))
+                    |chart $ {} (:kind (or (:kind node) |bar)) (:title (or (:title node) |)) (:series-count (count (or (:series node) ([]))))
+                    |math $ {} (:display (or (:display node) |inline)) (:expr-tag (first (or (:expr node) ([]))))
+                merge base $ if (> (count children) 0)
+                  assoc meta :children
+                    -> children .to-list $ map-indexed
+                      fn (idx child)
+                        summarize-layout-node child $ append path (inc idx)
+                  , meta
           :examples $ []
         |persist-storage! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1243,7 +1529,7 @@
                 :cursor $ []
               :relay $ {} (:status |idle) (:client-id nil) (:last-error nil) (:selected-channel nil)
                 :channels $ []
-              :renderer $ {} (:layout nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
+              :renderer $ {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.schema)
@@ -1267,6 +1553,7 @@
                   -> store
                     assoc-in ([] :relay :selected-channel) channel
                     assoc-in ([] :renderer :layout) nil
+                    assoc-in ([] :renderer :layout-dsl) nil
                     assoc-in ([] :renderer :layout-id) nil
                     assoc-in ([] :renderer :layout-source) |
                     assoc-in ([] :renderer :last-request) nil
@@ -1275,9 +1562,10 @@
                   -> store
                     assoc-in ([] :relay :status) status
                     assoc-in ([] :relay :last-error) message
-                (:genui-applied request-id layout-id layout source)
+                (:genui-applied request-id layout-id layout layout-dsl source)
                   -> store
                     assoc-in ([] :renderer :layout) layout
+                    assoc-in ([] :renderer :layout-dsl) layout-dsl
                     assoc-in ([] :renderer :layout-id) layout-id
                     assoc-in ([] :renderer :layout-source) source
                     assoc-in ([] :renderer :last-request) request-id
@@ -1287,6 +1575,14 @@
                     assoc-in ([] :renderer :layout-source) source
                     assoc-in ([] :renderer :last-request) request-id
                     assoc-in ([] :renderer :last-error) message
+                (:layout-mutated request-id layout-id layout layout-dsl source)
+                  -> store
+                    assoc-in ([] :renderer :layout) layout
+                    assoc-in ([] :renderer :layout-dsl) layout-dsl
+                    assoc-in ([] :renderer :layout-id) layout-id
+                    assoc-in ([] :renderer :layout-source) source
+                    assoc-in ([] :renderer :last-request) request-id
+                    assoc-in ([] :renderer :last-error) nil
                 _ $ do (eprintln "|unknown op:" op) store
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)

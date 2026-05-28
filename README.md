@@ -19,6 +19,10 @@ The current implementation already supports the full loop:
 4. render the DSL in the page
 5. confirm success with a returned ack payload and layout id
 
+It also supports inspection and local mutation of the currently rendered layout
+through relay requests, so a CLI agent can read a summarized tree, fetch one
+node's full DSL, and patch or replace that node without resending the whole page.
+
 Reference screenshot:
 
 - [artifacts/edn-renderer-genui-final.png](artifacts/edn-renderer-genui-final.png)
@@ -67,16 +71,16 @@ Then send a layout DSL from the CLI:
 ```bash
 LAYOUT=$(cat <<'EOF'
 {}
-	:type |card
-	:text "|CLI Demo"
-	:children $ []
-		{} (:type |badge) (:text |preview)
-		{} (:type |divider)
-		{} (:type |text) (:text "|Hello from installed CLI")
-		{} (:type |row)
-			:children $ []
-				{} (:type |button) (:text |Confirm)
-				{} (:type |input) (:name |email) (:placeholder |Email)
+  :type |card
+  :text "|CLI Demo"
+  :children $ []
+    {} (:type |badge) (:text |preview)
+    {} (:type |divider)
+    {} (:type |text) (:text "|Hello from installed CLI")
+    {} (:type |row)
+      :children $ []
+        {} (:type |button) (:text |Confirm)
+        {} (:type |input) (:name |email) (:placeholder |Email)
 EOF
 )
 
@@ -88,6 +92,62 @@ Expected result:
 - CLI prints an `ack` frame whose payload contains `:status |ok` and `:layout_id`
 - the page shows the layout id and request id
 - the renderer preview updates immediately
+
+## Layout Inspection And Editing
+
+Once a layout is already loaded in the page, you can inspect and edit it with
+small relay payloads.
+
+Get a token-efficient layout summary tree:
+
+```bash
+edn-relay send --channel genui '
+{}
+  :op :layout
+'
+```
+
+Inspect one node by 1-based path such as `2.1`:
+
+```bash
+edn-relay send --channel genui '
+{}
+  :op :node
+  :path |2.1
+'
+```
+
+Patch one node in place by merging a subset of fields:
+
+```bash
+edn-relay send --channel genui '
+{}
+  :op :patch
+  :path |1
+  :changes $ {}
+    :text |Updated
+'
+```
+
+Replace one node's DSL completely:
+
+```bash
+edn-relay send --channel genui '
+{}
+  :op :replace
+  :path |2.1
+  :node $ {}
+    :type |text
+    :text |Replaced
+'
+```
+
+Path rules:
+
+- `root` means the whole layout
+- `1`, `2`, `3` address root children with 1-based indices
+- `2.1` means the first child under the second root child
+- `layout` returns summaries, while `node` returns the full DSL for that path
 
 ## DSL Components
 
