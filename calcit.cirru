@@ -133,210 +133,242 @@
                     list? $ :channels relay
                     :channels relay
                     []
+                  history $ if
+                    list? $ :history renderer
+                    :history renderer
+                    []
+                  selected-history $ :selected-history renderer
                   drawer-plugin $ use-drawer (>> states :drawer)
                     {}
-                      :style $ {} (:width 420) (:min-width 0) (:max-width "|calc(100vw - 20px)") (:padding "|14px 14px 18px") (:gap 14) (:background-color |#fffaf4) (:border-left "|1px solid #ead8c7") (:box-shadow "|-10px 0 30px hsla(24, 35%, 18%, 0.12)") (:overflow |auto)
+                      :style $ {} (:width 820) (:min-width 0) (:max-width "|calc(100vw - 24px)") (:padding "|12px 12px 14px") (:gap 12) (:background-color |#f7f7f3) (:border-left "|1px solid #d7d7cf") (:box-shadow "|-12px 0 28px hsla(210, 8%, 18%, 0.12)") (:overflow |auto)
                       :container-style $ if drawer-open?
                         {} (:position :fixed) (:top 0) (:right 0) (:bottom 0) (:left 0) (:z-index |40)
                         {}
-                      :backdrop-style $ {} (:background-color "|hsla(28, 40%, 16%, 0.16)") (:backdrop-filter "|blur(10px)")
+                      :backdrop-style $ {} (:background-color "|hsla(210, 10%, 18%, 0.08)") (:backdrop-filter "|blur(8px)")
                       :render $ fn (on-close)
                         div
                           {} $ :style
-                            {} (:display |flex) (:flex-direction |column) (:gap 14)
+                            {} (:display |flex) (:flex-direction |column) (:gap 12)
                           div
                             {} $ :style
-                              {} (:display |flex) (:justify-content |space-between) (:align-items |flex-start) (:gap 12)
+                              {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 10) (:flex-wrap |wrap)
                             div
                               {} $ :style
-                                {} (:display |flex) (:flex-direction |column) (:gap 6)
+                                {} (:display |flex) (:align-items |center) (:gap 8) (:flex-wrap |wrap)
                               div
                                 {} $ :style
-                                  {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
-                                <> "|Live session"
+                                  {} (:font-size 15) (:font-weight |700) (:color |#1f2933)
+                                <> |History
                               div
                                 {} $ :style
-                                  {} (:font-size 22) (:font-weight |700) (:line-height |1.1) (:color |#2b2018)
-                                <> "|Renderer diagnostics"
-                              div
-                                {} $ :style
-                                  {} (:font-size 13) (:line-height |1.6) (:color |#7b6451)
-                                <> "|Inspect relay status, request ids, available channels, and the exact Cirru EDN payload being rendered."
+                                  {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                <> $ str "|Messages: " (count history)
+                              if (some? selected-channel)
+                                div
+                                  {} $ :style
+                                    {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                  <> $ str "|Channel: " selected-channel
                             button $ {} (:class-name css/button) (:inner-text |Close)
-                              :style $ {} (:padding "|8px 12px") (:align-self |flex-start)
+                              :style $ {} (:padding "|5px 9px") (:font-size 11)
                               :on-click $ fn (e d!) (on-close d!)
                           div
                             {} $ :style
-                              {} (:display |flex) (:gap 10) (:flex-wrap |wrap)
+                              {} (:display |flex) (:align-items |stretch) (:gap 12) (:flex-wrap |wrap)
                             div
                               {} $ :style
-                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
-                              <> $ str "|Relay: "
-                                or (:status relay) |idle
-                            if-let
-                              request-id $ :last-request renderer
+                                {} (:width 290) (:max-width |100%) (:display |flex) (:flex-direction |column) (:gap 8)
                               div
                                 {} $ :style
-                                  {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
-                                <> $ str "|Request: " request-id
+                                  {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
+                                <> |Messages
+                              if
+                                > (count history) 0
+                                list->
+                                  {} $ :style
+                                    {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
+                                  -> history .to-list $ map-indexed
+                                    fn (idx item)
+                                      let
+                                          active? $ and
+                                              some? selected-history
+                                            = (:raw item) (:raw selected-history)
+                                          meta-channel $ or (:channel item) |session
+                                          meta-request $ or (:request-id item) |-
+                                        [] idx $ div
+                                          {}
+                                            :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                              :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                              :background-color $ if active? |#eef1f4 |#ffffff
+                                              :cursor |pointer
+                                              :display |flex
+                                              :flex-direction |column
+                                              :gap 4
+                                              :opacity $ if (:matched? item) |1 |0.72
+                                            :on-click $ fn (e d!)
+                                              d! $ :: :select-history item
+                                          div
+                                            {} $ :style
+                                              {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                            <> $ or (:summary item) |Message
+                                          div
+                                            {} $ :style
+                                              {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                            <> $ str
+                                              or (:kind item) |unknown
+                                              , | / meta-channel | / meta-request
+                                div
+                                  {} $ :style
+                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                  <> "|No relay messages yet."
                             div
                               {} $ :style
-                                {} (:padding "|8px 12px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 13) (:color |#6b4a32)
-                              <> $ str "|Channels: " (count channels)
-                          div
-                            {} $ :style
-                              {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 18) (:background-color |#fff7ef) (:border "|1px solid #ead8c7")
-                            div
-                              {} $ :style
-                                {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
-                              <> |Relay
-                            div ({})
-                              if (some? selected-channel)
-                                <> $ str "|Selected channel: " selected-channel
-                                <> "|No channel selected yet."
-                            if
-                              > (count channels) 0
-                              list->
+                                {} (:flex |1) (:min-width 280) (:display |flex) (:flex-direction |column) (:gap 8)
+                              div
                                 {} $ :style
-                                  {} (:display |flex) (:gap 8) (:flex-wrap |wrap)
-                                -> channels .to-list $ map-indexed
-                                  fn (idx channel)
-                                    [] idx $ div
+                                  {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
+                                <> |Detail
+                              if-let (item selected-history)
+                                div
+                                  {} $ :style
+                                    {} (:display |flex) (:flex-direction |column) (:gap 8)
+                                  div
+                                    {} $ :style
+                                      {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
+                                    <> $ or (:summary item) |Message
+                                  div
+                                    {} $ :style
+                                      {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
+                                    div
                                       {} $ :style
-                                        {} (:padding "|6px 10px") (:border-radius 999)
-                                          :background-color $ if (= channel selected-channel) |#f3d7ba |#fff
-                                          :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
-                                          :font-size 12
-                                          :color |#6b4a32
-                                      <> channel
-                            if-let
-                              client-id $ :client-id relay
-                              div ({})
-                                <> $ str "|Client: " client-id
-                            if-let
-                              relay-error $ :last-error relay
-                              div
-                                {} $ :style
-                                  {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                                <> $ str "|Relay error: " relay-error
-                          div
-                            {} $ :style
-                              {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #ead8c7")
-                            div
-                              {} $ :style
-                                {} (:font-size 12) (:font-weight |700) (:letter-spacing |1px) (:text-transform |uppercase) (:color |#8b6244)
-                              <> "|Latest payload"
-                            if-let
-                              render-error $ :last-error renderer
-                              div
-                                {} $ :style
-                                  {} (:font-size 13) (:line-height |1.5) (:color |#a23f1a)
-                                <> $ str "|Validation error: " render-error
-                            textarea $ {}
-                              :value $ or (:layout-source renderer) |
-                              :read-only true
-                              :spell-check false
-                              :placeholder "|Incoming Cirru EDN layout payload will appear here."
-                              :style $ {} (:width |100%) (:min-height |280px) (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #dcc8b6") (:background-color |#fff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
+                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                      <> $ str "|Kind: "
+                                        or (:kind item) |unknown
+                                    div
+                                      {} $ :style
+                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                      <> $ str "|Channel: "
+                                        or (:channel item) |session
+                                    div
+                                      {} $ :style
+                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                      <> $ str "|Request: "
+                                        or (:request-id item) |-
+                                  if (:matched? item)
+                                    div $ {}
+                                    div
+                                      {} $ :style
+                                        {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#f4f4f1) (:border "|1px solid #deded8") (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                      <> "|This message did not match the current channel filter."
+                                  textarea $ {}
+                                    :value $ or (:raw item) |
+                                    :read-only true
+                                    :spell-check false
+                                    :placeholder "|Relay frame detail"
+                                    :style $ {} (:width |100%) (:min-height "|calc(100vh - 320px)") (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #d7d7cf") (:background-color |#ffffff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
+                                div
+                                  {} $ :style
+                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                  <> "|Click a message to inspect its raw relay frame."
                           when dev? $ comp-reel (>> states :reel) reel ({})
                   help-alert $ use-alert (>> states :help)
-                    {} $ :text "|Use the drawer to inspect relay status, request ids, channel state, and incoming Cirru EDN without reserving a permanent sidebar."
-                [] (effect-page-title selected-channel)
+                    {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
+                do (effect-page-title selected-channel)
                   div
                     {} $ :style
-                      {} (:min-height |100vh) (:padding 16) (:box-sizing |border-box) (:background-color |#f6efe6) (:color |#2b2018) (:font-family |Avenir)
+                      {} (:min-height |100vh) (:padding 12) (:box-sizing |border-box) (:background-color |#efefeb) (:color |#1f2933) (:font-family |Avenir)
                     div
                       {} $ :style
-                        {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 8) (:padding "|8px 10px") (:border-radius 16) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:flex-wrap |wrap)
+                        {} (:display |flex) (:justify-content |space-between) (:align-items |center) (:gap 8) (:padding "|6px 8px") (:border-radius 12) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:flex-wrap |wrap)
                       div
                         {} $ :style
-                          {} (:display |flex) (:align-items |center) (:gap 8) (:flex-wrap |wrap)
+                          {} (:display |flex) (:align-items |center) (:gap 6) (:flex-wrap |wrap)
                         div
                           {} $ :style
-                            {} (:font-size 18) (:font-weight |700) (:line-height |1)
+                            {} (:font-size 15) (:font-weight |700) (:line-height |1)
                           <> "|EDN Renderer"
                         div
                           {} $ :style
-                            {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#fff) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#8b6244)
+                            {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                           if (some? selected-channel)
                             <> $ str "|Channel: " selected-channel
-                            <> "|Choose channel"
+                            <> "|No channel"
                       div
                         {} $ :style
                           {} (:display |flex) (:gap 6) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
                         div
                           {} $ :style
-                            {} (:padding "|4px 8px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#6b4a32)
+                            {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#f4f4f1) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                           <> $ str "|Relay: "
                             or (:status relay) |idle
                         div
                           {} $ :style
-                            {} (:padding "|4px 8px") (:border-radius 999) (:background-color |#fff7ef) (:border "|1px solid #ead8c7") (:font-size 11) (:color |#6b4a32)
+                            {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#f4f4f1) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                           if
                             some? $ :layout-id renderer
                             <> |Ready
                             <> |Waiting
-                        button $ {} (:class-name css/button) (:inner-text |Drawer)
-                          :style $ {} (:padding "|6px 10px")
+                        button $ {} (:class-name css/button)
+                          :inner-text $ str "|History " (count history)
+                          :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!) (.show drawer-plugin d!)
                         button $ {} (:class-name css/button) (:inner-text |Tips)
-                          :style $ {} (:padding "|6px 10px")
+                          :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!) (.show help-alert d!)
                     if-let
                       relay-error $ :last-error relay
                       div
                         {} $ :style
-                          {} (:padding "|10px 12px") (:border-radius 14) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 10)
+                          {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                         <> $ str "|Relay error: " relay-error
                     if-let
                       render-error $ :last-error renderer
                       div
                         {} $ :style
-                          {} (:padding "|10px 12px") (:border-radius 14) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 13) (:line-height |1.6) (:color |#a23f1a) (:margin-top 10)
+                          {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                         <> $ str "|Validation error: " render-error
                     if
                       > (count channels) 1
                       div
                         {} $ :style
-                          {} (:display |flex) (:flex-direction |column) (:gap 8) (:padding 14) (:border-radius 16) (:background-color |#fffaf4) (:border "|1px solid #ead8c7") (:margin-top 10)
+                          {} (:display |flex) (:flex-direction |column) (:gap 6) (:padding 10) (:border-radius 12) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:margin-top 8)
                         div
                           {} $ :style
-                            {} (:font-size 13) (:font-weight |600) (:color |#6b4528)
-                          <> "|Available channels"
+                            {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
+                          <> |Channels
                         list->
                           {} $ :style
-                            {} (:display |flex) (:gap 8) (:flex-wrap |wrap)
+                            {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
                           -> channels .to-list $ map-indexed
                             fn (idx channel)
                               [] idx $ button
                                 {} (:class-name css/button) (:inner-text channel)
-                                  :style $ {} (:padding "|6px 10px")
-                                    :background-color $ if (= channel selected-channel) |#e8b488 |#fff
-                                    :border $ if (= channel selected-channel) "|1px solid #cf8b5d" "|1px solid #ead8c7"
+                                  :style $ {} (:padding "|5px 8px") (:font-size 11)
+                                    :background-color $ if (= channel selected-channel) |#dce3ea |#ffffff
+                                    :border $ if (= channel selected-channel) "|1px solid #8a8f98" "|1px solid #d7d7cf"
                                   :on-click $ fn (e d!)
                                     d! $ :: :select-channel channel
                     div
                       {} $ :style
-                        {} (:display |flex) (:flex-direction |column) (:gap 14) (:padding 18) (:border-radius 20) (:background-color |#fff7ef) (:border "|1px solid #ecdccf") (:min-height |420px) (:margin-top 10)
+                        {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 12) (:border-radius 16) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:min-height |420px) (:margin-top 8)
                       div
                         {} $ :style
-                          {} (:font-size 18) (:font-weight |600)
-                        <> "|Rendered Preview"
+                          {} (:font-size 13) (:font-weight |600) (:color |#4b5563)
+                        <> |Preview
                       if (nil? selected-channel)
                         div
                           {} $ :style
-                            {} (:padding 28) (:border-radius 16) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 14) (:line-height |1.7) (:color |#8b6c52)
+                            {} (:padding 20) (:border-radius 14) (:border "|1px dashed #d7d7cf") (:background-color |#f5f5f1) (:font-size 13) (:line-height |1.6) (:color |#6b7280)
                           if
                             > (count channels) 1
-                            <> "|Select a channel to start receiving validated layouts."
-                            <> "|Waiting for an active relay channel. Open this page with `?channel=<name>` and send payloads with `edn-relay send --channel <name> '<INPUT>'`."
+                            <> "|Select a channel to start receiving layouts."
+                            <> "|Waiting for a relay channel. Open this page with ?channel=<name>."
                         if-let
                           layout $ :layout renderer
                           comp-layout-node layout
                           div
                             {} $ :style
-                              {} (:padding 28) (:border-radius 16) (:border "|1px dashed #d7bca4") (:background-color |#fffbf6) (:font-size 14) (:line-height |1.7) (:color |#8b6c52)
-                            <> "|Waiting for a validated payload from the relay."
+                              {} (:padding 20) (:border-radius 14) (:border "|1px dashed #d7d7cf") (:background-color |#f5f5f1) (:font-size 13) (:line-height |1.6) (:color |#6b7280)
+                            <> "|Waiting for validated payloads."
                     .render drawer-plugin
                     .render help-alert
           :examples $ []
@@ -1080,30 +1112,61 @@
                   payload $ :payload frame
                   request $ parse-renderer-request payload
                   selected $ selected-relay-channel
-                if (= kind |hello-ok)
-                  handle-channel-state! ws (:client_id frame) (:channels frame)
-                  if (= kind |channel-state)
-                    handle-channel-state! ws nil $ :channels frame
-                    if (= kind |event)
-                      if
+                  summary $ if (= kind |hello-ok) "|Relay connected"
+                    if (= kind |channel-state) "|Channel list updated" $ if (= kind |warning)
+                      or (:error frame) "|Relay warning"
+                      if (= kind |error)
+                        or (:error frame) "|Relay error"
+                        if (= kind |event)
+                          tag-match request
+                            (:help _) "|Renderer help"
+                            (:skill _) "|Renderer skill"
+                            (:status) "|Renderer status"
+                            (:layout path)
+                              str "|Layout summary " $ layout-path-display path
+                            (:node path)
+                              str "|Layout node " $ layout-path-display path
+                            (:patch path _)
+                              str "|Layout patch " $ layout-path-display path
+                            (:replace path _)
+                              str "|Layout replace " $ layout-path-display path
+                            _ "|Layout payload"
+                          str "|Relay " kind
+                do
+                  dispatch! $ :: :record-relay-message
+                    {} (:kind kind)
+                      :channel $ :channel frame
+                      :request-id $ :id frame
+                      :matched? $ if (= kind |event)
                         and (some? selected)
                           = (:channel frame) selected
-                        tag-match request
-                          (:help _) (handle-renderer-event! ws frame)
-                          (:skill _) (handle-renderer-event! ws frame)
-                          (:status) (handle-renderer-event! ws frame)
-                          (:layout _) (handle-renderer-event! ws frame)
-                          (:node _) (handle-renderer-event! ws frame)
-                          (:patch _ _) (handle-renderer-event! ws frame)
-                          (:replace _ _) (handle-renderer-event! ws frame)
-                          _ $ handle-genui-event! ws frame
-                        do |ignored
-                      if (= kind |warning)
-                        .!warn js/console $ or (:error frame) "|Relay warning"
-                        if (= kind |error)
-                          dispatch! $ :: :relay-status |error
-                            or (:error frame) "|Relay error"
+                        , true
+                      :summary summary
+                      :raw raw
+                  if (= kind |hello-ok)
+                    handle-channel-state! ws (:client_id frame) (:channels frame)
+                    if (= kind |channel-state)
+                      handle-channel-state! ws nil $ :channels frame
+                      if (= kind |event)
+                        if
+                          and (some? selected)
+                            = (:channel frame) selected
+                          tag-match request
+                            (:help _) (handle-renderer-event! ws frame)
+                            (:skill _) (handle-renderer-event! ws frame)
+                            (:status) (handle-renderer-event! ws frame)
+                            (:layout _) (handle-renderer-event! ws frame)
+                            (:node _) (handle-renderer-event! ws frame)
+                            (:patch _ _) (handle-renderer-event! ws frame)
+                            (:replace _ _) (handle-renderer-event! ws frame)
+                            _ $ handle-genui-event! ws frame
                           do |ignored
+                        if (= kind |warning)
+                          .!warn js/console $ or (:error frame) "|Relay warning"
+                          if (= kind |error)
+                            dispatch! $ :: :relay-status |error
+                              or (:error frame) "|Relay error"
+                            do |ignored
           :examples $ []
         |handle-renderer-event! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1553,6 +1616,8 @@
               :relay $ {} (:status |idle) (:client-id nil) (:last-error nil) (:selected-channel nil)
                 :channels $ []
               :renderer $ {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
+                :history $ []
+                :selected-history nil
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.schema)
@@ -1585,6 +1650,18 @@
                   -> store
                     assoc-in ([] :relay :status) status
                     assoc-in ([] :relay :last-error) message
+                (:record-relay-message entry)
+                  -> store
+                    assoc-in ([] :renderer :history)
+                      append
+                        if
+                          list? $ get-in store ([] :renderer :history)
+                          get-in store $ [] :renderer :history
+                          []
+                        , entry
+                    assoc-in ([] :renderer :selected-history) entry
+                (:select-history entry)
+                  assoc-in store ([] :renderer :selected-history) entry
                 (:genui-applied request-id layout-id layout layout-dsl source)
                   -> store
                     assoc-in ([] :renderer :layout) layout
