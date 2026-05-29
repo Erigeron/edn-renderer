@@ -189,9 +189,9 @@
                                   -> history .to-list $ map-indexed
                                     fn (idx item)
                                       let
-                                          active? $ and
-                                              some? selected-history
-                                            = (:raw item) (:raw selected-history)
+                                          active? $ if-let (current selected-history)
+                                            = (:raw item) (:raw current)
+                                            , false
                                           meta-channel $ or (:channel item) |session
                                           meta-request $ or (:request-id item) |-
                                         [] idx $ div
