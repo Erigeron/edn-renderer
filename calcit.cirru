@@ -145,6 +145,7 @@
                     :storage-entries renderer
                     []
                   selected-storage $ :selected-storage renderer
+                  drawer-view $ or (:drawer-view renderer) |history
                   drawer-plugin $ use-drawer (>> states :drawer)
                     {}
                       :style $ {} (:width 820) (:min-width 0) (:max-width "|calc(100vw - 24px)") (:padding "|12px 12px 14px") (:gap 12) (:background-color |#f7f7f3) (:border-left "|1px solid #d7d7cf") (:box-shadow "|-12px 0 28px hsla(210, 8%, 18%, 0.12)") (:overflow |auto)
@@ -165,7 +166,7 @@
                               div
                                 {} $ :style
                                   {} (:font-size 15) (:font-weight |700) (:color |#1f2933)
-                                <> |History
+                                <> $ if (= drawer-view |library) |Library |History
                               div
                                 {} $ :style
                                   {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
@@ -191,84 +192,81 @@
                               div
                                 {} $ :style
                                   {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
-                                <> "|Saved Reports"
-                              if
-                                > (count storage-entries) 0
-                                list->
-                                  {} $ :style
-                                    {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height 220) (:overflow |auto)
-                                  -> storage-entries .to-list $ map-indexed
-                                    fn (idx item)
-                                      let
-                                          active? $ if-let (current selected-storage)
-                                            = (:name item) (:name current)
-                                            , false
-                                        [] idx $ div
-                                          {}
-                                            :style $ {} (:padding "|8px 10px") (:border-radius 12)
-                                              :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
-                                              :background-color $ if active? |#eef1f4 |#ffffff
-                                              :cursor |pointer
-                                              :display |flex
-                                              :flex-direction |column
-                                              :gap 4
-                                            :on-click $ fn (e d!)
-                                              d! $ :: :load-stored-report (:name item)
-                                          div
-                                            {} $ :style
-                                              {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                            <> $ or (:name item) "|Saved report"
-                                          div
-                                            {} $ :style
-                                              {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                            <> $ or (:path item) |
-                                div
-                                  {} $ :style
-                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                  <> "|No saved reports for current channel yet."
-                              div
-                                {} $ :style
-                                  {} (:font-size 12) (:font-weight |600) (:color |#4b5563) (:margin-top 4)
-                                <> |Messages
-                              if
-                                > (count history) 0
-                                list->
-                                  {} $ :style
-                                    {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
-                                  -> history .to-list $ map-indexed
-                                    fn (idx item)
-                                      let
-                                          active? $ if-let (current selected-history)
-                                            = (:raw item) (:raw current)
-                                            , false
-                                          meta-channel $ or (:channel item) |session
-                                          meta-request $ or (:request-id item) |-
-                                        [] idx $ div
-                                          {}
-                                            :style $ {} (:padding "|8px 10px") (:border-radius 12)
-                                              :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
-                                              :background-color $ if active? |#eef1f4 |#ffffff
-                                              :cursor |pointer
-                                              :display |flex
-                                              :flex-direction |column
-                                              :gap 4
-                                              :opacity $ if (:matched? item) |1 |0.72
-                                            :on-click $ fn (e d!)
-                                              d! $ :: :select-history item
-                                          div
-                                            {} $ :style
-                                              {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                            <> $ or (:summary item) |Message
-                                          div
-                                            {} $ :style
-                                              {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                            <> $ str
-                                              or (:kind item) |unknown
-                                              , | / meta-channel | / meta-request
-                                div
-                                  {} $ :style
-                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                  <> "|No relay messages yet."
+                                <> $ if (= drawer-view |library) "|Saved Reports" |Messages
+                              if (= drawer-view |library)
+                                if
+                                  > (count storage-entries) 0
+                                  list->
+                                    {} $ :style
+                                      {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
+                                    -> storage-entries .to-list $ map-indexed
+                                      fn (idx item)
+                                        let
+                                            active? $ if-let (current selected-storage)
+                                              = (:name item) (:name current)
+                                              , false
+                                          [] idx $ div
+                                            {}
+                                              :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                                :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                                :background-color $ if active? |#eef1f4 |#ffffff
+                                                :cursor |pointer
+                                                :display |flex
+                                                :flex-direction |column
+                                                :gap 4
+                                              :on-click $ fn (e d!)
+                                                d! $ :: :load-stored-report (:name item)
+                                            div
+                                              {} $ :style
+                                                {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                              <> $ or (:name item) "|Saved report"
+                                            div
+                                              {} $ :style
+                                                {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                              <> $ or (:path item) |
+                                  div
+                                    {} $ :style
+                                      {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                    <> "|No saved reports for current channel yet."
+                                if
+                                  > (count history) 0
+                                  list->
+                                    {} $ :style
+                                      {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
+                                    -> history .to-list $ map-indexed
+                                      fn (idx item)
+                                        let
+                                            active? $ if-let (current selected-history)
+                                              = (:raw item) (:raw current)
+                                              , false
+                                            meta-channel $ or (:channel item) |session
+                                            meta-request $ or (:request-id item) |-
+                                          [] idx $ div
+                                            {}
+                                              :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                                :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                                :background-color $ if active? |#eef1f4 |#ffffff
+                                                :cursor |pointer
+                                                :display |flex
+                                                :flex-direction |column
+                                                :gap 4
+                                                :opacity $ if (:matched? item) |1 |0.72
+                                              :on-click $ fn (e d!)
+                                                d! $ :: :select-history item
+                                            div
+                                              {} $ :style
+                                                {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                              <> $ or (:summary item) |Message
+                                            div
+                                              {} $ :style
+                                                {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                              <> $ str
+                                                or (:kind item) |unknown
+                                                , | / meta-channel | / meta-request
+                                  div
+                                    {} $ :style
+                                      {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                    <> "|No relay messages yet."
                             div
                               {} $ :style
                                 {} (:flex |1) (:min-width 280) (:display |flex) (:flex-direction |column) (:gap 8)
@@ -276,48 +274,82 @@
                                 {} $ :style
                                   {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
                                 <> |Detail
-                              if-let (item selected-history)
-                                div
-                                  {} $ :style
-                                    {} (:display |flex) (:flex-direction |column) (:gap 8)
+                              if (= drawer-view |library)
+                                if-let (item selected-storage)
                                   div
                                     {} $ :style
-                                      {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
-                                    <> $ or (:summary item) |Message
+                                      {} (:display |flex) (:flex-direction |column) (:gap 8)
+                                    div
+                                      {} $ :style
+                                        {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
+                                      <> $ or (:name item) "|Saved report"
+                                    div
+                                      {} $ :style
+                                        {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
+                                      div
+                                        {} $ :style
+                                          {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                        <> $ str "|Status: " storage-status
+                                      if (some? selected-channel)
+                                        div
+                                          {} $ :style
+                                            {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                          <> $ str "|Channel: " selected-channel
+                                    textarea $ {}
+                                      :value $ format-cirru-edn $ {}
+                                        :name $ or (:name item) |-
+                                        :path $ or (:path item) |-
+                                        :status storage-status
+                                      :read-only true
+                                      :spell-check false
+                                      :placeholder "|Saved report detail"
+                                      :style $ {} (:width |100%) (:min-height "|calc(100vh - 320px)") (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #d7d7cf") (:background-color |#ffffff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
                                   div
                                     {} $ :style
-                                      {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
+                                      {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                    <> "|Click a saved report to load it into the current preview."
+                                if-let (item selected-history)
+                                  div
+                                    {} $ :style
+                                      {} (:display |flex) (:flex-direction |column) (:gap 8)
                                     div
                                       {} $ :style
-                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                      <> $ str "|Kind: "
-                                        or (:kind item) |unknown
+                                        {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
+                                      <> $ or (:summary item) |Message
                                     div
                                       {} $ :style
-                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                      <> $ str "|Channel: "
-                                        or (:channel item) |session
-                                    div
-                                      {} $ :style
-                                        {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                      <> $ str "|Request: "
-                                        or (:request-id item) |-
-                                  if (:matched? item)
-                                    div $ {}
-                                    div
-                                      {} $ :style
-                                        {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#f4f4f1) (:border "|1px solid #deded8") (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                      <> "|This message did not match the current channel filter."
-                                  textarea $ {}
-                                    :value $ or (:raw item) |
-                                    :read-only true
-                                    :spell-check false
-                                    :placeholder "|Relay frame detail"
-                                    :style $ {} (:width |100%) (:min-height "|calc(100vh - 320px)") (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #d7d7cf") (:background-color |#ffffff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
-                                div
-                                  {} $ :style
-                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                  <> "|Click a message to inspect its raw relay frame."
+                                        {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
+                                      div
+                                        {} $ :style
+                                          {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                        <> $ str "|Kind: "
+                                          or (:kind item) |unknown
+                                      div
+                                        {} $ :style
+                                          {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                        <> $ str "|Channel: "
+                                          or (:channel item) |session
+                                      div
+                                        {} $ :style
+                                          {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                        <> $ str "|Request: "
+                                          or (:request-id item) |-
+                                    if (:matched? item)
+                                      div $ {}
+                                      div
+                                        {} $ :style
+                                          {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#f4f4f1) (:border "|1px solid #deded8") (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                        <> "|This message did not match the current channel filter."
+                                    textarea $ {}
+                                      :value $ or (:raw item) |
+                                      :read-only true
+                                      :spell-check false
+                                      :placeholder "|Relay frame detail"
+                                      :style $ {} (:width |100%) (:min-height "|calc(100vh - 320px)") (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #d7d7cf") (:background-color |#ffffff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
+                                  div
+                                    {} $ :style
+                                      {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                    <> "|Click a message to inspect its raw relay frame."
                           when dev? $ comp-reel (>> states :reel) reel ({})
                   help-alert $ use-alert (>> states :help)
                     {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
@@ -359,7 +391,10 @@
                         button $ {} (:class-name css/button)
                           :inner-text $ str "|History " (count history)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
-                          :on-click $ fn (e d!) (.show drawer-plugin d!)
+                          :on-click $ fn (e d!)
+                            do
+                              d! $ :: :open-history-drawer
+                              (.show drawer-plugin d!)
                         button $ {}
                           :class-name css/button
                           :inner-text |Library
@@ -367,6 +402,7 @@
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!)
                             do
+                              d! $ :: :open-library-drawer
                               (.show drawer-plugin d!)
                               d! $ :: :request-storage-list
                         button $ {}
@@ -1805,6 +1841,7 @@
               :renderer $ {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
                 :history $ []
                 :selected-history nil
+                :drawer-view |history
                 :storage-status |idle
                 :storage-error nil
                 :storage-pending nil
@@ -1859,6 +1896,10 @@
                     assoc-in ([] :renderer :selected-history) entry
                 (:select-history entry)
                   assoc-in store ([] :renderer :selected-history) entry
+                (:open-history-drawer)
+                  assoc-in store ([] :renderer :drawer-view) |history
+                (:open-library-drawer)
+                  assoc-in store ([] :renderer :drawer-view) |library
                 (:storage-pending request-id op-name)
                   -> store
                     assoc-in ([] :renderer :storage-pending) $ {} (:request-id request-id) (:op op-name)
