@@ -93,6 +93,27 @@ Expected result:
 - the page shows the layout id and request id
 - the renderer preview updates immediately
 
+## Save And Library
+
+When a meaningful layout is already loaded in the page, the top bar exposes 2
+extra actions:
+
+- `Save`: asks relay to persist the current report under `~/.config/ed-relay/<channel>/`
+- `Library`: opens the saved report list for the current channel and lets you load one entry back into the preview
+
+The browser does not write local files directly. Instead it sends a generic
+relay request to the reserved internal channel `__relay_store__`, and relay
+stores opaque Cirru EDN files on disk.
+
+Validated flow:
+
+1. send a layout into `genui`
+2. click `Save`
+3. confirm a new `.cirru` file appears under `~/.config/ed-relay/genui/`
+4. click `Library`
+5. click a saved report entry
+6. confirm the preview loads the saved layout back into the page
+
 ## Layout Inspection And Editing
 
 Once a layout is already loaded in the page, you can inspect and edit it with

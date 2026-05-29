@@ -138,6 +138,13 @@
                     :history renderer
                     []
                   selected-history $ :selected-history renderer
+                  storage-status $ or (:storage-status renderer) |idle
+                  storage-error $ :storage-error renderer
+                  storage-entries $ if
+                    list? $ :storage-entries renderer
+                    :storage-entries renderer
+                    []
+                  selected-storage $ :selected-storage renderer
                   drawer-plugin $ use-drawer (>> states :drawer)
                     {}
                       :style $ {} (:width 820) (:min-width 0) (:max-width "|calc(100vw - 24px)") (:padding "|12px 12px 14px") (:gap 12) (:background-color |#f7f7f3) (:border-left "|1px solid #d7d7cf") (:box-shadow "|-12px 0 28px hsla(210, 8%, 18%, 0.12)") (:overflow |auto)
@@ -168,6 +175,10 @@
                                   {} $ :style
                                     {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                   <> $ str "|Channel: " selected-channel
+                              div
+                                {} $ :style
+                                  {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
+                                <> $ str "|Reports: " (count storage-entries)
                             button $ {} (:class-name css/button) (:inner-text |Close)
                               :style $ {} (:padding "|5px 9px") (:font-size 11)
                               :on-click $ fn (e d!) (on-close d!)
@@ -180,6 +191,44 @@
                               div
                                 {} $ :style
                                   {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
+                                <> "|Saved Reports"
+                              if
+                                > (count storage-entries) 0
+                                list->
+                                  {} $ :style
+                                    {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height 220) (:overflow |auto)
+                                  -> storage-entries .to-list $ map-indexed
+                                    fn (idx item)
+                                      let
+                                          active? $ if-let (current selected-storage)
+                                            = (:name item) (:name current)
+                                            , false
+                                        [] idx $ div
+                                          {}
+                                            :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                              :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                              :background-color $ if active? |#eef1f4 |#ffffff
+                                              :cursor |pointer
+                                              :display |flex
+                                              :flex-direction |column
+                                              :gap 4
+                                            :on-click $ fn (e d!)
+                                              d! $ :: :load-stored-report (:name item)
+                                          div
+                                            {} $ :style
+                                              {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                            <> $ or (:name item) "|Saved report"
+                                          div
+                                            {} $ :style
+                                              {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                            <> $ or (:path item) |
+                                div
+                                  {} $ :style
+                                    {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                  <> "|No saved reports for current channel yet."
+                              div
+                                {} $ :style
+                                  {} (:font-size 12) (:font-weight |600) (:color |#4b5563) (:margin-top 4)
                                 <> |Messages
                               if
                                 > (count history) 0
@@ -311,6 +360,22 @@
                           :inner-text $ str "|History " (count history)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!) (.show drawer-plugin d!)
+                        button $ {}
+                          :class-name css/button
+                          :inner-text |Library
+                          :disabled $ nil? selected-channel
+                          :style $ {} (:padding "|5px 8px") (:font-size 11)
+                          :on-click $ fn (e d!)
+                            do
+                              (.show drawer-plugin d!)
+                              d! $ :: :request-storage-list
+                        button $ {}
+                          :class-name css/button
+                          :inner-text |Save
+                          :disabled $ nil? (:layout-dsl renderer)
+                          :style $ {} (:padding "|5px 8px") (:font-size 11)
+                          :on-click $ fn (e d!)
+                            d! $ :: :save-current-report
                         button $ {} (:class-name css/button) (:inner-text |Tips)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!) (.show help-alert d!)
@@ -326,6 +391,12 @@
                         {} $ :style
                           {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                         <> $ str "|Validation error: " render-error
+                    if-let
+                      current-storage-error storage-error
+                      div
+                        {} $ :style
+                          {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff7e9) (:border "|1px solid #e8c48f") (:font-size 12) (:line-height |1.5) (:color |#8a541d) (:margin-top 8)
+                        <> $ str "|Storage error: " current-storage-error
                     if
                       > (count channels) 1
                       div
@@ -934,13 +1005,14 @@
               {} (:name |node) (:summary "|用 `:op :node` + `:path \"1.2.3\"` 读取某个节点的完整 DSL。路径使用 1-based children 索引，`root` 表示整棵树；成功时同时返回 `:dsl`、`:source` 和 `:summary`。")
               {} (:name |patch) (:summary "|用 `:op :patch` + `:path` + `:changes` 局部合并节点属性，renderer 会重新验证整棵 layout；成功后立即局部更新页面，并返回目标节点新的 `:dsl` 与 `:summary`。")
               {} (:name |replace) (:summary "|用 `:op :replace` + `:path` + `:node` 直接替换某个节点 DSL，适合结构性修改；成功后同样会重新验证整棵树，并返回替换结果。")
+              {} (:name |storage) (:summary "|页面上的 `Save` 和 `Library` 通过 relay 保留 channel `__relay_store__` 工作。`Save` 会把当前 report 落到 `~/.config/ed-relay/<channel>/`，`Library` 会列出同 channel 的 `.cirru` 文件并加载回当前预览。")
           :examples $ []
         |relay-commands $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def relay-commands $ [] |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`editing`、`examples`、`layout`、`layout-patch-demo`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
+          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`storage`、`editing`、`examples`、`layout`、`layout-patch-demo`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
           :examples $ []
         |select-component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -995,13 +1067,14 @@
             def site $ {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
           :examples $ []
         |skill-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`layout`、`math`、`validation`；如果确实要整份文档，再用 `full`。")
+          :code $ quote (def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`storage`、`layout`、`math`、`validation`；如果确实要整份文档，再用 `full`。")
           :examples $ []
         |skill-sections $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def skill-sections $ []
               {} (:name |workflow) (:title |Workflow) (:text "|1. 先 `edn-relay help --channel <name>` 看总览。\n2. 再用 `help --channel <name> <topic>` 把范围收窄到组件、协议或示例。\n3. 最后才运行 `edn-relay send --channel <name> ...` 发 payload。")
               {} (:name |help) (:title "|Help Queries") (:text "|默认 `help` 只返回总览。要列出全部组件，用 `edn-relay help --channel <name> components`；要看 MathML，用 `edn-relay help --channel <name> math`；要看局部编辑流程，用 `edn-relay help --channel <name> editing`；要看具体案例，用 `edn-relay help --channel <name> layout-patch-demo`。")
+              {} (:name |storage) (:title |Storage) (:text "|页面上已有有效 report 时，可以直接点 `Save` 把当前内容保存到 `~/.config/ed-relay/<channel>/`。点 `Library` 会请求 relay 列出当前 channel 下的 `.cirru` 文件，并在点击条目后把保存时的 layout 加载回当前预览。CLI 想查这个能力时，优先用 `edn-relay help --channel <name> storage`。")
               {} (:name |editing) (:title "|Editing Workflow") (:text "|先用 `edn-relay send --channel <name> '{}` + `:op :layout` 获取隐藏细节的 summary tree，再用 `:op :node` + `:path` 读取完整 DSL。只改属性时优先 `:patch` + `:changes`，结构变化再用 `:replace`。每次成功都会回新的 `:layout_id`、目标节点 `:summary`，并在 `node/patch/replace` 返回完整 `:dsl`。")
               {} (:name |layout) (:title "|Layout Editing") (:text "|局部编辑默认走 `layout -> node -> patch/replace`。路径使用 1-based children 索引，`root` 表示整棵树；如果 agent 还不确定 payload 形状，先查 `layout-summary-demo`、`layout-node-demo`、`layout-patch-demo`。")
               {} (:name |math) (:title |MathML) (:text "|MathML Core 已通过 `math` 节点暴露。推荐顺序是先查 `edn-relay help --channel genui math`，再查 `math-fraction-demo`，最后发送 `:type |math` + `:expr` 的 Cirru EDN payload。")
@@ -1026,6 +1099,30 @@
         |*ws $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote (defatom *ws nil)
           :examples $ []
+        |internal-storage-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def internal-storage-channel |__relay_store__)
+          :examples $ []
+        |build-saved-report-entry $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn build-saved-report-entry (relay renderer)
+              let
+                  channel $ :selected-channel relay
+                  layout-dsl $ :layout-dsl renderer
+                  layout-id $ :layout-id renderer
+                  request-id $ :last-request renderer
+                  saved-at $ .!toISOString (new js/Date)
+                  source $ if (some? (:layout-source renderer)) (:layout-source renderer)
+                    format-cirru-edn layout-dsl
+                {}
+                  :kind :saved-report
+                  :channel channel
+                  :title $ str (or channel |report) | /  (or layout-id |snapshot)
+                  :layout_id layout-id
+                  :request_id request-id
+                  :saved_at saved-at
+                  :layout layout-dsl
+                  :source source
+          :examples $ []
         |dispatch! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn dispatch! (op)
@@ -1035,12 +1132,14 @@
               let
                   next-reel $ reel-updater updater @*reel op
                 reset! *reel next-reel
-                when
-                  and (some? @*ws)
-                    tag-match op
-                      (:select-channel _) true
-                      _ false
-                  sync-selected-channel! @*ws
+                if (some? @*ws)
+                  tag-match op
+                    (:select-channel _) (sync-selected-channel! @*ws)
+                    (:request-storage-list) (request-storage-list! @*ws)
+                    (:save-current-report) (request-storage-save! @*ws)
+                    (:load-stored-report name) (request-storage-load! @*ws name)
+                    _ $ , nil
+                  , nil
           :examples $ []
         |ensure-relay! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1112,26 +1211,31 @@
                   payload $ :payload frame
                   request $ parse-renderer-request payload
                   selected $ selected-relay-channel
+                  pending-storage $ get-in @*reel ([] :store :renderer :storage-pending)
                   summary $ if (= kind |hello-ok) "|Relay connected"
-                    if (= kind |channel-state) "|Channel list updated" $ if (= kind |warning)
-                      or (:error frame) "|Relay warning"
-                      if (= kind |error)
-                        or (:error frame) "|Relay error"
-                        if (= kind |event)
-                          tag-match request
-                            (:help _) "|Renderer help"
-                            (:skill _) "|Renderer skill"
-                            (:status) "|Renderer status"
-                            (:layout path)
-                              str "|Layout summary " $ layout-path-display path
-                            (:node path)
-                              str "|Layout node " $ layout-path-display path
-                            (:patch path _)
-                              str "|Layout patch " $ layout-path-display path
-                            (:replace path _)
-                              str "|Layout replace " $ layout-path-display path
-                            _ "|Layout payload"
-                          str "|Relay " kind
+                    if (= kind |channel-state) "|Channel list updated"
+                      if (= kind |warning)
+                        or (:error frame) "|Relay warning"
+                        if (= kind |error)
+                          or (:error frame) "|Relay error"
+                          if
+                            and (= kind |ack) (some? pending-storage) (= (:id frame) (:request-id pending-storage))
+                            str "|Storage " $ or (:op pending-storage) |request
+                            if (= kind |event)
+                              tag-match request
+                                (:help _) "|Renderer help"
+                                (:skill _) "|Renderer skill"
+                                (:status) "|Renderer status"
+                                (:layout path)
+                                  str "|Layout summary " $ layout-path-display path
+                                (:node path)
+                                  str "|Layout node " $ layout-path-display path
+                                (:patch path _)
+                                  str "|Layout patch " $ layout-path-display path
+                                (:replace path _)
+                                  str "|Layout replace " $ layout-path-display path
+                                _ "|Layout payload"
+                              str "|Relay " kind
                 do
                   dispatch! $ :: :record-relay-message
                     {} (:kind kind)
@@ -1161,12 +1265,15 @@
                             (:replace _ _) (handle-renderer-event! ws frame)
                             _ $ handle-genui-event! ws frame
                           do |ignored
-                        if (= kind |warning)
-                          .!warn js/console $ or (:error frame) "|Relay warning"
-                          if (= kind |error)
-                            dispatch! $ :: :relay-status |error
-                              or (:error frame) "|Relay error"
-                            do |ignored
+                        if
+                          and (= kind |ack) (some? pending-storage) (= (:id frame) (:request-id pending-storage))
+                          handle-storage-ack! frame
+                          if (= kind |warning)
+                            .!warn js/console $ or (:error frame) "|Relay warning"
+                            if (= kind |error)
+                              dispatch! $ :: :relay-status |error
+                                or (:error frame) "|Relay error"
+                              do |ignored
           :examples $ []
         |handle-renderer-event! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1481,6 +1588,50 @@
                 turn-string x
                 , nil
           :examples $ []
+        |request-storage-list! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-list! (ws)
+              if-let
+                channel $ selected-relay-channel
+                let
+                    request-id $ str |storage-list- (.!now js/Date)
+                  do
+                    dispatch! $ :: :storage-pending request-id |list
+                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :list) (:channel channel))
+                dispatch! $ :: :storage-failed nil "|Select a channel before browsing saved reports"
+          :examples $ []
+        |request-storage-load! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-load! (ws name)
+              if-let
+                channel $ selected-relay-channel
+                let
+                    request-id $ str |storage-load- (.!now js/Date)
+                  do
+                    dispatch! $ :: :storage-pending request-id |load
+                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :load) (:channel channel) (:name name))
+                dispatch! $ :: :storage-failed nil "|Select a channel before loading saved reports"
+          :examples $ []
+        |request-storage-save! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-save! (ws)
+              let
+                  relay $ get-in @*reel ([] :store :relay)
+                  renderer $ get-in @*reel ([] :store :renderer)
+                if
+                  and (some? (:selected-channel relay)) (some? (:layout-dsl renderer))
+                  let
+                      request-id $ str |storage-save- (.!now js/Date)
+                      entry $ build-saved-report-entry relay renderer
+                      file-name $ str
+                        or (:selected-channel relay) |report
+                        , |-
+                        or (:layout-id renderer) (:last-request renderer) |snapshot
+                    do
+                      dispatch! $ :: :storage-pending request-id |save
+                      send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :save) (:channel (:selected-channel relay)) (:name file-name) (:entry entry))
+                  dispatch! $ :: :storage-failed nil "|A validated layout is required before saving a report"
+          :examples $ []
         |reload! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn reload! () $ if (nil? build-errors)
@@ -1517,6 +1668,42 @@
         |selected-relay-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn selected-relay-channel () $ get-in @*reel ([] :store :relay :selected-channel)
+          :examples $ []
+        |handle-storage-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn handle-storage-ack! (frame)
+              let
+                  request-id $ :id frame
+                  pending $ get-in @*reel ([] :store :renderer :storage-pending)
+                when
+                  and (some? pending) (= request-id (:request-id pending))
+                  if (:ok frame)
+                    try
+                      let
+                          payload $ :payload frame
+                          kind $ protocol-name (:kind payload)
+                        if (= kind |storage-list)
+                          dispatch! $ :: :storage-listed request-id
+                            if (list? (:entries payload)) (:entries payload) ([])
+                          if (= kind |storage-save)
+                            do
+                              dispatch! $ :: :storage-saved request-id payload
+                              when (some? @*ws) (request-storage-list! @*ws)
+                            if (= kind |storage-load)
+                              let
+                                  entry $ :entry payload
+                                  layout-dsl $ :layout entry
+                                  source $ or (:source payload) (:source entry) (format-cirru-edn layout-dsl)
+                                  layout-id $ or (:layout_id entry) (str |saved- (:name payload))
+                                  layout $ validate-layout layout-dsl
+                                dispatch! $ :: :storage-loaded request-id payload layout-id layout layout-dsl source
+                              dispatch! $ :: :storage-failed request-id "|Unsupported storage ack payload"
+                      fn (error)
+                        let
+                            message $ if (some? (.-message error)) (.-message error) (str error)
+                          dispatch! $ :: :storage-failed request-id message
+                    dispatch! $ :: :storage-failed request-id
+                      or (:error frame) "|Storage request failed"
           :examples $ []
         |send-genui-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1618,6 +1805,11 @@
               :renderer $ {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil)
                 :history $ []
                 :selected-history nil
+                :storage-status |idle
+                :storage-error nil
+                :storage-pending nil
+                :storage-entries $ []
+                :selected-storage nil
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.schema)
@@ -1646,6 +1838,11 @@
                     assoc-in ([] :renderer :layout-source) |
                     assoc-in ([] :renderer :last-request) nil
                     assoc-in ([] :renderer :last-error) nil
+                    assoc-in ([] :renderer :storage-status) |idle
+                    assoc-in ([] :renderer :storage-error) nil
+                    assoc-in ([] :renderer :storage-pending) nil
+                    assoc-in ([] :renderer :storage-entries) ([])
+                    assoc-in ([] :renderer :selected-storage) nil
                 (:relay-status status message)
                   -> store
                     assoc-in ([] :relay :status) status
@@ -1662,6 +1859,40 @@
                     assoc-in ([] :renderer :selected-history) entry
                 (:select-history entry)
                   assoc-in store ([] :renderer :selected-history) entry
+                (:storage-pending request-id op-name)
+                  -> store
+                    assoc-in ([] :renderer :storage-pending) $ {} (:request-id request-id) (:op op-name)
+                    assoc-in ([] :renderer :storage-status) |working
+                    assoc-in ([] :renderer :storage-error) nil
+                (:storage-saved request-id entry)
+                  -> store
+                    assoc-in ([] :renderer :storage-pending) nil
+                    assoc-in ([] :renderer :storage-status) |saved
+                    assoc-in ([] :renderer :storage-error) nil
+                    assoc-in ([] :renderer :selected-storage) entry
+                (:storage-listed request-id entries)
+                  -> store
+                    assoc-in ([] :renderer :storage-pending) nil
+                    assoc-in ([] :renderer :storage-status) |ready
+                    assoc-in ([] :renderer :storage-error) nil
+                    assoc-in ([] :renderer :storage-entries) entries
+                (:storage-loaded request-id entry layout-id layout layout-dsl source)
+                  -> store
+                    assoc-in ([] :renderer :storage-pending) nil
+                    assoc-in ([] :renderer :storage-status) |loaded
+                    assoc-in ([] :renderer :storage-error) nil
+                    assoc-in ([] :renderer :selected-storage) entry
+                    assoc-in ([] :renderer :layout) layout
+                    assoc-in ([] :renderer :layout-dsl) layout-dsl
+                    assoc-in ([] :renderer :layout-id) layout-id
+                    assoc-in ([] :renderer :layout-source) source
+                    assoc-in ([] :renderer :last-request) request-id
+                    assoc-in ([] :renderer :last-error) nil
+                (:storage-failed request-id message)
+                  -> store
+                    assoc-in ([] :renderer :storage-pending) nil
+                    assoc-in ([] :renderer :storage-status) |error
+                    assoc-in ([] :renderer :storage-error) message
                 (:genui-applied request-id layout-id layout layout-dsl source)
                   -> store
                     assoc-in ([] :renderer :layout) layout
