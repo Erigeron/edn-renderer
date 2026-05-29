@@ -296,10 +296,11 @@
                                             {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                           <> $ str "|Channel: " selected-channel
                                     textarea $ {}
-                                      :value $ format-cirru-edn $ {}
-                                        :name $ or (:name item) |-
-                                        :path $ or (:path item) |-
-                                        :status storage-status
+                                      :value $ format-cirru-edn
+                                        {}
+                                          :name $ or (:name item) |-
+                                          :path $ or (:path item) |-
+                                          :status storage-status
                                       :read-only true
                                       :spell-check false
                                       :placeholder "|Saved report detail"
@@ -394,20 +395,16 @@
                           :on-click $ fn (e d!)
                             do
                               d! $ :: :open-history-drawer
-                              (.show drawer-plugin d!)
-                        button $ {}
-                          :class-name css/button
-                          :inner-text |Library
+                              .show drawer-plugin d!
+                        button $ {} (:class-name css/button) (:inner-text |Library)
                           :disabled $ nil? selected-channel
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!)
                             do
                               d! $ :: :open-library-drawer
-                              (.show drawer-plugin d!)
+                              .show drawer-plugin d!
                               d! $ :: :request-storage-list
-                        button $ {}
-                          :class-name css/button
-                          :inner-text |Save
+                        button $ {} (:class-name css/button) (:inner-text |Save)
                           :disabled $ nil? (:layout-dsl renderer)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                           :on-click $ fn (e d!)
@@ -427,8 +424,7 @@
                         {} $ :style
                           {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                         <> $ str "|Validation error: " render-error
-                    if-let
-                      current-storage-error storage-error
+                    if-let (current-storage-error storage-error)
                       div
                         {} $ :style
                           {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff7e9) (:border "|1px solid #e8c48f") (:font-size 12) (:line-height |1.5) (:color |#8a541d) (:margin-top 8)
@@ -1135,9 +1131,6 @@
         |*ws $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote (defatom *ws nil)
           :examples $ []
-        |internal-storage-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def internal-storage-channel |__relay_store__)
-          :examples $ []
         |build-saved-report-entry $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn build-saved-report-entry (relay renderer)
@@ -1147,12 +1140,12 @@
                   layout-id $ :layout-id renderer
                   request-id $ :last-request renderer
                   saved-at $ .!toISOString (new js/Date)
-                  source $ if (some? (:layout-source renderer)) (:layout-source renderer)
+                  source $ if
+                    some? $ :layout-source renderer
+                    :layout-source renderer
                     format-cirru-edn layout-dsl
-                {}
-                  :kind :saved-report
-                  :channel channel
-                  :title $ str (or channel |report) | /  (or layout-id |snapshot)
+                {} (:kind :saved-report) (:channel channel)
+                  :title $ str (or channel |report) | / (or layout-id |snapshot)
                   :layout_id layout-id
                   :request_id request-id
                   :saved_at saved-at
@@ -1174,7 +1167,7 @@
                     (:request-storage-list) (request-storage-list! @*ws)
                     (:save-current-report) (request-storage-save! @*ws)
                     (:load-stored-report name) (request-storage-load! @*ws name)
-                    _ $ , nil
+                    _ nil
                   , nil
           :examples $ []
         |ensure-relay! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -1249,29 +1242,29 @@
                   selected $ selected-relay-channel
                   pending-storage $ get-in @*reel ([] :store :renderer :storage-pending)
                   summary $ if (= kind |hello-ok) "|Relay connected"
-                    if (= kind |channel-state) "|Channel list updated"
-                      if (= kind |warning)
-                        or (:error frame) "|Relay warning"
-                        if (= kind |error)
-                          or (:error frame) "|Relay error"
-                          if
-                            and (= kind |ack) (some? pending-storage) (= (:id frame) (:request-id pending-storage))
-                            str "|Storage " $ or (:op pending-storage) |request
-                            if (= kind |event)
-                              tag-match request
-                                (:help _) "|Renderer help"
-                                (:skill _) "|Renderer skill"
-                                (:status) "|Renderer status"
-                                (:layout path)
-                                  str "|Layout summary " $ layout-path-display path
-                                (:node path)
-                                  str "|Layout node " $ layout-path-display path
-                                (:patch path _)
-                                  str "|Layout patch " $ layout-path-display path
-                                (:replace path _)
-                                  str "|Layout replace " $ layout-path-display path
-                                _ "|Layout payload"
-                              str "|Relay " kind
+                    if (= kind |channel-state) "|Channel list updated" $ if (= kind |warning)
+                      or (:error frame) "|Relay warning"
+                      if (= kind |error)
+                        or (:error frame) "|Relay error"
+                        if
+                          and (= kind |ack) (some? pending-storage)
+                            = (:id frame) (:request-id pending-storage)
+                          str "|Storage " $ or (:op pending-storage) |request
+                          if (= kind |event)
+                            tag-match request
+                              (:help _) "|Renderer help"
+                              (:skill _) "|Renderer skill"
+                              (:status) "|Renderer status"
+                              (:layout path)
+                                str "|Layout summary " $ layout-path-display path
+                              (:node path)
+                                str "|Layout node " $ layout-path-display path
+                              (:patch path _)
+                                str "|Layout patch " $ layout-path-display path
+                              (:replace path _)
+                                str "|Layout replace " $ layout-path-display path
+                              _ "|Layout payload"
+                            str "|Relay " kind
                 do
                   dispatch! $ :: :record-relay-message
                     {} (:kind kind)
@@ -1302,7 +1295,8 @@
                             _ $ handle-genui-event! ws frame
                           do |ignored
                         if
-                          and (= kind |ack) (some? pending-storage) (= (:id frame) (:request-id pending-storage))
+                          and (= kind |ack) (some? pending-storage)
+                            = (:id frame) (:request-id pending-storage)
                           handle-storage-ack! frame
                           if (= kind |warning)
                             .!warn js/console $ or (:error frame) "|Relay warning"
@@ -1395,6 +1389,53 @@
                             .-message error
                             str error
                         do (.!warn js/console "|[renderer] request failed" error) (send-genui-ack! ws request-id false nil message)
+          :examples $ []
+        |handle-storage-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn handle-storage-ack! (frame)
+              let
+                  request-id $ :id frame
+                  pending $ get-in @*reel ([] :store :renderer :storage-pending)
+                when
+                  and (some? pending)
+                    = request-id $ :request-id pending
+                  if (:ok frame)
+                    try
+                      let
+                          payload $ :payload frame
+                          kind $ protocol-name (:kind payload)
+                        if (= kind |storage-list)
+                          dispatch! $ :: :storage-listed request-id
+                            if
+                              list? $ :entries payload
+                              :entries payload
+                              []
+                          if (= kind |storage-save)
+                            do
+                              dispatch! $ :: :storage-saved request-id payload
+                              when (some? @*ws) (request-storage-list! @*ws)
+                            if (= kind |storage-load)
+                              let
+                                  entry $ :entry payload
+                                  layout-dsl $ :layout entry
+                                  source $ or (:source payload) (:source entry) (format-cirru-edn layout-dsl)
+                                  layout-id $ or (:layout_id entry)
+                                    str |saved- $ :name payload
+                                  layout $ validate-layout layout-dsl
+                                dispatch! $ :: :storage-loaded request-id payload layout-id layout layout-dsl source
+                              dispatch! $ :: :storage-failed request-id "|Unsupported storage ack payload"
+                      fn (error)
+                        let
+                            message $ if
+                              some? $ .-message error
+                              .-message error
+                              str error
+                          dispatch! $ :: :storage-failed request-id message
+                    dispatch! $ :: :storage-failed request-id
+                      or (:error frame) "|Storage request failed"
+          :examples $ []
+        |internal-storage-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote (def internal-storage-channel |__relay_store__)
           :examples $ []
         |layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1624,50 +1665,6 @@
                 turn-string x
                 , nil
           :examples $ []
-        |request-storage-list! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn request-storage-list! (ws)
-              if-let
-                channel $ selected-relay-channel
-                let
-                    request-id $ str |storage-list- (.!now js/Date)
-                  do
-                    dispatch! $ :: :storage-pending request-id |list
-                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :list) (:channel channel))
-                dispatch! $ :: :storage-failed nil "|Select a channel before browsing saved reports"
-          :examples $ []
-        |request-storage-load! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn request-storage-load! (ws name)
-              if-let
-                channel $ selected-relay-channel
-                let
-                    request-id $ str |storage-load- (.!now js/Date)
-                  do
-                    dispatch! $ :: :storage-pending request-id |load
-                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :load) (:channel channel) (:name name))
-                dispatch! $ :: :storage-failed nil "|Select a channel before loading saved reports"
-          :examples $ []
-        |request-storage-save! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn request-storage-save! (ws)
-              let
-                  relay $ get-in @*reel ([] :store :relay)
-                  renderer $ get-in @*reel ([] :store :renderer)
-                if
-                  and (some? (:selected-channel relay)) (some? (:layout-dsl renderer))
-                  let
-                      request-id $ str |storage-save- (.!now js/Date)
-                      entry $ build-saved-report-entry relay renderer
-                      file-name $ str
-                        or (:selected-channel relay) |report
-                        , |-
-                        or (:layout-id renderer) (:last-request renderer) |snapshot
-                    do
-                      dispatch! $ :: :storage-pending request-id |save
-                      send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel) (:payload $ {} (:op :save) (:channel (:selected-channel relay)) (:name file-name) (:entry entry))
-                  dispatch! $ :: :storage-failed nil "|A validated layout is required before saving a report"
-          :examples $ []
         |reload! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn reload! () $ if (nil? build-errors)
@@ -1701,45 +1698,61 @@
                           replace-layout-node-at-path child (rest path) next-node
                           , child
           :examples $ []
+        |request-storage-list! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-list! (ws)
+              if-let
+                channel $ selected-relay-channel
+                let
+                    request-id $ str |storage-list- (.!now js/Date)
+                  do
+                    dispatch! $ :: :storage-pending request-id |list
+                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel)
+                      :payload $ {} (:op :list) (:channel channel)
+                dispatch! $ :: :storage-failed nil "|Select a channel before browsing saved reports"
+          :examples $ []
+        |request-storage-load! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-load! (ws name)
+              if-let
+                channel $ selected-relay-channel
+                let
+                    request-id $ str |storage-load- (.!now js/Date)
+                  do
+                    dispatch! $ :: :storage-pending request-id |load
+                    send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel)
+                      :payload $ {} (:op :load) (:channel channel) (:name name)
+                dispatch! $ :: :storage-failed nil "|Select a channel before loading saved reports"
+          :examples $ []
+        |request-storage-save! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn request-storage-save! (ws)
+              let
+                  relay $ get-in @*reel ([] :store :relay)
+                  renderer $ get-in @*reel ([] :store :renderer)
+                if
+                  and
+                    some? $ :selected-channel relay
+                    some? $ :layout-dsl renderer
+                  let
+                      request-id $ str |storage-save- (.!now js/Date)
+                      entry $ build-saved-report-entry relay renderer
+                      file-name $ str
+                        or (:selected-channel relay) |report
+                        , |-
+                          or (:layout-id renderer) (:last-request renderer) |snapshot
+                    do
+                      dispatch! $ :: :storage-pending request-id |save
+                      send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel)
+                        :payload $ {} (:op :save)
+                          :channel $ :selected-channel relay
+                          :name file-name
+                          :entry entry
+                  dispatch! $ :: :storage-failed nil "|A validated layout is required before saving a report"
+          :examples $ []
         |selected-relay-channel $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn selected-relay-channel () $ get-in @*reel ([] :store :relay :selected-channel)
-          :examples $ []
-        |handle-storage-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote
-            defn handle-storage-ack! (frame)
-              let
-                  request-id $ :id frame
-                  pending $ get-in @*reel ([] :store :renderer :storage-pending)
-                when
-                  and (some? pending) (= request-id (:request-id pending))
-                  if (:ok frame)
-                    try
-                      let
-                          payload $ :payload frame
-                          kind $ protocol-name (:kind payload)
-                        if (= kind |storage-list)
-                          dispatch! $ :: :storage-listed request-id
-                            if (list? (:entries payload)) (:entries payload) ([])
-                          if (= kind |storage-save)
-                            do
-                              dispatch! $ :: :storage-saved request-id payload
-                              when (some? @*ws) (request-storage-list! @*ws)
-                            if (= kind |storage-load)
-                              let
-                                  entry $ :entry payload
-                                  layout-dsl $ :layout entry
-                                  source $ or (:source payload) (:source entry) (format-cirru-edn layout-dsl)
-                                  layout-id $ or (:layout_id entry) (str |saved- (:name payload))
-                                  layout $ validate-layout layout-dsl
-                                dispatch! $ :: :storage-loaded request-id payload layout-id layout layout-dsl source
-                              dispatch! $ :: :storage-failed request-id "|Unsupported storage ack payload"
-                      fn (error)
-                        let
-                            message $ if (some? (.-message error)) (.-message error) (str error)
-                          dispatch! $ :: :storage-failed request-id message
-                    dispatch! $ :: :storage-failed request-id
-                      or (:error frame) "|Storage request failed"
           :examples $ []
         |send-genui-ack! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1813,7 +1826,7 @@
               let
                   client-id $ get-in @*reel ([] :store :relay :client-id)
                   selected $ selected-relay-channel
-                  channels $ if (some? selected) ([] selected) ([])
+                  channels $ if (some? selected) ([] selected internal-storage-channel) ([] internal-storage-channel)
                 send-relay-frame! ws $ {} (:kind :hello) (:role :receiver) (:client_id client-id) (:channels channels)
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
@@ -1900,9 +1913,13 @@
                   assoc-in store ([] :renderer :drawer-view) |history
                 (:open-library-drawer)
                   assoc-in store ([] :renderer :drawer-view) |library
+                (:request-storage-list) store
+                (:save-current-report) store
+                (:load-stored-report _) store
                 (:storage-pending request-id op-name)
                   -> store
-                    assoc-in ([] :renderer :storage-pending) $ {} (:request-id request-id) (:op op-name)
+                    assoc-in ([] :renderer :storage-pending)
+                      {} (:request-id request-id) (:op op-name)
                     assoc-in ([] :renderer :storage-status) |working
                     assoc-in ([] :renderer :storage-error) nil
                 (:storage-saved request-id entry)
