@@ -1051,6 +1051,7 @@
             def example-docs $ []
               {} (:name |card-demo) (:summary "|最小 card 示例。") (:payload "|{}\n  :type |card\n  :text \"|CLI Demo\"\n  :children $ []\n    {} (:type |badge) (:text |preview)\n    {} (:type |text) (:text \"|Hello from CLI\")")
               {} (:name |layout-summary-demo) (:summary "|查询当前 layout summary tree。") (:payload "|{}\n  :op :layout")
+              {} (:name |layout-snapshot-demo) (:summary "|查询当前 layout 的稳定裁剪快照，适合脚本化验证。") (:payload "|{}\n  :op :snapshot")
               {} (:name |layout-node-demo) (:summary "|按路径读取一个节点的完整 DSL。") (:payload "|{}\n  :op :node\n  :path |1.2")
               {} (:name |layout-patch-demo) (:summary "|按路径局部更新节点属性。") (:payload "|{}\n  :op :patch\n  :path |1\n  :changes $ {} (:text \"|Updated title\")")
               {} (:name |layout-replace-demo) (:summary "|按路径替换整棵子树。") (:payload "|{}\n  :op :replace\n  :path |2.1\n  :node $ {} (:type |text) (:text \"|Replaced from CLI\")")
@@ -1068,6 +1069,7 @@
               {} (:name |ack) (:summary "|同一个请求允许多个 receiver 收到事件，但 sender 只接受第一条 `ack`。")
               {} (:name |editing) (:summary "|局部编辑推荐顺序是先 `:layout` 看 summary tree，再用 `:node` 读取完整 DSL，最后按改动大小选择 `:patch` 或 `:replace`。成功响应都会回新的 `:layout_id`，并附当前节点 `:summary`，变更类操作还会附 `:dsl`。")
               {} (:name |layout) (:summary "|CLI 上优先用 `{:op :layout}` 查询当前 layout 概览；可附 `:path` 只看某个子树。summary 节点会带 `:path`、`:type`、`:child-count` 和少量摘要字段。")
+              {} (:name |snapshot) (:summary "|脚本化验证优先用 `{:op :snapshot}` 查询稳定的裁剪版 layout 树；默认返回整棵树，也支持 `:path` 只抓某个子树。返回字段刻意裁剪，避免测试依赖完整 DSL。")
               {} (:name |node) (:summary "|用 `:op :node` + `:path \"1.2.3\"` 读取某个节点的完整 DSL。路径使用 1-based children 索引，`root` 表示整棵树；成功时同时返回 `:dsl`、`:source` 和 `:summary`。")
               {} (:name |patch) (:summary "|用 `:op :patch` + `:path` + `:changes` 局部合并节点属性，renderer 会重新验证整棵 layout；成功后立即局部更新页面，并返回目标节点新的 `:dsl` 与 `:summary`。")
               {} (:name |replace) (:summary "|用 `:op :replace` + `:path` + `:node` 直接替换某个节点 DSL，适合结构性修改；成功后同样会重新验证整棵树，并返回替换结果。")
@@ -1078,7 +1080,7 @@
             def relay-commands $ [] |send |help |skill |status |open
           :examples $ []
         |renderer-help-overview $ %{} :CodeEntry (:doc |) (:schema :dynamic)
-          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`storage`、`editing`、`examples`、`layout`、`layout-patch-demo`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
+          :code $ quote (def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`storage`、`editing`、`examples`、`layout`、`snapshot`、`layout-patch-demo`、`math-fraction-demo`，避免一次返回全部组件配置和案例。")
           :examples $ []
         |select-component-docs $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1139,10 +1141,10 @@
           :code $ quote
             def skill-sections $ []
               {} (:name |workflow) (:title |Workflow) (:text "|1. 先 `edn-relay help --channel <name>` 看总览。\n2. 再用 `help --channel <name> <topic>` 把范围收窄到组件、协议或示例。\n3. 最后才运行 `edn-relay send --channel <name> ...` 发 payload。")
-              {} (:name |help) (:title "|Help Queries") (:text "|默认 `help` 只返回总览。要列出全部组件，用 `edn-relay help --channel <name> components`；要看 MathML，用 `edn-relay help --channel <name> math`；要看局部编辑流程，用 `edn-relay help --channel <name> editing`；要看具体案例，用 `edn-relay help --channel <name> layout-patch-demo`。")
+              {} (:name |help) (:title "|Help Queries") (:text "|默认 `help` 只返回总览。要列出全部组件，用 `edn-relay help --channel <name> components`；要看 MathML，用 `edn-relay help --channel <name> math`；要看局部编辑流程，用 `edn-relay help --channel <name> editing`；要看脚本化快照接口，用 `edn-relay help --channel <name> snapshot`；要看具体案例，用 `edn-relay help --channel <name> layout-patch-demo`。")
               {} (:name |storage) (:title |Storage) (:text "|页面上已有有效 report 时，可以直接点 `Save` 把当前内容保存到 `~/.config/ed-relay/<channel>/`。点 `Library` 会请求 relay 列出当前 channel 下的 `.cirru` 文件，并在点击条目后把保存时的 layout 加载回当前预览。CLI 想查这个能力时，优先用 `edn-relay help --channel <name> storage`。")
-              {} (:name |editing) (:title "|Editing Workflow") (:text "|先用 `edn-relay send --channel <name> '{}` + `:op :layout` 获取隐藏细节的 summary tree，再用 `:op :node` + `:path` 读取完整 DSL。只改属性时优先 `:patch` + `:changes`，结构变化再用 `:replace`。每次成功都会回新的 `:layout_id`、目标节点 `:summary`，并在 `node/patch/replace` 返回完整 `:dsl`。")
-              {} (:name |layout) (:title "|Layout Editing") (:text "|局部编辑默认走 `layout -> node -> patch/replace`。路径使用 1-based children 索引，`root` 表示整棵树；如果 agent 还不确定 payload 形状，先查 `layout-summary-demo`、`layout-node-demo`、`layout-patch-demo`。")
+              {} (:name |editing) (:title "|Editing Workflow") (:text "|先用 `edn-relay send --channel <name> '{}` + `:op :snapshot` 或 `:op :layout` 获取裁剪过的概览树，再用 `:op :node` + `:path` 读取完整 DSL。只改属性时优先 `:patch` + `:changes`，结构变化再用 `:replace`。每次成功都会回新的 `:layout_id`、目标节点 `:summary`，并在 `node/patch/replace` 返回完整 `:dsl`。")
+              {} (:name |layout) (:title "|Layout Editing") (:text "|局部编辑默认走 `snapshot/layout -> node -> patch/replace`。脚本化验证优先 `snapshot`，人工排查优先 `layout`。路径使用 1-based children 索引，`root` 表示整棵树；如果 agent 还不确定 payload 形状，先查 `layout-summary-demo`、`layout-snapshot-demo`、`layout-node-demo`、`layout-patch-demo`。")
               {} (:name |math) (:title |MathML) (:text "|MathML Core 已通过 `math` 节点暴露。推荐顺序是先查 `edn-relay help --channel genui math`，再查 `math-fraction-demo`，最后发送 `:type |math` + `:expr` 的 Cirru EDN payload。")
               {} (:name |validation) (:title |Validation) (:text "|浏览器验证优先看 `chrome-devtools take_snapshot` 和 `chrome-devtools list_console_messages`；CLI 侧优先看 `status`、`help`、`skill` 是否和当前页面一致。局部编辑失败时，优先检查返回的 `ack false` 和对应 `:path`。")
           :examples $ []
@@ -1289,6 +1291,8 @@
                               (:help _) "|Renderer help"
                               (:skill _) "|Renderer skill"
                               (:status) "|Renderer status"
+                              (:snapshot path)
+                                str "|Layout snapshot " $ layout-path-display path
                               (:layout path)
                                 str "|Layout summary " $ layout-path-display path
                               (:node path)
@@ -1322,6 +1326,7 @@
                             (:help _) (handle-renderer-event! ws frame)
                             (:skill _) (handle-renderer-event! ws frame)
                             (:status) (handle-renderer-event! ws frame)
+                            (:snapshot _) (handle-renderer-event! ws frame)
                             (:layout _) (handle-renderer-event! ws frame)
                             (:node _) (handle-renderer-event! ws frame)
                             (:patch _ _) (handle-renderer-event! ws frame)
@@ -1359,6 +1364,16 @@
                         send-genui-ack! ws request-id true (config/build-skill-payload topics) nil
                       (:status)
                         send-genui-ack! ws request-id true (config/build-status-payload relay renderer) nil
+                      (:snapshot path)
+                        if-let
+                          layout-dsl $ :layout-dsl renderer
+                          let
+                              target-node $ layout-node-at-path layout-dsl path
+                              response-payload $ {} (:status :ok) (:kind :snapshot)
+                                :path $ layout-path-display path
+                                :tree $ summarize-layout-node target-node path
+                            send-genui-ack! ws request-id true response-payload nil
+                          send-genui-ack! ws request-id false nil "|No layout loaded in renderer"
                       (:layout path)
                         if-let
                           layout-dsl $ :layout-dsl renderer
@@ -1620,6 +1635,13 @@
                   (:skill topics)
                     :: :skill $ normalize-renderer-topics topics
                   (:status) (:: :status)
+                  (:snapshot)
+                    :: :snapshot $ []
+                  (:snapshot path)
+                    if-let
+                      normalized $ normalize-layout-path path
+                      :: :snapshot normalized
+                      :: :invalid
                   (:layout)
                     :: :layout $ []
                   (:layout path)
@@ -1647,30 +1669,28 @@
                   let
                       op-name $ protocol-name (:op payload)
                       topics $ normalize-renderer-topics (:topics payload)
-                    if (= op-name |help) (:: :help topics)
-                      if (= op-name |skill) (:: :skill topics)
-                        if (= op-name |status) (:: :status)
-                          if (= op-name |layout)
-                            if-let
-                              normalized $ normalize-layout-path (:path payload)
-                              :: :layout normalized
-                              :: :invalid
-                            if (= op-name |node)
-                              if-let
-                                normalized $ normalize-layout-path (:path payload)
-                                :: :node normalized
-                                :: :invalid
-                              if (= op-name |patch)
-                                if-let
-                                  normalized $ normalize-layout-path (:path payload)
-                                  :: :patch normalized $ :changes payload
-                                  :: :invalid
-                                if (= op-name |replace)
-                                  if-let
-                                    normalized $ normalize-layout-path (:path payload)
-                                    :: :replace normalized $ or (:node payload) (:dsl payload)
-                                    :: :invalid
-                                  :: :invalid
+                    case-default op-name (:: :invalid)
+                      |help $ :: :help topics
+                      |skill $ :: :skill topics
+                      |status $ :: :status
+                      |snapshot $ let
+                          normalized $ normalize-layout-path (:path payload)
+                        if (some? normalized) (:: :snapshot normalized) (:: :invalid)
+                      |layout $ let
+                          normalized $ normalize-layout-path (:path payload)
+                        if (some? normalized) (:: :layout normalized) (:: :invalid)
+                      |node $ let
+                          normalized $ normalize-layout-path (:path payload)
+                        if (some? normalized) (:: :node normalized) (:: :invalid)
+                      |patch $ let
+                          normalized $ normalize-layout-path (:path payload)
+                        if (some? normalized) (:: :patch normalized $ :changes payload) (:: :invalid)
+                      |replace $ let
+                          normalized $ normalize-layout-path (:path payload)
+                        if
+                          some? normalized
+                          :: :replace normalized $ or (:node payload) (:dsl payload)
+                          :: :invalid
                   :: :invalid
           :examples $ []
         |persist-storage! $ %{} :CodeEntry (:doc |) (:schema :dynamic)

@@ -4,6 +4,41 @@ This repository already had validation notes spread across [README.md](README.md
 
 This file is the canonical checklist for validating the renderer end to end.
 
+## Local vs CI
+
+Use 2 different standards for validation:
+
+- local validation should aim to catch functional problems quickly, even if the checks are only partial
+- CI validation only needs scripted renderer DSL logic checks; it does not need browser style correctness or DOM-structure correctness
+
+Practical rule:
+
+- local: run `cr js`, snapshot-based renderer checks, and partial browser smoke checks
+- CI: run the snapshot-based renderer DSL script only
+
+## Latest Verified Run
+
+Validated on 2026-05-30 against a local Vite page and a relay listening on `ws://127.0.0.1:9100`.
+
+Observed results:
+
+- `cr js` succeeded
+- `edn-relay status/help/skill --channel genui` all returned expected payloads
+- mixed dashboard case rendered markdown, Mermaid, and chart content successfully
+- `:layout`, `:node`, `:patch`, and `:replace` all returned successful acks
+- `Save` created `.cirru` files under `~/.config/ed-relay/genui/`
+- `Library` showed persisted reports plus one local `current workspace` snapshot entry
+- switching from a saved report back to `current workspace` restored the local preview state
+- MathML block rendering succeeded for the quadratic-formula case
+
+Known non-blocking observations from that run:
+
+- ECharts logged one initial size warning before the container settled
+- the active `genui` channel had more than one receiver, so relay logged duplicate-ack warnings
+- browser tooling reported one accessibility issue about a form field without an id or name attribute
+
+When validating newly added renderer request handlers, prefer a fresh page or a dedicated channel such as `snapshot-e2e`; older receiver tabs can keep stale HMR closures and reply with outdated request behavior.
+
 ## Scope
 
 The validation flow is split into 3 layers:
@@ -124,6 +159,8 @@ Expected result:
 
 Once the page is open, validate the visible browser workflow.
 
+This layer is intentionally functional rather than visual. The goal is to catch broken behavior, not to assert exact styling or DOM structure.
+
 ### 4.1 Top bar and preview
 
 Check these items:
@@ -173,6 +210,25 @@ Expected result:
 - returns `:kind :layout`
 - includes `:summary`
 - summary nodes contain `:path`, `:type`, and `:child-count`
+
+### 5.1b Stable snapshot tree
+
+Use this for most scripted CLI checks. It intentionally returns a trimmed tree rather than the full DSL.
+
+```bash
+cd /Users/chenyong/repo/worktools/cirru_edn_relay
+cargo run -- send --server ws://127.0.0.1:9100 --channel genui '
+{}
+  :op :snapshot
+'
+```
+
+Expected result:
+
+- returns `:kind :snapshot`
+- includes `:tree`
+- tree only contains stable summary fields such as `:path`, `:type`, `:child-count`, and a small set of node-specific metadata
+- scripts can grep this payload without depending on the full layout DSL or browser DOM
 
 ### 5.2 Read one node
 
@@ -323,3 +379,30 @@ For state-management or drawer changes, also include:
 2. `Library`
 3. workspace snapshot switching
 4. one `:patch` request
+
+## 9. Test Directory Layout
+
+The repository keeps partial automation assets under [test/README.md](test/README.md).
+
+- prefer renderer-side `:snapshot` checks for scripted CLI validation
+- keep bash orchestration under `test/*.sh`
+- keep reusable Cirru payloads under `test/cases/`
+- keep browser automation partial and pragmatic; use `chrome-devtools` for stable checks such as page open, top-bar text, drawer text, and saved-report switching
+
+## 10. Recommended Commands
+
+Local functional smoke:
+
+```bash
+cr js
+bash test/snapshot-smoke.sh
+PAGE_URL='http://127.0.0.1:3013/?channel=genui&server=ws://127.0.0.1:9100' bash test/ui-basic-smoke.sh
+PAGE_URL='http://127.0.0.1:3013/?channel=library-e2e&server=ws://127.0.0.1:9100' bash test/library-smoke.sh
+```
+
+CI renderer DSL validation:
+
+```bash
+cr js
+bash test/ci-renderer-dsl.sh
+```
