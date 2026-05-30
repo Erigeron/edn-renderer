@@ -145,6 +145,11 @@
                     :storage-entries renderer
                     []
                   selected-storage $ :selected-storage renderer
+                  workspace-entry $ :workspace-entry renderer
+                  detail-status $ if
+                    and (some? selected-storage)
+                      = (:kind selected-storage) :workspace-report
+                    , |workspace storage-status
                   drawer-view $ or (:drawer-view renderer) |history
                   drawer-plugin $ use-drawer (>> states :drawer)
                     {}
@@ -192,42 +197,71 @@
                               div
                                 {} $ :style
                                   {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
-                                <> $ if (= drawer-view |library) "|Saved Reports" |Messages
+                                <> $ if (= drawer-view |library) "|Library Items" |Messages
                               if (= drawer-view |library)
-                                if
-                                  > (count storage-entries) 0
-                                  list->
-                                    {} $ :style
-                                      {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
-                                    -> storage-entries .to-list $ map-indexed
-                                      fn (idx item)
-                                        let
-                                            active? $ if-let (current selected-storage)
-                                              = (:name item) (:name current)
-                                              , false
-                                          [] idx $ div
-                                            {}
-                                              :style $ {} (:padding "|8px 10px") (:border-radius 12)
-                                                :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
-                                                :background-color $ if active? |#eef1f4 |#ffffff
-                                                :cursor |pointer
-                                                :display |flex
-                                                :flex-direction |column
-                                                :gap 4
-                                              :on-click $ fn (e d!)
-                                                d! $ :: :load-stored-report (:name item)
-                                            div
-                                              {} $ :style
-                                                {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                              <> $ or (:name item) "|Saved report"
-                                            div
-                                              {} $ :style
-                                                {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                              <> $ or (:path item) |
-                                  div
-                                    {} $ :style
-                                      {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                    <> "|No saved reports for current channel yet."
+                                div
+                                  {} $ :style
+                                    {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
+                                  if-let (item workspace-entry)
+                                    let
+                                        active? $ if-let (current selected-storage)
+                                          = (:kind current) :workspace-report
+                                          , false
+                                      div
+                                        {}
+                                          :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                            :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                            :background-color $ if active? |#eef1f4 |#ffffff
+                                            :cursor |pointer
+                                            :display |flex
+                                            :flex-direction |column
+                                            :gap 4
+                                          :on-click $ fn (e d!)
+                                            d! $ :: :load-workspace-report
+                                        div
+                                          {} $ :style
+                                            {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                          <> $ or (:name item) "|Current workspace"
+                                        div
+                                          {} $ :style
+                                            {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                          <> $ or (:path item) |
+                                  if
+                                    > (count storage-entries) 0
+                                    list->
+                                      {} $ :style
+                                        {} (:display |flex) (:flex-direction |column) (:gap 6)
+                                      -> storage-entries .to-list $ map-indexed
+                                        fn (idx item)
+                                          let
+                                              active? $ if-let (current selected-storage)
+                                                if
+                                                  = (:kind current) :workspace-report
+                                                  , false $ = (:name item) (:name current)
+                                                , false
+                                            [] idx $ div
+                                              {}
+                                                :style $ {} (:padding "|8px 10px") (:border-radius 12)
+                                                  :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                                                  :background-color $ if active? |#eef1f4 |#ffffff
+                                                  :cursor |pointer
+                                                  :display |flex
+                                                  :flex-direction |column
+                                                  :gap 4
+                                                :on-click $ fn (e d!)
+                                                  d! $ :: :load-stored-report (:name item)
+                                              div
+                                                {} $ :style
+                                                  {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
+                                                <> $ or (:name item) "|Saved report"
+                                              div
+                                                {} $ :style
+                                                  {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
+                                                <> $ or (:path item) |
+                                    div
+                                      {} $ :style
+                                        {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
+                                      <> "|No saved reports for current channel yet."
                                 if
                                   > (count history) 0
                                   list->
@@ -289,7 +323,7 @@
                                       div
                                         {} $ :style
                                           {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                        <> $ str "|Status: " storage-status
+                                        <> $ str "|Status: " detail-status
                                       if (some? selected-channel)
                                         div
                                           {} $ :style
@@ -300,15 +334,15 @@
                                         {}
                                           :name $ or (:name item) |-
                                           :path $ or (:path item) |-
-                                          :status storage-status
+                                          :status detail-status
                                       :read-only true
                                       :spell-check false
-                                      :placeholder "|Saved report detail"
+                                      :placeholder "|Library item detail"
                                       :style $ {} (:width |100%) (:min-height "|calc(100vh - 320px)") (:padding 12) (:box-sizing |border-box) (:border-radius 14) (:border "|1px solid #d7d7cf") (:background-color |#ffffff) (:font-family |Monaco) (:font-size 12) (:line-height |1.6) (:resize |vertical)
                                   div
                                     {} $ :style
                                       {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
-                                    <> "|Click a saved report to load it into the current preview."
+                                    <> "|Click the current workspace snapshot or a saved report to load it into the preview."
                                 if-let (item selected-history)
                                   div
                                     {} $ :style
@@ -1860,6 +1894,7 @@
                 :storage-pending nil
                 :storage-entries $ []
                 :selected-storage nil
+                :workspace-entry nil
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.schema)
@@ -1882,96 +1917,111 @@
                 (:select-channel channel)
                   -> store
                     assoc-in ([] :relay :selected-channel) channel
-                    assoc-in ([] :renderer :layout) nil
-                    assoc-in ([] :renderer :layout-dsl) nil
-                    assoc-in ([] :renderer :layout-id) nil
-                    assoc-in ([] :renderer :layout-source) |
-                    assoc-in ([] :renderer :last-request) nil
-                    assoc-in ([] :renderer :last-error) nil
-                    assoc-in ([] :renderer :storage-status) |idle
-                    assoc-in ([] :renderer :storage-error) nil
-                    assoc-in ([] :renderer :storage-pending) nil
-                    assoc-in ([] :renderer :storage-entries) ([])
-                    assoc-in ([] :renderer :selected-storage) nil
+                    update :renderer $ fn (renderer)
+                      -> (or renderer {}) (assoc :layout nil) (assoc :layout-dsl nil) (assoc :layout-id nil) (assoc :layout-source |) (assoc :last-request nil) (assoc :last-error nil) (assoc :storage-status |idle) (assoc :storage-error nil) (assoc :storage-pending nil)
+                        assoc :storage-entries $ []
+                        assoc :selected-storage nil
+                        assoc :workspace-entry nil
                 (:relay-status status message)
                   -> store
                     assoc-in ([] :relay :status) status
                     assoc-in ([] :relay :last-error) message
                 (:record-relay-message entry)
-                  -> store
-                    assoc-in ([] :renderer :history)
-                      append
-                        if
-                          list? $ get-in store ([] :renderer :history)
-                          get-in store $ [] :renderer :history
+                  update store :renderer $ fn (renderer)
+                    let
+                        prev-renderer $ or renderer {}
+                        prev-history $ if
+                          list? $ :history prev-renderer
+                          :history prev-renderer
                           []
-                        , entry
-                    assoc-in ([] :renderer :selected-history) entry
+                      -> prev-renderer
+                        assoc :history $ append prev-history entry
+                        assoc :selected-history entry
                 (:select-history entry)
-                  assoc-in store ([] :renderer :selected-history) entry
+                  update store :renderer $ fn (renderer)
+                    assoc (or renderer {}) :selected-history entry
                 (:open-history-drawer)
-                  assoc-in store ([] :renderer :drawer-view) |history
+                  update store :renderer $ fn (renderer)
+                    assoc (or renderer {}) :drawer-view |history
                 (:open-library-drawer)
-                  assoc-in store ([] :renderer :drawer-view) |library
+                  update store :renderer $ fn (renderer)
+                    assoc (or renderer {}) :drawer-view |library
                 (:request-storage-list) store
                 (:save-current-report) store
                 (:load-stored-report _) store
+                (:load-workspace-report)
+                  update store :renderer $ fn (renderer)
+                    let
+                        prev-renderer $ or renderer {}
+                        entry $ :workspace-entry prev-renderer
+                      if-let (current-entry entry)
+                        -> prev-renderer (assoc :selected-storage current-entry)
+                          assoc :layout $ :layout-data current-entry
+                          assoc :layout-dsl $ :layout-dsl current-entry
+                          assoc :layout-id $ :layout_id current-entry
+                          assoc :layout-source $ :source current-entry
+                          assoc :last-request $ :request_id current-entry
+                          assoc :last-error nil
+                          assoc :storage-status |workspace
+                          assoc :storage-error nil
+                        , prev-renderer
                 (:storage-pending request-id op-name)
-                  -> store
-                    assoc-in ([] :renderer :storage-pending)
-                      {} (:request-id request-id) (:op op-name)
-                    assoc-in ([] :renderer :storage-status) |working
-                    assoc-in ([] :renderer :storage-error) nil
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {})
+                      assoc :storage-pending $ {} (:request-id request-id) (:op op-name)
+                      assoc :storage-status |working
+                      assoc :storage-error nil
                 (:storage-saved request-id entry)
-                  -> store
-                    assoc-in ([] :renderer :storage-pending) nil
-                    assoc-in ([] :renderer :storage-status) |saved
-                    assoc-in ([] :renderer :storage-error) nil
-                    assoc-in ([] :renderer :selected-storage) entry
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {}) (assoc :storage-pending nil) (assoc :storage-status |saved) (assoc :storage-error nil) (assoc :selected-storage entry)
                 (:storage-listed request-id entries)
-                  -> store
-                    assoc-in ([] :renderer :storage-pending) nil
-                    assoc-in ([] :renderer :storage-status) |ready
-                    assoc-in ([] :renderer :storage-error) nil
-                    assoc-in ([] :renderer :storage-entries) entries
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {}) (assoc :storage-pending nil) (assoc :storage-status |ready) (assoc :storage-error nil) (assoc :storage-entries entries)
                 (:storage-loaded request-id entry layout-id layout layout-dsl source)
-                  -> store
-                    assoc-in ([] :renderer :storage-pending) nil
-                    assoc-in ([] :renderer :storage-status) |loaded
-                    assoc-in ([] :renderer :storage-error) nil
-                    assoc-in ([] :renderer :selected-storage) entry
-                    assoc-in ([] :renderer :layout) layout
-                    assoc-in ([] :renderer :layout-dsl) layout-dsl
-                    assoc-in ([] :renderer :layout-id) layout-id
-                    assoc-in ([] :renderer :layout-source) source
-                    assoc-in ([] :renderer :last-request) request-id
-                    assoc-in ([] :renderer :last-error) nil
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {}) (assoc :storage-pending nil) (assoc :storage-status |loaded) (assoc :storage-error nil) (assoc :selected-storage entry) (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil)
                 (:storage-failed request-id message)
-                  -> store
-                    assoc-in ([] :renderer :storage-pending) nil
-                    assoc-in ([] :renderer :storage-status) |error
-                    assoc-in ([] :renderer :storage-error) message
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {}) (assoc :storage-pending nil) (assoc :storage-status |error) (assoc :storage-error message)
                 (:genui-applied request-id layout-id layout layout-dsl source)
-                  -> store
-                    assoc-in ([] :renderer :layout) layout
-                    assoc-in ([] :renderer :layout-dsl) layout-dsl
-                    assoc-in ([] :renderer :layout-id) layout-id
-                    assoc-in ([] :renderer :layout-source) source
-                    assoc-in ([] :renderer :last-request) request-id
-                    assoc-in ([] :renderer :last-error) nil
+                  let
+                      entry $ ->
+                        {} $ :kind :workspace-report
+                        assoc :channel $ get-in store ([] :relay :selected-channel)
+                        assoc :name $ str
+                          or
+                            get-in store $ [] :relay :selected-channel
+                            , |workspace
+                          , "| / current workspace"
+                        assoc :path "|Local workspace snapshot. Not saved in library."
+                        assoc :layout_id layout-id
+                        assoc :request_id request-id
+                        assoc :layout-data layout
+                        assoc :layout-dsl layout-dsl
+                        assoc :source source
+                    update store :renderer $ fn (renderer)
+                      -> (or renderer {}) (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil) (assoc :workspace-entry entry) (assoc :selected-storage entry) (assoc :storage-status |workspace) (assoc :storage-error nil)
                 (:genui-failed request-id message source)
-                  -> store
-                    assoc-in ([] :renderer :layout-source) source
-                    assoc-in ([] :renderer :last-request) request-id
-                    assoc-in ([] :renderer :last-error) message
+                  update store :renderer $ fn (renderer)
+                    -> (or renderer {}) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error message)
                 (:layout-mutated request-id layout-id layout layout-dsl source)
-                  -> store
-                    assoc-in ([] :renderer :layout) layout
-                    assoc-in ([] :renderer :layout-dsl) layout-dsl
-                    assoc-in ([] :renderer :layout-id) layout-id
-                    assoc-in ([] :renderer :layout-source) source
-                    assoc-in ([] :renderer :last-request) request-id
-                    assoc-in ([] :renderer :last-error) nil
+                  let
+                      entry $ ->
+                        {} $ :kind :workspace-report
+                        assoc :channel $ get-in store ([] :relay :selected-channel)
+                        assoc :name $ str
+                          or
+                            get-in store $ [] :relay :selected-channel
+                            , |workspace
+                          , "| / current workspace"
+                        assoc :path "|Local workspace snapshot. Not saved in library."
+                        assoc :layout_id layout-id
+                        assoc :request_id request-id
+                        assoc :layout-data layout
+                        assoc :layout-dsl layout-dsl
+                        assoc :source source
+                    update store :renderer $ fn (renderer)
+                      -> (or renderer {}) (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil) (assoc :workspace-entry entry) (assoc :selected-storage entry) (assoc :storage-status |workspace) (assoc :storage-error nil)
                 _ $ do (eprintln "|unknown op:" op) store
           :examples $ []
       :ns $ %{} :NsEntry (:doc |)

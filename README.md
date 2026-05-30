@@ -202,6 +202,8 @@ Compile the Calcit app with:
 cr js
 ```
 
+For a dedicated renderer, CLI, and browser validation checklist, see [TESTING.md](TESTING.md).
+
 For isolated browser validation, use the `chrome-devtools` workflow described in
 [Agents.md](Agents.md).
 
