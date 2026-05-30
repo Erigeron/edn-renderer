@@ -6,3 +6,4 @@ ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 
 cd "$ROOT_DIR"
 bash test/snapshot-smoke.sh
+bash test/channel-cache-smoke.sh

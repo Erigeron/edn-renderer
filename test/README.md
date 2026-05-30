@@ -49,6 +49,7 @@ Prefer a dedicated test channel such as `snapshot-e2e` for this flow. If an olde
 - [test/cases/mixed-dashboard.cirru](cases/mixed-dashboard.cirru): mixed markdown, chart, and Mermaid case
 - [test/cases/math-quadratic.cirru](cases/math-quadratic.cirru): MathML case
 - [test/ci-renderer-dsl.sh](ci-renderer-dsl.sh): CI entrypoint for renderer DSL logic validation
+- [test/channel-cache-smoke.sh](channel-cache-smoke.sh): pure renderer-state regression check for channel switching cache restore
 - [test/library-smoke.sh](library-smoke.sh): local-only Library and workspace switching smoke test
 - [test/snapshot-smoke.sh](snapshot-smoke.sh): scripted relay and renderer validation using `:snapshot`
 - [test/ui-basic-smoke.sh](ui-basic-smoke.sh): partial browser automation using `chrome-devtools`

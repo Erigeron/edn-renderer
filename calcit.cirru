@@ -1909,6 +1909,7 @@
                 :history $ []
                 :selected-history nil
                 :drawer-view |history
+                :channel-cache $ {}
                 :storage-status |idle
                 :storage-error nil
                 :storage-pending nil
@@ -1920,6 +1921,63 @@
         :code $ quote (ns app.schema)
     |app.updater $ %{} :FileEntry
       :defs $ {}
+        |cache-renderer-channel-state $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn cache-renderer-channel-state (renderer channel)
+              if (some? channel)
+                assoc renderer :channel-cache $ assoc
+                  or (:channel-cache renderer) {}
+                  , channel $ pick-renderer-channel-state renderer
+                , renderer
+          :examples $ []
+        |pick-renderer-channel-state $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn pick-renderer-channel-state (renderer)
+              {} (:layout $ :layout renderer) (:layout-dsl $ :layout-dsl renderer) (:layout-id $ :layout-id renderer) (:layout-source $ :layout-source renderer) (:last-request $ :last-request renderer) (:last-error $ :last-error renderer)
+                :storage-status $ :storage-status renderer
+                :storage-error $ :storage-error renderer
+                :storage-pending $ :storage-pending renderer
+                :storage-entries $ :storage-entries renderer
+                :selected-storage $ :selected-storage renderer
+                :workspace-entry $ :workspace-entry renderer
+          :examples $ []
+        |renderer-channel-default $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            def renderer-channel-default $ {}
+              :layout nil
+              :layout-dsl nil
+              :layout-id nil
+              :layout-source |
+              :last-request nil
+              :last-error nil
+              :storage-status |idle
+              :storage-error nil
+              :storage-pending nil
+              :storage-entries $ []
+              :selected-storage nil
+              :workspace-entry nil
+          :examples $ []
+        |restore-renderer-channel-state $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :code $ quote
+            defn restore-renderer-channel-state (renderer channel)
+              let
+                  next-state $ merge renderer-channel-default $ get
+                    or (:channel-cache renderer) {}
+                    , channel
+                -> renderer
+                  assoc :layout $ :layout next-state
+                  assoc :layout-dsl $ :layout-dsl next-state
+                  assoc :layout-id $ :layout-id next-state
+                  assoc :layout-source $ :layout-source next-state
+                  assoc :last-request $ :last-request next-state
+                  assoc :last-error $ :last-error next-state
+                  assoc :storage-status $ :storage-status next-state
+                  assoc :storage-error $ :storage-error next-state
+                  assoc :storage-pending $ :storage-pending next-state
+                  assoc :storage-entries $ :storage-entries next-state
+                  assoc :selected-storage $ :selected-storage next-state
+                  assoc :workspace-entry $ :workspace-entry next-state
+          :examples $ []
         |updater $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn updater (store op op-id op-time)
@@ -1935,13 +1993,13 @@
                 (:relay-channels channels)
                   assoc-in store ([] :relay :channels) channels
                 (:select-channel channel)
-                  -> store
-                    assoc-in ([] :relay :selected-channel) channel
-                    update :renderer $ fn (renderer)
-                      -> (or renderer {}) (assoc :layout nil) (assoc :layout-dsl nil) (assoc :layout-id nil) (assoc :layout-source |) (assoc :last-request nil) (assoc :last-error nil) (assoc :storage-status |idle) (assoc :storage-error nil) (assoc :storage-pending nil)
-                        assoc :storage-entries $ []
-                        assoc :selected-storage nil
-                        assoc :workspace-entry nil
+                  let
+                      current-channel $ get-in store ([] :relay :selected-channel)
+                      prev-renderer $ or (:renderer store) {}
+                      cached-renderer $ cache-renderer-channel-state prev-renderer current-channel
+                    -> store
+                      assoc-in ([] :relay :selected-channel) channel
+                      assoc :renderer $ restore-renderer-channel-state cached-renderer channel
                 (:relay-status status message)
                   -> store
                     assoc-in ([] :relay :status) status

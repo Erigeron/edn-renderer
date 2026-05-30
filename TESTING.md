@@ -406,3 +406,8 @@ CI renderer DSL validation:
 cr js
 bash test/ci-renderer-dsl.sh
 ```
+
+That CI entrypoint currently covers:
+
+- snapshot-based renderer DSL checks
+- pure renderer-state regression for channel cache restore on switch-away and switch-back
