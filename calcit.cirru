@@ -43,33 +43,21 @@
                     {}
                     {} $ :title
                       {} $ :text title
-                  category-axis $ {}
-                    :type |category
-                    :data names
-                    :axisLabel $ {}
-                      :interval 0
-                      :rotate 20
-                      :hideOverlap false
+                  category-axis $ {} (:type |category) (:data names)
+                    :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
                   grid-part $ {}
-                    :grid $ {}
-                      :left 48
-                      :right 24
-                      :top 72
-                      :bottom 72
-                      :containLabel true
+                    :grid $ {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
                   base $ merge
                     {} (:animation false)
                       :tooltip $ {}
                     , title-part grid-part
                 case-default normalized-kind
-                  merge base $ {}
-                    :xAxis category-axis
+                  merge base $ {} (:xAxis category-axis)
                     :yAxis $ {} (:type |value)
                     :series $ []
                       {} (:type |bar) (:data values)
                   |line $ merge base
-                    {}
-                      :xAxis category-axis
+                    {} (:xAxis category-axis)
                       :yAxis $ {} (:type |value)
                       :series $ []
                         {} (:type |line) (:data values)
@@ -82,8 +70,7 @@
                               :name $ :label item
                               :value $ :value item
                   |scatter $ merge base
-                    {}
-                      :xAxis category-axis
+                    {} (:xAxis category-axis)
                       :yAxis $ {} (:type |value)
                       :series $ []
                         {} (:type |scatter) (:data values)
