@@ -1553,7 +1553,7 @@
             {} (:return :dynamic)
               :args $ []
               :features $ #{} :js-ffi
-        |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |main! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn main! ()
               println "|Running mode:" $ if config/dev? |dev |release
@@ -1575,6 +1575,10 @@
               ensure-relay!
               println "|App started."
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ []
+              :features $ #{} :js-ffi
         |merge-layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn merge-layout-node-at-path (node path changes)
