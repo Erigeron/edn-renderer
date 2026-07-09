@@ -662,7 +662,7 @@
                       :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
                       :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
           :examples $ []
-        |effect-echarts $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |effect-echarts $ %{} :CodeEntry (:doc |)
           :code $ quote
             defeffect effect-echarts (option) (action el at?)
               let
@@ -684,7 +684,11 @@
                   :update $ do (.!debug js/console "|[echarts] update") (render-chart)
                   :unmount $ do (.!debug js/console "|[echarts] unmount") (dispose-chart)
           :examples $ []
-        |effect-mathml $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic
+              :features $ #{} :js-ffi
+        |effect-mathml $ %{} :CodeEntry (:doc |)
           :code $ quote
             defeffect effect-mathml (expr display) (action el at?)
               case-default action nil
@@ -692,6 +696,10 @@
                 :update $ render-mathml-on el expr display
                 :unmount $ set! (.-innerHTML el) |
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic :dynamic
+              :features $ #{} :js-ffi
         |effect-mermaid $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defeffect effect-mermaid (text) (action el at?)
@@ -708,7 +716,7 @@
                       render-mermaid-on el payload
                   :unmount $ .!debug js/console "|[mermaid] unmount"
           :examples $ []
-        |effect-page-title $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |effect-page-title $ %{} :CodeEntry (:doc |)
           :code $ quote
             defeffect effect-page-title (selected-channel) (action el at?)
               let
@@ -718,6 +726,10 @@
                   :update $ set! (.-title js/document) next-title
                   :unmount $ set! (.-title js/document) (page-title-text nil)
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic
+              :features $ #{} :js-ffi
         |ensure-mermaid! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn ensure-mermaid! () $ when
@@ -835,7 +847,7 @@
                         %:: LayoutNode :math (:expr node)
                           math-display-value $ :display node
           :examples $ []
-        |render-mathml-on $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |render-mathml-on $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn render-mathml-on (el expr display)
               let
@@ -844,7 +856,11 @@
                   set! (.-innerHTML el) |
                   .!appendChild el root
           :examples $ []
-        |render-mermaid-on $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic :dynamic :dynamic
+              :features $ #{} :js-ffi
+        |render-mermaid-on $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn render-mermaid-on (el payload)
               hint-fn $ {} (:async true)
@@ -878,6 +894,10 @@
                               reset! *rendered-svgs $ assoc @*rendered-svgs source false
                               .!error js/console "|[mermaid] render failed" error
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic :dynamic
+              :features $ #{} :js-ffi
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn validate-layout (layout) (parse-layout-node layout |root)
@@ -1031,7 +1051,7 @@
           :code $ quote
             defn current-url-channel () $ current-url-param |channel
           :examples $ []
-        |current-url-param $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |current-url-param $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn current-url-param (key)
               let
@@ -1042,6 +1062,10 @@
                     > (count value) 0
                   , value nil
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic
+              :features $ #{} :js-ffi
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             def dev? $ = |dev (get-env |mode |release)
@@ -1167,7 +1191,7 @@
         |*ws $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote (defatom *ws nil)
           :examples $ []
-        |build-saved-report-entry $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |build-saved-report-entry $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn build-saved-report-entry (relay renderer)
               let
@@ -1188,6 +1212,10 @@
                   :layout layout-dsl
                   :source source
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ [] :dynamic :dynamic
+              :features $ #{} :js-ffi
         |dispatch! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn dispatch! (op)
@@ -1206,7 +1234,7 @@
                     _ nil
                   , nil
           :examples $ []
-        |ensure-relay! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |ensure-relay! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn ensure-relay! () $ when (nil? @*ws)
               dispatch! $ :: :relay-status |connecting nil
@@ -1227,6 +1255,10 @@
                   dispatch! $ :: :relay-status |closed "|Relay connection closed, retrying..."
                   flipped js/setTimeout 2000 ensure-relay!
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ []
+              :features $ #{} :js-ffi
         |handle-channel-state! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn handle-channel-state! (ws client-id channels)
@@ -1513,10 +1545,14 @@
                 recur (rest path)
                   if (= acc |) step $ str acc |. step
           :examples $ []
-        |layout-path-segment-pattern $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |layout-path-segment-pattern $ %{} :CodeEntry (:doc |)
           :code $ quote
             def layout-path-segment-pattern $ new js/RegExp "|^([0-9]+)$"
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ []
+              :features $ #{} :js-ffi
         |main! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn main! ()
@@ -1684,22 +1720,27 @@
                         if (some? normalized) (:: :node normalized) (:: :invalid)
                       |patch $ let
                           normalized $ normalize-layout-path (:path payload)
-                        if (some? normalized) (:: :patch normalized $ :changes payload) (:: :invalid)
+                        if (some? normalized)
+                          :: :patch normalized $ :changes payload
+                          :: :invalid
                       |replace $ let
                           normalized $ normalize-layout-path (:path payload)
-                        if
-                          some? normalized
+                        if (some? normalized)
                           :: :replace normalized $ or (:node payload) (:dsl payload)
                           :: :invalid
                   :: :invalid
           :examples $ []
-        |persist-storage! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
+        |persist-storage! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn persist-storage! ()
               println "|Saved at" $ .!toISOString (new js/Date)
               js/localStorage.setItem (:storage-key config/site)
                 format-cirru-edn $ :store @*reel
           :examples $ []
+          :schema $ :: :fn
+            {} (:return :dynamic)
+              :args $ []
+              :features $ #{} :js-ffi
         |pick-layout-child $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn pick-layout-child (children position)
@@ -1927,13 +1968,19 @@
               if (some? channel)
                 assoc renderer :channel-cache $ assoc
                   or (:channel-cache renderer) {}
-                  , channel $ pick-renderer-channel-state renderer
+                  , channel (pick-renderer-channel-state renderer)
                 , renderer
           :examples $ []
         |pick-renderer-channel-state $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
             defn pick-renderer-channel-state (renderer)
-              {} (:layout $ :layout renderer) (:layout-dsl $ :layout-dsl renderer) (:layout-id $ :layout-id renderer) (:layout-source $ :layout-source renderer) (:last-request $ :last-request renderer) (:last-error $ :last-error renderer)
+              {}
+                :layout $ :layout renderer
+                :layout-dsl $ :layout-dsl renderer
+                :layout-id $ :layout-id renderer
+                :layout-source $ :layout-source renderer
+                :last-request $ :last-request renderer
+                :last-error $ :last-error renderer
                 :storage-status $ :storage-status renderer
                 :storage-error $ :storage-error renderer
                 :storage-pending $ :storage-pending renderer
@@ -1943,16 +1990,7 @@
           :examples $ []
         |renderer-channel-default $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
-            def renderer-channel-default $ {}
-              :layout nil
-              :layout-dsl nil
-              :layout-id nil
-              :layout-source |
-              :last-request nil
-              :last-error nil
-              :storage-status |idle
-              :storage-error nil
-              :storage-pending nil
+            def renderer-channel-default $ {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil) (:storage-status |idle) (:storage-error nil) (:storage-pending nil)
               :storage-entries $ []
               :selected-storage nil
               :workspace-entry nil
@@ -1961,9 +1999,10 @@
           :code $ quote
             defn restore-renderer-channel-state (renderer channel)
               let
-                  next-state $ merge renderer-channel-default $ get
-                    or (:channel-cache renderer) {}
-                    , channel
+                  next-state $ merge renderer-channel-default
+                    get
+                      or (:channel-cache renderer) {}
+                      , channel
                 -> renderer
                   assoc :layout $ :layout next-state
                   assoc :layout-dsl $ :layout-dsl next-state
