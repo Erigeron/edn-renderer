@@ -687,7 +687,7 @@
           :examples $ []
           :schema $ :: :fn
             {} (:return :dynamic)
-              :args $ [] :dynamic
+              :args $ [] :map
               :features $ #{} :js-ffi
         |effect-mathml $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -699,7 +699,7 @@
           :examples $ []
           :schema $ :: :fn
             {} (:return :dynamic)
-              :args $ [] :dynamic :dynamic
+              :args $ [] :list :string
               :features $ #{} :js-ffi
         |effect-mermaid $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -729,7 +729,7 @@
           :examples $ []
           :schema $ :: :fn
             {} (:return :dynamic)
-              :args $ [] :dynamic
+              :args $ [] :string
               :features $ #{} :js-ffi
         |ensure-mermaid! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -858,8 +858,8 @@
                   .!appendChild el root
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
-              :args $ [] :dynamic :dynamic :dynamic
+            {} (:return :unit)
+              :args $ [] :js-object :list :string
               :features $ #{} :js-ffi
         |render-mermaid-on $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -896,8 +896,8 @@
                               .!error js/console "|[mermaid] render failed" error
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
-              :args $ [] :dynamic :dynamic
+            {} (:return :unit)
+              :args $ [] :js-object :map
               :features $ #{} :js-ffi
         |validate-layout $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1064,8 +1064,8 @@
                   , value nil
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
-              :args $ [] :dynamic
+            {} (:return :string)
+              :args $ [] :string
               :features $ #{} :js-ffi
         |dev? $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1214,8 +1214,8 @@
                   :source source
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
-              :args $ [] :dynamic :dynamic
+            {} (:return :map)
+              :args $ [] :map :map
               :features $ #{} :js-ffi
         |dispatch! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
           :code $ quote
@@ -1257,7 +1257,7 @@
                   flipped js/setTimeout 2000 ensure-relay!
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
+            {} (:return :unit)
               :args $ []
               :features $ #{} :js-ffi
         |handle-channel-state! $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -1577,7 +1577,7 @@
               println "|App started."
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
+            {} (:return :unit)
               :args $ []
               :features $ #{} :js-ffi
         |merge-layout-node-at-path $ %{} :CodeEntry (:doc |) (:schema :dynamic)
@@ -1743,7 +1743,7 @@
                 format-cirru-edn $ :store @*reel
           :examples $ []
           :schema $ :: :fn
-            {} (:return :dynamic)
+            {} (:return :unit)
               :args $ []
               :features $ #{} :js-ffi
         |pick-layout-child $ %{} :CodeEntry (:doc |) (:schema :dynamic)

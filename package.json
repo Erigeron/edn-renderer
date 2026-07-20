@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@calcit/procs": "^0.12.49",
+    "@calcit/procs": "^0.12.50",
     "echarts": "^6.1.0",
     "mermaid": "^11.15.0"
   },
