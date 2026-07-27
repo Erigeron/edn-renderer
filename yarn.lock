@@ -22,14 +22,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@calcit/procs@npm:^0.12.35":
-  version: 0.12.35
-  resolution: "@calcit/procs@npm:0.12.35"
+"@calcit/procs@npm:^0.12.50":
+  version: 0.12.50
+  resolution: "@calcit/procs@npm:0.12.50"
   dependencies:
     "@calcit/ternary-tree": "npm:0.0.26"
     "@cirru/parser.ts": "npm:^0.0.9"
     "@cirru/writer.ts": "npm:^0.1.9"
-  checksum: 10c0/b9d8e2926911e81e56635653c596c2b217fe260ae768a132df49dfd2e7f4ee7707882802e06be0f191a4b5e7df6c415f78abb8d8fb8fb06176611139badc2fde
+  checksum: 10c0/415f3b5a8edff378801da4b04c8ec621e24fc51e6ef97e3077271b8fe16fb870f0349791ed28dca0e245429808d789aebc14c8da0cdc8479a6cf7f082782422d
   languageName: node
   linkType: hard
 
@@ -1150,6 +1150,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"echarts@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "echarts@npm:6.1.0"
+  dependencies:
+    tslib: "npm:2.3.0"
+    zrender: "npm:6.1.0"
+  checksum: 10c0/a0911a9d75969ff946d0bce998e95e1924cdec7f5ca6be13ded376e2a47067c70b264ee8d04ba84345aa7895363e202f54c87d2bae114859bd154d565babc09c
+  languageName: node
+  linkType: hard
+
 "encoding@npm:^0.1.13":
   version: 0.1.13
   resolution: "encoding@npm:0.1.13"
@@ -1948,8 +1958,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@calcit/procs": "npm:^0.12.35"
+    "@calcit/procs": "npm:^0.12.50"
     bottom-tip: "npm:^0.1.5"
+    echarts: "npm:^6.1.0"
     mermaid: "npm:^11.15.0"
     vite: "npm:^8.0.12"
   languageName: unknown
@@ -2092,6 +2103,13 @@ __metadata:
   version: 2.2.0
   resolution: "ts-dedent@npm:2.2.0"
   checksum: 10c0/175adea838468cc2ff7d5e97f970dcb798bbcb623f29c6088cb21aa2880d207c5784be81ab1741f56b9ac37840cbaba0c0d79f7f8b67ffe61c02634cafa5c303
+  languageName: node
+  linkType: hard
+
+"tslib@npm:2.3.0":
+  version: 2.3.0
+  resolution: "tslib@npm:2.3.0"
+  checksum: 10c0/a845aed84e7e7dbb4c774582da60d7030ea39d67307250442d35c4c5dd77e4b44007098c37dd079e100029c76055f2a362734b8442ba828f8cc934f15ed9be61
   languageName: node
   linkType: hard
 
@@ -2245,5 +2263,14 @@ __metadata:
   version: 5.0.0
   resolution: "yallist@npm:5.0.0"
   checksum: 10c0/a499c81ce6d4a1d260d4ea0f6d49ab4da09681e32c3f0472dee16667ed69d01dae63a3b81745a24bd78476ec4fcf856114cb4896ace738e01da34b2c42235416
+  languageName: node
+  linkType: hard
+
+"zrender@npm:6.1.0":
+  version: 6.1.0
+  resolution: "zrender@npm:6.1.0"
+  dependencies:
+    tslib: "npm:2.3.0"
+  checksum: 10c0/bfdb5e2ccd70893a9e2c7f33959749a6a1abc8912c2b1af301a05593d677a2f6f6087cdc4f0bf73883b99eea2f2d11d1922c71c3bf0bd4e9e5b362fd32129bce
   languageName: node
   linkType: hard
