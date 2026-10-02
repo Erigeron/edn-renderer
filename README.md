@@ -30,10 +30,11 @@ Reference screenshot:
 ## Development
 
 ```bash
-corepack enable && corepack prepare yarn@4.12.0 --activate
-yarn install
+corepack enable && corepack prepare yarn@4.18.0 --activate
+caps --strict --ci
+yarn install --immutable
 
-cr js
+calcit
 yarn vite --host 127.0.0.1 --port 3010
 ```
 
@@ -45,6 +46,19 @@ Published bootstrap page:
 
 If Vite fails because `rolldown` native bindings are missing, run `yarn install`
 again so the unplugged package is materialized on disk.
+
+### 前端构建与部署
+
+使用正式版 Calcit / `@calcit/procs` 0.27.0；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。
+`yarn build` 编译 Calcit 并打包前端。本地默认使用相对资源路径；生产构建指定：
+
+```bash
+VITE_BASE_URL=https://cos-sh.tiye.me/Erigeron/edn-renderer/ yarn build
+```
+
+工作流只在主分支推送时部署：先上传 `dist/` 至 COS，由 `cos-upload-action` 的 `public-base-url` 启用内置校验，成功后再将入口页等构建文件同步至原服务器目录。需要配置 `COS_BUCKET`、`COS_SECRET_ID`、`COS_SECRET_KEY`，原 `rsync_private_key` 和服务器路径保持不变。PR 只构建，不上传。
+
+生产任务串行排队；开始上传前检查当前 main，跳过已过期的任务。通过检查的任务依次完成 COS 上传和服务器同步，不在中途重复检查 main。两个目标并非原子发布；服务器同步失败时须检查并重跑部署。此迁移不改动 relay 服务或报告存储路径。
 
 ## End-to-End Usage
 
@@ -199,7 +213,7 @@ Current analysis-oriented rendering behavior:
 Compile the Calcit app with:
 
 ```bash
-cr js
+calcit
 ```
 
 For a dedicated renderer, CLI, and browser validation checklist, see [TESTING.md](TESTING.md).

@@ -13,16 +13,27 @@ Use 2 different standards for validation:
 
 Practical rule:
 
-- local: run `cr js`, snapshot-based renderer checks, and partial browser smoke checks
+- local: run `calcit`, snapshot-based renderer checks, and partial browser smoke checks
 - CI: run the snapshot-based renderer DSL script only
 
 ## Latest Verified Run
 
-Validated on 2026-05-30 against a local Vite page and a relay listening on `ws://127.0.0.1:9100`.
+2026-10-02：Calcit 0.27.0 迁移后，以本地 Vite 页面和 `ws://127.0.0.1:9117` relay 的专用测试频道验证。
+
+- 五个项目 namespace 共 106 个定义通过严格公开检查，`calcit --check-only` 通过。
+- 使用生产 `VITE_BASE_URL` 的 `yarn build` 通过，入口中的资源 URL 指向 COS；`js-out/`、`dist/` 不提交。
+- 原有 `test/ci-renderer-dsl.sh` 通过：混合布局／MathML snapshot、子树 snapshot、频道缓存恢复。
+- 浏览器验证 Mermaid SVG、MathML、图表 canvas，以及 Save、Library 加载、current workspace 恢复、patch／replace 更新。
+- `status`、`help components`、`skill workflow` 返回正常。报告仅保存到专用测试频道，不使用已有业务频道。
+- 仍有 ECharts 初始化尺寸警告和 Vite 大 chunk 提示；构建通过不等于零警告，也不代表已执行生产 COS 上传。
+
+### Previous run (2026-05-30)
+
+Validated against a local Vite page and a relay listening on `ws://127.0.0.1:9100`.
 
 Observed results:
 
-- `cr js` succeeded
+- `calcit` succeeded
 - `edn-relay status/help/skill --channel genui` all returned expected payloads
 - mixed dashboard case rendered markdown, Mermaid, and chart content successfully
 - `:layout`, `:node`, `:patch`, and `:replace` all returned successful acks
@@ -54,7 +65,7 @@ Run them in this order so failures stay easy to localize.
 Renderer workspace:
 
 ```bash
-cr js
+calcit
 yarn vite --host 127.0.0.1 --port 3010
 ```
 
@@ -75,7 +86,7 @@ chrome-devtools new_page 'http://127.0.0.1:3010?channel=genui&server=ws://127.0.
 
 Expected readiness signals:
 
-- `cr js` succeeds
+- `calcit` succeeds
 - Vite serves the page on `127.0.0.1:3010`
 - relay is listening on `127.0.0.1:9100`
 - browser page shows channel `genui`
@@ -86,19 +97,19 @@ Expected readiness signals:
 Use this as the narrowest pre-flight check after any Calcit change.
 
 ```bash
-cr js
+calcit
 ```
 
 Use this before browser checks when dependencies or bundling-related code changed.
 
 ```bash
-yarn vite build --base=./
+yarn build
 ```
 
 Expected result:
 
 - build succeeds
-- generated `js-out/` files update cleanly
+- generated `js-out/` files update cleanly and remain ignored by Git
 - existing warnings may be recorded separately, but new failures must be treated as regressions
 
 ## 3. Relay CLI Validation
@@ -358,7 +369,7 @@ Verify:
 
 Use this mapping when a validation step fails:
 
-- `cr js` fails: fix renderer snapshot or Calcit syntax first
+- `calcit` fails: fix renderer snapshot or Calcit syntax first
 - `status/help/skill/send` fails before ack: inspect relay server and selected channel
 - browser page stays in waiting state: inspect page URL channel and websocket target
 - Mermaid or chart renders fail while ack succeeds: inspect browser console and DOM output
@@ -368,7 +379,7 @@ Use this mapping when a validation step fails:
 
 For small changes, run at least this subset:
 
-1. `cr js`
+1. `calcit`
 2. `cargo run -- status --server ws://127.0.0.1:9100 --channel genui`
 3. one `send` smoke payload
 4. one browser snapshot check
@@ -394,7 +405,7 @@ The repository keeps partial automation assets under [test/README.md](test/READM
 Local functional smoke:
 
 ```bash
-cr js
+calcit
 bash test/snapshot-smoke.sh
 PAGE_URL='http://127.0.0.1:3013/?channel=genui&server=ws://127.0.0.1:9100' bash test/ui-basic-smoke.sh
 PAGE_URL='http://127.0.0.1:3013/?channel=library-e2e&server=ws://127.0.0.1:9100' bash test/library-smoke.sh
@@ -403,7 +414,7 @@ PAGE_URL='http://127.0.0.1:3013/?channel=library-e2e&server=ws://127.0.0.1:9100'
 CI renderer DSL validation:
 
 ```bash
-cr js
+calcit
 bash test/ci-renderer-dsl.sh
 ```
 
