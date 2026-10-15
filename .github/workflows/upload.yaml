@@ -33,6 +33,7 @@ jobs:
       with:
         tools: calcit,caps
         caps-version: "0.1.1"
+        deps-file: deps.cirru
 
     - name: Install dependencies
       run: |
@@ -47,7 +48,7 @@ jobs:
         calcit edit format
         git diff --exit-code -- calcit.cirru
         calcit --check-only
-        calcit analyze check-public --ns app.comp.container --ns app.config --ns app.main --ns app.schema --ns app.updater --summary-only --format json
+        calcit --check-only --ns app.comp.container --ns app.config --ns app.main --ns app.schema --ns app.updater --format edn
 
     - name: Select frontend CDN path
       id: asset-path
@@ -64,7 +65,9 @@ jobs:
     - name: Build frontend
       env:
         VITE_BASE_URL: ${{ steps.asset-path.outputs.base-url }}
-      run: yarn build
+      run: |
+        yarn build
+        bash test/channel-cache-smoke.sh
 
     - name: Check current production revision
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
