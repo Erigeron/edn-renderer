@@ -110,7 +110,7 @@ edn-relay send --server ws://127.0.0.1:9100 --channel genui "$(cat /tmp/layout.c
 - 避免生成“可调用字符串”。错误写法如 `(<> ((str ...)))`，正确写法是 `<> $ str ...`。
 - 变量必须保持 leaf。像 `week-start` 这种变量不要变成单元素 list，否则会被当成调用。
 - Respo 样式里的纯数字会自动补 `px`。`flex`、`font-weight`、`line-height`、`z-index` 这类属性要显式写字符串，例如 `:flex "\"1"`。
-- Calcit 0.27 可直接用空 map `{}`；不要为旧编译器问题添加 `:_init_` 占位字段。`get` / `get-in` / `first` 返回 `Option`，必须显式处理缺失分支。
+- Calcit 0.30 可直接用空 map `{}`；不要为旧编译器问题添加 `:_init_` 占位字段。`get` / `get-in` / `first` 返回 `Option`，必须显式处理缺失分支。
 - Respo 和命令式 DOM 更新会互相打架。像 Mermaid 这种库如果直接写 `innerHTML`/SVG，不要再给同一个容器挂虚拟 DOM children；优先只保留 `:innerHTML` prop。
 - Mermaid 的 `render` 需要并发保护。同一份 source 在一次渲染未完成前，要先写入 `:rendering` 之类的锁状态，避免重复调用同一个 graph id/source。
 

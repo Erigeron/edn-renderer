@@ -49,7 +49,9 @@ again so the unplugged package is materialized on disk.
 
 ### 前端构建与部署
 
-使用正式版 Calcit / `@calcit/procs` 0.27.0；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。
+使用正式版 Calcit / `@calcit/procs` 0.30.0，前端 Calcit 模块使用正式 tag；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。
+迁移将旧 Map 读取改为公开 Option API，保留原有 nil/default 语义；DOM/effect 和文本字段在真实边界检查类型，无效输入可能更早报错。
+本地原有入口、公开定义、channel-cache、relay snapshot 和浏览器混合布局回归已通过；完整 `calcit fix --workflow strict --verify` 当前仍被 Reel 0.6.36 的 `reel-updater` / `comp-records` List 输入证明阻断。当前报告已无项目源码修复建议，但这不等同完整严格检查通过；须在上游修复后重跑，不应据普通检查通过直接合并发布。状态更新改用现有 `update-state-tree`，由应用保留已知的 store Map 结构；缓存和 relay 协议格式不变。
 `yarn build` 编译 Calcit 并打包前端。本地默认使用相对资源路径；生产构建指定：
 
 ```bash
