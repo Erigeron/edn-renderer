@@ -18,6 +18,10 @@
           :code $ quote $ defref *rendered-svgs ({})
           :examples $ []
           :schema $ :: 'Ref $ :: 'Map 'String 'app.comp.container/MermaidCache
+        'ChartDatum $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defstruct ChartDatum (:label 'String) (:value 'Number)
+          :examples $ []
+          :schema $ :: 'StructDef
         'EChartHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait EChartHost
             .set-option! $ :: 'Fn $ {}
@@ -115,16 +119,27 @@
             let
                 normalized-kind $ if (string? kind) kind |bar
                 normalized-series $ if (list? series) series $ []
-                names $ -> normalized-series .to-list $ map
-                  fn (item)
-                    assert-type
+                points $ map normalized-series $ fn (item)
+                  hint-fn $ {}
+                    :args $ [] $ :: 'Map 'Tag 'Dynamic
+                    :return 'app.comp.container/ChartDatum
+                  ChartDatum :label
+                    decode-map-as
                       .unwrap-or (get item :label) nil
                       , 'String
-                values $ -> normalized-series .to-list $ map
-                  fn (item)
-                    assert-type
+                    , :value $ decode-map-as
                       .unwrap-or (get item :value) nil
                       , 'Number
+                names $ map points $ fn (point)
+                  hint-fn $ {}
+                    :args $ [] 'app.comp.container/ChartDatum
+                    :return 'String
+                  :label point
+                values $ map points $ fn (point)
+                  hint-fn $ {}
+                    :args $ [] 'app.comp.container/ChartDatum
+                    :return 'Number
+                  :value point
                 title-part $ if
                   or (nil? title) (= title |)
                   {}
@@ -134,49 +149,28 @@
                 grid-part $ {} $ :grid
                   {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
                 base $ merge
-                  assert-type
-                    {} (:animation false)
-                      :tooltip $ {}
-                    :: 'Map 'Tag 'Dynamic
-                  assert-type title-part $ :: 'Map 'Tag 'Dynamic
-                  assert-type grid-part $ :: 'Map 'Tag 'Dynamic
+                  {} (:animation false)
+                    :tooltip $ {}
+                  , title-part grid-part
               case-default normalized-kind
-                merge
-                  assert-type base $ :: 'Map 'Tag 'Dynamic
-                  assert-type
-                    {} (:xAxis category-axis)
-                      :yAxis $ {} $ :type |value
-                      :series $ [] $ {} (:type |bar) (:data values)
-                    :: 'Map 'Tag 'Dynamic
-                |line $ merge
-                  assert-type base $ :: 'Map 'Tag 'Dynamic
-                  assert-type
-                    {} (:xAxis category-axis)
-                      :yAxis $ {} $ :type |value
-                      :series $ [] $ {} (:type |line) (:data values)
-                    :: 'Map 'Tag 'Dynamic
-                |pie $ merge
-                  assert-type base $ :: 'Map 'Tag 'Dynamic
-                  assert-type
-                    {} $ :series $ []
-                      {} (:type |pie)
-                        :data $ -> normalized-series .to-list $ map
-                          fn (item)
-                            {}
-                              :name $ assert-type
-                                .unwrap-or (get item :label) nil
-                                , 'String
-                              :value $ assert-type
-                                .unwrap-or (get item :value) nil
-                                , 'Number
-                    :: 'Map 'Tag 'Dynamic
-                |scatter $ merge
-                  assert-type base $ :: 'Map 'Tag 'Dynamic
-                  assert-type
-                    {} (:xAxis category-axis)
-                      :yAxis $ {} $ :type |value
-                      :series $ [] $ {} (:type |scatter) (:data values)
-                    :: 'Map 'Tag 'Dynamic
+                merge base $ {} (:xAxis category-axis)
+                  :yAxis $ {} $ :type |value
+                  :series $ [] $ {} (:type |bar) (:data values)
+                |line $ merge base $ {} (:xAxis category-axis)
+                  :yAxis $ {} $ :type |value
+                  :series $ [] $ {} (:type |line) (:data values)
+                |pie $ merge base $ {}
+                  :series $ [] $ {} (:type |pie)
+                    :data $ map points $ fn (point)
+                      hint-fn $ {}
+                        :args $ [] 'app.comp.container/ChartDatum
+                        :return $ :: 'Map 'Tag 'Dynamic
+                      {}
+                        :name $ :label point
+                        :value $ :value point
+                |scatter $ merge base $ {} (:xAxis category-axis)
+                  :yAxis $ {} $ :type |value
+                  :series $ [] $ {} (:type |scatter) (:data values)
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ []
@@ -186,9 +180,10 @@
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
             let
-                tag-name $ assert-type
-                  .unwrap $ first expr
-                  , 'String
+                tag-name $ match
+                  data-view $ .unwrap $ first expr
+                  (:string name) name
+                  _ $ raise $ str path "| math expression requires string tag name"
                 el $ unsafe-coerce (browser/create-element-ns mathml-namespace tag-name) MathElementHost
               foldl (rest expr) &unit $ fn (acc child)
                 hint-fn $ {}
@@ -920,25 +915,20 @@
             :args $ [] $ :: 'Option 'String
         'parse-layout-children $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-children (children path)
-            if
-              not $ list? children
+            if (list? children)
+              map children $ fn (child)
+                hint-fn $ {}
+                  :args $ [] 'Dynamic
+                  :return 'app.comp.container/LayoutNode
+                parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
-              map
-                assert-type children $ :: 'List 'Dynamic
-                fn (child)
-                  hint-fn $ {}
-                    :args $ [] 'Dynamic
-                    :return 'app.comp.container/LayoutNode
-                  parse-layout-node child $ str path |.children
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic 'String
             :return $ :: 'List 'app.comp.container/LayoutNode
         'parse-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-node (node path)
-            if
-              not $ map? node
-              raise $ str path "| expected a map node"
+            if (map? node)
               let
                   node-type $ .unwrap-or (get node :type) nil
                   children $ or
@@ -947,118 +937,87 @@
                   series $ or
                     .unwrap-or (get node :series) nil
                     []
-                if
-                  not $ string? node-type
-                  raise $ str path "| is missing string field :type"
+                  text $ .unwrap-or (get node :text) nil
+                if (string? node-type)
                   case-default node-type
                     raise $ str path "| does not support node type " node-type
-                    |column $ %:: LayoutNode :column $ parse-layout-children children path
-                    |row $ %:: LayoutNode :row $ parse-layout-children children path
-                    |card $ %:: LayoutNode :card
-                      optionally $ assert-type
-                        .unwrap-or (get node :text) nil
-                        :: 'Optional 'String
+                    |column $ LayoutNode :column $ parse-layout-children children path
+                    |row $ LayoutNode :row $ parse-layout-children children path
+                    |card $ LayoutNode :card
+                      match (data-view text)
+                        (:nil) (Option :none)
+                        (:string card-text) (Option :some card-text)
+                        _ $ raise $ str path "| card node requires string :text"
                       parse-layout-children children path
-                    |text $ if
-                      and
-                        string? $ .unwrap-or (get node :text) nil
-                        >
-                          count $ assert-type
-                            .unwrap-or (get node :text) nil
-                            , 'String
-                          , 0
-                      %:: LayoutNode :text $ assert-type
-                        .unwrap-or (get node :text) nil
-                        , 'String
+                    |text $ if (string? text)
+                      if
+                        > (count text) 0
+                        LayoutNode :text text
+                        raise $ str path "| text node requires non-empty :text"
                       raise $ str path "| text node requires non-empty :text"
-                    |badge $ if
-                      and
-                        string? $ .unwrap-or (get node :text) nil
-                        >
-                          count $ assert-type
-                            .unwrap-or (get node :text) nil
-                            , 'String
-                          , 0
-                      %:: LayoutNode :badge $ assert-type
-                        .unwrap-or (get node :text) nil
-                        , 'String
+                    |badge $ if (string? text)
+                      if
+                        > (count text) 0
+                        LayoutNode :badge text
+                        raise $ str path "| badge node requires non-empty :text"
                       raise $ str path "| badge node requires non-empty :text"
-                    |divider $ %:: LayoutNode :divider
-                    |button $ if
-                      and
-                        string? $ .unwrap-or (get node :text) nil
-                        >
-                          count $ assert-type
-                            .unwrap-or (get node :text) nil
-                            , 'String
-                          , 0
-                      %:: LayoutNode :button $ assert-type
-                        .unwrap-or (get node :text) nil
-                        , 'String
+                    |divider $ LayoutNode :divider
+                    |button $ if (string? text)
+                      if
+                        > (count text) 0
+                        LayoutNode :button text
+                        raise $ str path "| button node requires non-empty :text"
                       raise $ str path "| button node requires non-empty :text"
                     |input $ if
                       or
                         non-nil? $ .unwrap-or (get node :name) nil
                         non-nil? $ .unwrap-or (get node :placeholder) nil
-                      %:: LayoutNode :input
+                      LayoutNode :input
                         .unwrap-or (get node :name) nil
                         .unwrap-or (get node :placeholder) nil
-                        .unwrap-or (get node :text) nil
+                        , text
                       raise $ str path "| input node requires :name or :placeholder"
-                    |markdown $ if
-                      and
-                        string? $ .unwrap-or (get node :text) nil
-                        >
-                          count $ assert-type
-                            .unwrap-or (get node :text) nil
-                            , 'String
-                          , 0
-                      %:: LayoutNode :markdown $ assert-type
-                        .unwrap-or (get node :text) nil
-                        , 'String
-                      raise $ str path "| markdown node requires non-empty :text"
-                    |mermaid $ if
-                      and
-                        string? $ .unwrap-or (get node :text) nil
-                        >
-                          count $ assert-type
-                            .unwrap-or (get node :text) nil
-                            , 'String
-                          , 0
-                      %:: LayoutNode :mermaid $ assert-type
-                        .unwrap-or (get node :text) nil
-                        , 'String
-                      raise $ str path "| mermaid node requires non-empty :text"
-                    |chart $ do
+                    |markdown $ if (string? text)
                       if
-                        not $ list? series
-                        raise $ str path "| chart node requires list field :series"
-                      every? series $ fn (item)
-                        if
-                          not $ map? item
-                          raise $ str path "| chart series item should be a map"
-                          if
-                            and
-                              string? $ .unwrap-or (get item :label) nil
-                              number? $ .unwrap-or (get item :value) nil
-                            , true $ raise $ str path "| chart series item requires string :label and number :value"
-                      %:: LayoutNode :chart
-                        or
-                          .unwrap-or (get node :kind) nil
-                          , |bar
-                        or
-                          .unwrap-or (get node :title) nil
-                          , |
-                        decode-map-as series $ :: 'List $ :: 'Map 'Tag 'Dynamic
-                    |math $ do
+                        > (count text) 0
+                        LayoutNode :markdown text
+                        raise $ str path "| markdown node requires non-empty :text"
+                      raise $ str path "| markdown node requires non-empty :text"
+                    |mermaid $ if (string? text)
+                      if
+                        > (count text) 0
+                        LayoutNode :mermaid text
+                        raise $ str path "| mermaid node requires non-empty :text"
+                      raise $ str path "| mermaid node requires non-empty :text"
+                    |chart $ if (list? series)
+                      do
+                        every? series $ fn (item)
+                          hint-fn $ {}
+                            :args $ [] 'Dynamic
+                            :return 'Bool
+                          if (map? item)
+                            if
+                              and
+                                string? $ .unwrap-or (get item :label) nil
+                                number? $ .unwrap-or (get item :value) nil
+                              , true $ raise $ str path "| chart series item requires string :label and number :value"
+                            raise $ str path "| chart series item should be a map"
+                        LayoutNode :chart
+                          or
+                            .unwrap-or (get node :kind) nil
+                            , |bar
+                          or
+                            .unwrap-or (get node :title) nil
+                            , |
+                          decode-map-as series $ :: 'List $ :: 'Map 'Tag 'Dynamic
+                      raise $ str path "| chart node requires list field :series"
+                    |math $ LayoutNode :math
                       validate-mathml-expr
                         .unwrap-or (get node :expr) nil
                         str path |.expr
-                      %:: LayoutNode :math
-                        assert-type
-                          .unwrap-or (get node :expr) nil
-                          :: 'List 'Dynamic
-                        math-display-value $ .unwrap-or (get node :display) nil
+                      math-display-value $ .unwrap-or (get node :display) nil
+                  raise $ str path "| is missing string field :type"
+              raise $ str path "| expected a map node"
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'app.comp.container/LayoutNode)
             :args $ [] 'Dynamic 'String
@@ -1147,11 +1106,9 @@
             :args $ [] 'Dynamic 'String
         'validate-mathml-expr $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-expr (expr path)
-            if
-              not $ list? expr
-              raise $ str path "| math node requires list field :expr"
+            if (list? expr)
               let
-                  items $ assert-type expr $ :: 'List 'Dynamic
+                  items expr
                 if (empty? items)
                   raise $ str path "| math expression should not be empty"
                   let
@@ -1167,6 +1124,7 @@
                           validate-mathml-child child $ str path |/ tag-name
                           , &unit
                         , items
+              raise $ str path "| math node requires list field :expr"
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic 'String
@@ -1592,7 +1550,7 @@
             do
               let
                   normalized $ if (list? channels)
-                    assert-type channels $ :: 'List 'String
+                    decode-map-as channels $ :: 'List 'String
                     []
                 match client-id
                   (:some id)
@@ -1624,14 +1582,14 @@
                     ack-payload $ {} (:status :ok) (:layout_id layout-id)
                   do
                     dispatch! $ :: :genui-applied request-id layout-id layout payload source
-                    send-genui-ack! ws request-id true ack-payload $ optionally $ assert-type nil (:: 'Optional 'String)
+                    send-genui-ack! ws request-id true ack-payload $ calcit.core/nil->option $ assert-type nil (:: 'Optional 'String)
                 fn (error)
                   let
                       message $ :message $ host/normalize-error error
                     do
                       dispatch! $ :: :genui-failed request-id message source
                       host/console-warn! $ str "|[renderer] validation failed: " message
-                      send-genui-ack! ws request-id false nil $ optionally $ assert-type message (:: 'Optional 'String)
+                      send-genui-ack! ws request-id false nil $ calcit.core/nil->option $ assert-type message (:: 'Optional 'String)
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ [] 'js-ffi.browser/WebSocketHost $ :: 'Map 'Tag 'Dynamic
@@ -1648,7 +1606,7 @@
                   payload $ .unwrap-or (get frame :payload) nil
                   request $ parse-renderer-request payload
                   selected $ selected-relay-channel
-                  pending-storage $ optionally $ assert-type
+                  pending-storage $ calcit.core/nil->option $ assert-type
                     .unwrap-or
                       get-in @*reel $ [] :store :renderer :storage-pending
                       , nil
@@ -1705,13 +1663,13 @@
                     :raw raw
                   if (= kind |hello-ok)
                     handle-channel-state! ws
-                      optionally $ assert-type
+                      calcit.core/nil->option $ assert-type
                         .unwrap-or (get frame :client_id) nil
                         :: 'Optional 'String
                       .unwrap-or (get frame :channels) nil
                     if (= kind |channel-state)
                       handle-channel-state! ws
-                        optionally $ assert-type nil $ :: 'Optional 'String
+                        calcit.core/nil->option $ assert-type nil $ :: 'Optional 'String
                         .unwrap-or (get frame :channels) nil
                       if (= kind |event)
                         if
@@ -1875,7 +1833,7 @@
                   request-id $ assert-type
                     .unwrap-or (get frame :id) nil
                     , 'String
-                  pending $ optionally $ assert-type
+                  pending $ calcit.core/nil->option $ assert-type
                     .unwrap-or
                       get-in @*reel $ [] :store :renderer :storage-pending
                       , nil
@@ -2007,7 +1965,7 @@
               not $ map? changes
               raise "|Patch request expects map field :changes"
               replace-layout-node-at-path node path $ merge (layout-node-at-path node path)
-                assert-type changes $ :: 'Map 'Tag 'Dynamic
+                decode-map-as changes $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'Number) 'Dynamic
@@ -2154,7 +2112,6 @@
                 _ $ RendererRequest :invalid
               if (map? payload)
                 let
-                    payload $ assert-type payload $ :: 'Map 'Tag 'Dynamic
                     op-name $ match
                       protocol-name $ .unwrap-or (get payload :op) nil
                       (:some protocol-text) protocol-text
@@ -2211,12 +2168,12 @@
           :code $ quote $ defn pick-layout-child (children position)
             if (list? children)
               let
-                  items $ assert-type children $ :: 'List 'Dynamic
+                  items children
                 if
                   or (<= position 0) (empty? items)
                   Option :none
                   if (= position 1)
-                    Option :some $ assert-type
+                    Option :some $ decode-map-as
                       .unwrap $ first items
                       :: 'Map 'Tag 'Dynamic
                     recur (rest items) (dec position)
@@ -2273,7 +2230,7 @@
                   .none? $ pick-layout-child children step
                   raise $ str "|Missing layout node at path " $ layout-path-display path
                   assoc node :children $ map-indexed
-                    assert-type children $ :: 'List $ :: 'Map 'Tag 'Dynamic
+                    decode-map-as children $ :: 'List $ :: 'Map 'Tag 'Dynamic
                     fn (idx child)
                       hint-fn $ {}
                         :args $ [] 'Number $ :: 'Map 'Tag 'Dynamic
@@ -2356,11 +2313,13 @@
             :features $ #{} :js-ffi
         'selected-relay-channel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn selected-relay-channel ()
-            optionally $ assert-type
-              .unwrap-or
+            match
+              data-view $ .unwrap-or
                 get-in @*reel $ [] :store :relay :selected-channel
                 , nil
-              :: 'Optional 'String
+              (:nil) (Option :none)
+              (:string channel) (Option :some channel)
+              _ $ raise "|Renderer selected channel must be a string or nil"
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ []
@@ -2533,7 +2492,7 @@
               (:none) renderer
               (:some channel-name)
                 let
-                    cache $ assert-type
+                    cache $ decode-map-as
                       or
                         .unwrap-or (get renderer :channel-cache) nil
                         {}
@@ -2574,7 +2533,7 @@
           :code $ quote $ defn restore-renderer-channel-state (renderer channel)
             let
                 next-state $ let
-                    cache $ assert-type
+                    cache $ decode-map-as
                       or
                         .unwrap-or (get renderer :channel-cache) nil
                         {}
@@ -2606,7 +2565,7 @@
         'update-renderer $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn update-renderer (store f)
             let
-                renderer $ assert-type
+                renderer $ decode-map-as
                   or
                     .unwrap-or (get store :renderer) nil
                     {}
@@ -2627,7 +2586,7 @@
                   decode-map-as cursor $ :: 'List 'Dynamic
                   , s
               (:hydrate-storage data)
-                assert-type data $ :: 'Map 'Tag 'Dynamic
+                decode-map-as data $ :: 'Map 'Tag 'Dynamic
               (:relay-connected client-id channels)
                 -> store
                   assoc-in ([] :relay :status) |ready
@@ -2638,15 +2597,15 @@
                 assoc-in store ([] :relay :channels) channels
               (:select-channel channel)
                 let
-                    relay $ assert-type
+                    relay $ decode-map-as
                       or
                         .unwrap-or (get store :relay) nil
                         {}
                       :: 'Map 'Tag 'Dynamic
-                    current-channel $ optionally $ assert-type
+                    current-channel $ calcit.core/nil->option $ decode-map-as
                       .unwrap-or (get relay :selected-channel) nil
                       :: 'Optional 'String
-                    prev-renderer $ assert-type
+                    prev-renderer $ decode-map-as
                       or
                         .unwrap-or (get store :renderer) nil
                         {}
@@ -2655,7 +2614,7 @@
                   -> store
                     assoc :relay $ assoc relay :selected-channel channel
                     assoc :renderer $ restore-renderer-channel-state cached-renderer $ optionally
-                      assert-type channel $ :: 'Optional 'String
+                      decode-map-as channel $ :: 'Optional 'String
               (:relay-status status message)
                 -> store
                   assoc-in ([] :relay :status) status
@@ -2667,10 +2626,10 @@
                     :return $ :: 'Map 'Tag 'Dynamic
                   let
                       prev-renderer renderer
-                      prev-history $ if
-                        list? $ .unwrap-or (get prev-renderer :history) nil
-                        .unwrap-or (get prev-renderer :history) nil
-                        []
+                      prev-history $ match
+                        data-view $ .unwrap-or (get prev-renderer :history) nil
+                        (:list history-items) history-items
+                        _ $ []
                     -> prev-renderer
                       assoc :history $ append prev-history entry
                       assoc :selected-history entry
@@ -2704,7 +2663,7 @@
                       prev-renderer renderer
                       entry $ .unwrap-or (get prev-renderer :workspace-entry) nil
                     match
-                      optionally $ assert-type entry $ :: 'Optional (:: 'Map 'Tag 'Dynamic)
+                      calcit.core/nil->option $ decode-map-as entry $ :: 'Optional (:: 'Map 'Tag 'Dynamic)
                       (:some current-entry)
                         -> prev-renderer (assoc :selected-storage current-entry)
                           assoc :layout $ .unwrap-or (get current-entry :layout-data) nil
