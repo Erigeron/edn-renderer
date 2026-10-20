@@ -18,6 +18,15 @@ Practical rule:
 
 ## Latest Verified Run
 
+2026-10-21（Asia/Shanghai；UTC 为 2026-10-20）：0.30.1-alpha.5 候选使用独立回环 preview/relay 和全新合成频道。
+
+- 完整 strict、公开定义检查、原 DSL snapshot 与频道缓存回归通过；派生布局在 EDN 往返后必须从 DSL 重建名义 Enum，这一真实刷新故障已纳入原缓存脚本，覆盖 hydration、频道恢复和 workspace 恢复。
+- 浏览器观察 Markdown、Mermaid SVG、图表和 MathML；实际 History、刷新恢复、patch 后再次刷新通过。Save 仅生成一条合成报告，Library 加载和切回 current workspace 成功，未访问已有业务频道或删除报告。
+- 首次命令误用系统 Node 20；切换规定 Node 24 后原完整脚本通过，不将环境误用计为项目回归。旧故障日志曾在当前页保留，不宣称所有历史 console 日志为空。
+- 原 Vite 大 chunk 提示保留。本地构建和回环验收不等同生产 COS 上传或部署；Linux CI 结果以 PR 为准。
+
+### Previous run (2026-10-02)
+
 2026-10-02：Calcit 0.27.0 迁移后，以本地 Vite 页面和 `ws://127.0.0.1:9117` relay 的专用测试频道验证。
 
 - 五个项目 namespace 共 106 个定义通过严格公开检查，`calcit --check-only` 通过。
