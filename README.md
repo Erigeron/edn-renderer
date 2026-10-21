@@ -49,9 +49,13 @@ again so the unplugged package is materialized on disk.
 
 ### 前端构建与部署
 
-使用正式版 Calcit / `@calcit/procs` 0.30.0，前端 Calcit 模块使用正式 tag；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。
+使用配对 Calcit / `@calcit/procs` 0.30.1-alpha.5，前端 Calcit 模块使用正式 tag；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。截至 2026-10-21（Asia/Shanghai；UTC 日期为 2026-10-20），正式 0.30.1 release 尚无 macOS 资产，本轮不宣称完成正式版跨平台验收。
 迁移将旧 Map 读取改为公开 Option API，保留原有 nil/default 语义；DOM/effect 和文本字段在真实边界检查类型，无效输入可能更早报错。
-本地原有入口、公开定义、channel-cache、relay snapshot 和浏览器混合布局回归已通过；完整 `calcit fix --workflow strict --verify` 当前仍被 Reel 0.6.36 的 `reel-updater` / `comp-records` List 输入证明阻断。当前报告已无项目源码修复建议，但这不等同完整严格检查通过；须在上游修复后重跑，不应据普通检查通过直接合并发布。状态更新改用现有 `update-state-tree`，由应用保留已知的 store Map 结构；缓存和 relay 协议格式不变。
+正式依赖升级为 Alerts 0.10.56、Reel 0.6.39、UI 0.7.41、Respo 0.16.122（传递 Router 0.8.36、JS-FFI 0.2.3）。旧 Reel 阻塞已消除；legacy updater 回调在唯一入口检查 store、op-id、op-time，再调用原业务 updater，热重载返回值也经过 Map 解码，不以强转或放宽签名通过检查。见上游 [Reel #75](https://github.com/Respo/reel.calcit/issues/75)。
+
+布局预览由断言改为真实解码。Cirru EDN 恢复的派生 Enum 不保留声明身份，因此 hydration、频道缓存和 current workspace 恢复从保存的原始 DSL 重新校验、构造 LayoutNode；保留旧存档格式和缺失布局的 nil 语义，无效数据可能更早报错。21 处冗余 `do` 包装已删除，执行顺序不变。12 处兼容调用迁为当前公开 `match`、`Option :some/:none` 和 `remove-watch!`，保留原字面量分支、默认值和 watcher 行为；deprecated calls 已清零。
+
+本地完整 strict、公开定义 108/108、原 channel-cache/relay snapshot、混合布局和 MathML 回归通过；Save、Library 合成报告加载、current workspace 切换及 patch 后刷新恢复均已实测。新增回归直接放入原缓存脚本，不另造脚本或预算。CI 增加现有 full strict 门禁；开放 DSL/FFI 类型边界仍如实记录，不宣称零债务。状态更新仍使用 `update-state-tree`，relay 协议和报告存储路径不变。
 `yarn build` 编译 Calcit 并打包前端。本地默认使用相对资源路径；生产构建指定：
 
 ```bash

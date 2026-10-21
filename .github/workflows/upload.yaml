@@ -48,6 +48,8 @@ jobs:
         calcit edit format
         git diff --exit-code -- calcit.cirru
         calcit --check-only
+        calcit fix --workflow strict --verify --format edn
+        calcit analyze weak-types --only deprecated-call --summary-only --format json | jq -e '.data.summary.calls == 0'
         calcit --check-only --ns app.comp.container --ns app.config --ns app.main --ns app.schema --ns app.updater --format edn
 
     - name: Select frontend CDN path
