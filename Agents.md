@@ -2,13 +2,14 @@ Developer runs `calcit` for JavaScript build, and `yarn vite` to start the local
 
 ## 开工前必须看
 
-先读通用 Calcit Agent 指南：
+先读取与项目声明版本配对的 Calcit 紧凑编辑契约；首次接触、digest 变化或涉及新能力时再读取完整指南：
 
 ```bash
-calcit docs agents --full
+calcit docs agents --contract
+calcit docs agents --full # 首次接触、契约变化或按需查阅
 ```
 
-再看 Respo 模块用法：
+Respo 模块用法按任务查阅。完整入门指南可用下列命令读取；API事实以项目固定版本的query为准，不照抄已过时的watcher/CLI示例：
 
 ```bash
 calcit docs read Respo-Agent.md --full --module respo.calcit
@@ -103,7 +104,7 @@ edn-relay send --server ws://127.0.0.1:9100 --channel genui "$(cat /tmp/layout.c
 
 ## 高频踩坑
 
-- `let` 只保留最后一个表达式。多个表达式要包一层 `div` 或 `do`。
+- `defn`、`fn`、`let` body支持多个表达式并按顺序执行，返回最后一项；仅在`if`分支、参数等单表达式位置需要`do`，不为顺序执行无条件加包装。
 - 属性 map 必须成对。不要把 `:style`、`:inner-text` 等属性写进同一个 pair。
 - `keys` 返回 set，不是 list。拼接前先 `.to-list`。
 - 不要用 `.to-map` 处理 list of pairs，改用 `pairs-map`。

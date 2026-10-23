@@ -18,18 +18,18 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
 
-    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+    - uses: actions/setup-node@v6.5.0
       with:
         node-version: 24
         package-manager-cache: false
 
     - run: corepack enable && corepack prepare yarn@4.18.0 --activate
 
-    - uses: calcit-lang/setup-calcit@ca701be5a471759e442aa053cd100720bbe1f09f # v1.5.0
+    - uses: calcit-lang/setup-calcit@v1.5.0
       with:
         tools: calcit,caps
         caps-version: "0.1.1"
@@ -47,8 +47,11 @@ jobs:
         set -euo pipefail
         calcit edit format
         git diff --exit-code -- calcit.cirru
+        test ! -e compact.cirru
+        test ! -e package.cirru
         calcit --check-only
-        calcit fix --workflow strict --verify --format edn
+        calcit --check-only --all-defs
+        calcit fix --workflow strict --verify --format json | jq -e '.data.workflow.status == "passed" and .diagnostics == []'
         calcit analyze weak-types --only deprecated-call --summary-only --format json | jq -e '.data.summary.calls == 0'
         calcit --check-only --ns app.comp.container --ns app.config --ns app.main --ns app.schema --ns app.updater --format edn
 
@@ -58,11 +61,13 @@ jobs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
         asset_prefix="${GITHUB_REPOSITORY}/"
+        base_url="https://cos-sh.tiye.me/${asset_prefix}"
         if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
           asset_prefix="${GITHUB_REPOSITORY}/pr/${PR_NUMBER}/${GITHUB_RUN_ID}/${GITHUB_RUN_ATTEMPT}/"
+          base_url="./"
         fi
         echo "prefix=${asset_prefix}" >> "$GITHUB_OUTPUT"
-        echo "base-url=https://cos-sh.tiye.me/${asset_prefix}" >> "$GITHUB_OUTPUT"
+        echo "base-url=${base_url}" >> "$GITHUB_OUTPUT"
 
     - name: Build frontend
       env:
@@ -70,6 +75,15 @@ jobs:
       run: |
         yarn build
         bash test/channel-cache-smoke.sh
+
+    - name: Save tested frontend for local acceptance
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v7.0.1
+      with:
+        name: frontend-${{ github.run_id }}-${{ github.run_attempt }}
+        path: dist
+        if-no-files-found: error
+        retention-days: 7
 
     - name: Check current production revision
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'

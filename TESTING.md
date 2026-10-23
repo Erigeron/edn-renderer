@@ -18,6 +18,15 @@ Practical rule:
 
 ## Latest Verified Run
 
+2026-10-23：正式 Calcit CLI / procs 0.30.1，PR #6 的源码提交 `51a29b7`。
+
+- Linux CI `39925754212`：6 个正式模块、all-defs 319 项（failed/blocked/cascaded 均为 0）、公开定义 108/108、完整 strict passed 且 diagnostics 为空、deprecated-call 0，原 channel-cache smoke 及名义布局/频道/workspace 恢复通过。
+- 同次 dist artifact `12489596349`，解压前核对 SHA256 `6c73c5863b829b5214d828db1c767cd6f270d5d83778a04d4278b919d61e1f44`。原 HTML 在 `127.0.0.1:14900` 运行，relay 仅监听 `127.0.0.1:19132`，专用合成频道 `formal031-edn-20261023-stage231`。
+- 原 `test/snapshot-smoke.sh` 四阶段通过，使用已安装的 relay 并显式覆盖地址/频道。实际页面显示 MathML 公式、Markdown、Mermaid SVG 和图表；History 显示请求记录；patch 标题后刷新仍恢复更新后的混合布局，公式单独刷新也恢复。
+- 此轮未执行 Save/Library 和坏存档验收，等待各自限定授权；不沿用其他项目权限，不将历史 alpha 验收计为本轮正式版证据。不运行本地 Caps 或用旧 CLI 编译正式依赖图；本轮不合并或部署。
+
+### Previous run (2026-10-21)
+
 2026-10-21（Asia/Shanghai；UTC 为 2026-10-20）：0.30.1-alpha.5 候选使用独立回环 preview/relay 和全新合成频道。
 
 - 完整 strict、公开定义检查、原 DSL snapshot 与频道缓存回归通过；派生布局在 EDN 往返后必须从 DSL 重建名义 Enum，这一真实刷新故障已纳入原缓存脚本，覆盖 hydration、频道恢复和 workspace 恢复。

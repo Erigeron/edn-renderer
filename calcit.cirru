@@ -102,11 +102,7 @@
                   js/document.createTextNode $ str child
                   , JsObject
                 if (list? child)
-                  el .append-child! $ unsafe-coerce
-                    build-mathml-element
-                      assert-type child $ :: 'List 'Dynamic
-                      , path
-                    , JsObject
+                  el .append-child! $ unsafe-coerce (build-mathml-element child path) JsObject
                   raise $ str path "| invalid MathML child, expected string, number, or list"
             , &unit
           :examples $ []
@@ -1930,6 +1926,11 @@
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
             if config/dev? $ load-console-formatter!
+            match
+              browser/storage-get $ .unwrap $ get config/site :storage-key
+              (:some raw)
+                dispatch! $ :: :hydrate-storage $ parse-cirru-edn raw
+              (:none) &unit
             render-app!
             add-watch! *reel :changes $ fn (reel prev) (render-app!)
             listen-devtools! |k dispatch!
@@ -1939,11 +1940,6 @@
                 (:hidden) (persist-storage!)
                 _ &unit
             browser/set-interval! persist-storage! 60000
-            match
-              browser/storage-get $ .unwrap $ get config/site :storage-key
-              (:some raw)
-                dispatch! $ :: :hydrate-storage $ parse-cirru-edn raw
-              (:none) &unit
             match (config/current-url-channel)
               (:some url-channel)
                 dispatch! $ :: :select-channel url-channel

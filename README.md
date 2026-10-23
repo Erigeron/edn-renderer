@@ -49,9 +49,11 @@ again so the unplugged package is materialized on disk.
 
 ### 前端构建与部署
 
-使用配对 Calcit / `@calcit/procs` 0.30.1-alpha.5，前端 Calcit 模块使用正式 tag；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。截至 2026-10-21（Asia/Shanghai；UTC 日期为 2026-10-20），正式 0.30.1 release 尚无 macOS 资产，本轮不宣称完成正式版跨平台验收。
+使用配对的正式 Calcit / `@calcit/procs` 0.30.1，前端 Calcit 模块使用正式 tag；`calcit.cirru` 是源码，`js-out/` 仅在构建时生成，不提交。升级后重启开发服务并刷新页面，不混用旧runtime或模块缓存。
 迁移将旧 Map 读取改为公开 Option API，保留原有 nil/default 语义；DOM/effect 和文本字段在真实边界检查类型，无效输入可能更早报错。
-正式依赖升级为 Alerts 0.10.56、Reel 0.6.39、UI 0.7.41、Respo 0.16.122（传递 Router 0.8.36、JS-FFI 0.2.3）。旧 Reel 阻塞已消除；legacy updater 回调在唯一入口检查 store、op-id、op-time，再调用原业务 updater，热重载返回值也经过 Map 解码，不以强转或放宽签名通过检查。见上游 [Reel #75](https://github.com/Respo/reel.calcit/issues/75)。
+正式依赖为 Alerts 0.10.57、Reel 0.6.41、UI 0.8.0、Respo 0.16.124、JS-FFI 0.2.5（传递 Router 0.8.37）。legacy updater 回调在唯一入口检查 store、op-id、op-time，再调用原业务 updater，热重载返回值也经过 Map 解码，不以强转或放宽签名通过检查。见上游 [Reel #75](https://github.com/Respo/reel.calcit/issues/75)。
+
+启动时先恢复`workflow`存档，再渲染及注册保存回调；恢复失败时保留原始值供排查，不用默认状态覆盖。MathML子节点由现有`list?`分支证明后直接使用，不再重复断言；真实DOM/图表/Promise边界仍显式保留，页面热更新继续使用`hud!`。
 
 布局预览由断言改为真实解码。Cirru EDN 恢复的派生 Enum 不保留声明身份，因此 hydration、频道缓存和 current workspace 恢复从保存的原始 DSL 重新校验、构造 LayoutNode；保留旧存档格式和缺失布局的 nil 语义，无效数据可能更早报错。21 处冗余 `do` 包装已删除，执行顺序不变。12 处兼容调用迁为当前公开 `match`、`Option :some/:none` 和 `remove-watch!`，保留原字面量分支、默认值和 watcher 行为；deprecated calls 已清零。
 
@@ -62,7 +64,7 @@ again so the unplugged package is materialized on disk.
 VITE_BASE_URL=https://cos-sh.tiye.me/Erigeron/edn-renderer/ yarn build
 ```
 
-工作流只在主分支推送时部署：先上传 `dist/` 至 COS，由 `cos-upload-action` 的 `public-base-url` 启用内置校验，成功后再将入口页等构建文件同步至原服务器目录。需要配置 `COS_BUCKET`、`COS_SECRET_ID`、`COS_SECRET_KEY`，原 `rsync_private_key` 和服务器路径保持不变。PR 只构建，不上传。
+工作流只在主分支推送时部署：先上传 `dist/` 至 COS，由 `cos-upload-action` 的 `public-base-url` 启用内置校验，成功后再将入口页等构建文件同步至原服务器目录。需要配置 `COS_BUCKET`、`COS_SECRET_ID`、`COS_SECRET_KEY`，原 `rsync_private_key` 和服务器路径保持不变。PR只构建、不上传，保留同次相对资源路径构建artifact用于本地验收；生产仍用原绝对CDN路径。
 
 生产任务串行排队；开始上传前检查当前 main，跳过已过期的任务。通过检查的任务依次完成 COS 上传和服务器同步，不在中途重复检查 main。两个目标并非原子发布；服务器同步失败时须检查并重跑部署。此迁移不改动 relay 服务或报告存储路径。
 
