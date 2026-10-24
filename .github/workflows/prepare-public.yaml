@@ -29,8 +29,21 @@ jobs:
           yarn install --immutable
           caps --strict --ci
           caps verify --toolchain
-      - name: Inspect source and actual fixed module contracts
-        run: node prepare-public.mjs
+      - name: Apply reviewed structural transaction
+        run: node apply-reviewed.mjs
+      - name: Original complete gates and build
+        run: |
+          set -euo pipefail
+          calcit edit format
+          calcit --check-only
+          calcit --check-only --all-defs
+          calcit fix --workflow strict --verify --format json | jq -e '.data.workflow.status == "passed" and .diagnostics == []'
+          calcit analyze weak-types --only deprecated-call --summary-only --format json | jq -e '.data.summary.calls == 0'
+          calcit --check-only --ns app.comp.container --ns app.config --ns app.main --ns app.schema --ns app.updater --format edn
+          VITE_BASE_URL=./ yarn build
+          bash test/channel-cache-smoke.sh
+          cp calcit.cirru acceptance/snapshot.cirru
+          cp -R dist acceptance/dist
       - name: Retain preparation evidence
         if: always()
         uses: actions/upload-artifact@v7.0.1
