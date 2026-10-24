@@ -96,13 +96,11 @@
         'append-mathml-child! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn append-mathml-child! (el child path)
             if (string? child)
-              el .append-child! $ unsafe-coerce (js/document.createTextNode child) JsObject
+              el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode child
               if (number? child)
-                el .append-child! $ unsafe-coerce
-                  js/document.createTextNode $ str child
-                  , JsObject
+                el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode (str child)
                 if (list? child)
-                  el .append-child! $ unsafe-coerce (build-mathml-element child path) JsObject
+                  el .append-child! $ contract/expect-object |append-mathml-child! $ build-mathml-element child path
                   raise $ str path "| invalid MathML child, expected string, number, or list"
             , &unit
           :examples $ []
@@ -143,15 +141,15 @@
                   :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
                 grid-part $ {} $ :grid
                   {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
-                base $ merge
+                base $ .merge
                   {} (:animation false)
                     :tooltip $ {}
                   , title-part grid-part
               match normalized-kind
-                |line $ merge base $ {} (:xAxis category-axis)
+                |line $ .merge base $ {} (:xAxis category-axis)
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |line) (:data values)
-                |pie $ merge base $ {}
+                |pie $ .merge base $ {}
                   :series $ [] $ {} (:type |pie)
                     :data $ map points $ fn (point)
                       hint-fn $ {}
@@ -160,10 +158,10 @@
                       {}
                         :name $ :label point
                         :value $ :value point
-                |scatter $ merge base $ {} (:xAxis category-axis)
+                |scatter $ .merge base $ {} (:xAxis category-axis)
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |scatter) (:data values)
-                _ $ merge base $ {} (:xAxis category-axis)
+                _ $ .merge base $ {} (:xAxis category-axis)
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |bar) (:data values)
           :examples $ []
@@ -179,8 +177,8 @@
                   data-view $ .unwrap $ first expr
                   (:string name) name
                   _ $ raise $ str path "| math expression requires string tag name"
-                el $ unsafe-coerce (browser/create-element-ns mathml-namespace tag-name) MathElementHost
-              foldl (rest expr) &unit $ fn (acc child)
+                el $ js-cast (browser/create-element-ns mathml-namespace tag-name) 'MathElementHost
+              .foldl (rest expr) &unit $ fn (acc child)
                 hint-fn $ {}
                   :args $ [] 'Unit 'Dynamic
                   :return 'Unit
@@ -193,9 +191,9 @@
         'build-mathml-root $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-root (expr display)
             let
-                root $ unsafe-coerce (browser/create-element-ns mathml-namespace |math) MathElementHost
+                root $ js-cast (browser/create-element-ns mathml-namespace |math) 'MathElementHost
               root .set-attribute! |display $ math-display-value display
-              root .append-child! $ unsafe-coerce (build-mathml-element expr |math) JsObject
+              root .append-child! $ contract/expect-object |build-mathml-root $ build-mathml-element expr |math
               , root
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'app.comp.container/MathElementHost)
@@ -206,7 +204,7 @@
             if
               = (trim text) |
               &%{} MermaidPayload :empty? true :source | :graph-id |
-              &%{} MermaidPayload :empty? false :source text :graph-id $ str |mermaid- (count text) |- $ count (split-lines text)
+              &%{} MermaidPayload :empty? false :source text :graph-id $ str |mermaid- (.len text) |- $ .len (split-lines text)
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'app.comp.container/MermaidPayload)
             :args $ [] 'String
@@ -304,14 +302,14 @@
                               <> $ if (= drawer-view |library) |Library |History
                             div
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                              <> $ str "|Messages: " $ count history
+                              <> $ str "|Messages: " $ .len history
                             if (non-nil? selected-channel)
                               div
                                 {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                 <> $ str "|Channel: " selected-channel
                             div
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                              <> $ str "|Reports: " $ count storage-entries
+                              <> $ str "|Reports: " $ .len storage-entries
                           button $ {} (:class-name css/button) (:inner-text |Close)
                             :style $ {} (:padding "|5px 9px") (:font-size 11)
                             :on-click $ fn (e d!) (on-close d!)
@@ -360,7 +358,7 @@
                                             , 'String
                                   (:none) nil
                                 if
-                                  > (count storage-entries) 0
+                                  > (.len storage-entries) 0
                                   list->
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6)
                                     -> storage-entries .to-list $ map-indexed $ fn (idx item)
@@ -404,7 +402,7 @@
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|No saved reports for current channel yet."
                               if
-                                > (count history) 0
+                                > (.len history) 0
                                 list->
                                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
                                   -> history .to-list $ map-indexed $ fn (idx item)
@@ -573,7 +571,7 @@
                         <> |Ready
                         <> |Waiting
                     button $ {} (:class-name css/button)
-                      :inner-text $ str "|History " $ count history
+                      :inner-text $ str "|History " $ .len history
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         d! $ :: :open-history-drawer
@@ -618,7 +616,7 @@
                       <> $ str "|Storage error: " current-storage-error
                   (:none) nil
                 if
-                  > (count channels) 1
+                  > (.len channels) 1
                   div
                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:padding 10) (:border-radius 12) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:margin-top 8)
                     div
@@ -646,7 +644,7 @@
                     div
                       {} $ :style $ {} (:padding 20) (:border-radius 14) (:border "|1px dashed #d7d7cf") (:background-color |#f5f5f1) (:font-size 13) (:line-height |1.6) (:color |#6b7280)
                       if
-                        > (count channels) 1
+                        > (.len channels) 1
                         <> "|Select a channel to start receiving layouts."
                         <> "|Waiting for a relay channel. Open this page with ?channel=<name>."
                     match
@@ -773,7 +771,7 @@
                 block? $ = (math-display-value display) |block
               [] (effect-mathml expr display)
                 div $ {} (:class-name |mathml-host)
-                  :style $ merge
+                  :style $ .merge
                     {} (:padding 18) (:border-radius 18) (:background-color |#fffdf9) (:border "|1px solid #e8d7ca") (:overflow |auto) (:color |#2e241c) (:max-width |100%) (:align-self |flex-start)
                     if block?
                       {} $ :width |100%
@@ -811,10 +809,10 @@
         'dispose-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispose-echarts-on! (el)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'app.comp.container/EChartHost)
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'JsObject)
               if (js-present? existing)
                 let
-                    chart $ unsafe-coerce existing EChartHost
+                    chart $ js-cast existing 'EChartHost
                   chart .dispose!
                 , &unit
           :examples $ []
@@ -882,7 +880,7 @@
           :code $ quote $ defn ensure-mermaid! ()
             if (not @*mermaid-ready)
               let
-                  api $ unsafe-coerce mermaid-lib MermaidHost
+                  api $ js-cast mermaid-lib 'MermaidHost
                 api .initialize! $ js-object (:startOnLoad false) (:securityLevel |loose) (:theme |neutral)
                 reset! *mermaid-ready true
                 , &unit
@@ -944,20 +942,20 @@
                       parse-layout-children children path
                     |text $ if (string? text)
                       if
-                        > (count text) 0
+                        > (.len text) 0
                         LayoutNode :text text
                         raise $ str path "| text node requires non-empty :text"
                       raise $ str path "| text node requires non-empty :text"
                     |badge $ if (string? text)
                       if
-                        > (count text) 0
+                        > (.len text) 0
                         LayoutNode :badge text
                         raise $ str path "| badge node requires non-empty :text"
                       raise $ str path "| badge node requires non-empty :text"
                     |divider $ LayoutNode :divider
                     |button $ if (string? text)
                       if
-                        > (count text) 0
+                        > (.len text) 0
                         LayoutNode :button text
                         raise $ str path "| button node requires non-empty :text"
                       raise $ str path "| button node requires non-empty :text"
@@ -972,13 +970,13 @@
                       raise $ str path "| input node requires :name or :placeholder"
                     |markdown $ if (string? text)
                       if
-                        > (count text) 0
+                        > (.len text) 0
                         LayoutNode :markdown text
                         raise $ str path "| markdown node requires non-empty :text"
                       raise $ str path "| markdown node requires non-empty :text"
                     |mermaid $ if (string? text)
                       if
-                        > (count text) 0
+                        > (.len text) 0
                         LayoutNode :mermaid text
                         raise $ str path "| mermaid node requires non-empty :text"
                       raise $ str path "| mermaid node requires non-empty :text"
@@ -1018,10 +1016,10 @@
         'render-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-echarts-on! (el option)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'app.comp.container/EChartHost)
-                chart $ if (js-present? existing) (unsafe-coerce existing EChartHost)
-                  unsafe-coerce (echarts-lib/init el) EChartHost
-                plain-option $ unsafe-coerce (to-js-data option) JsObject
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'JsObject)
+                chart $ if (js-present? existing) (js-cast existing 'EChartHost)
+                  js-cast (echarts-lib/init el) 'EChartHost
+                plain-option $ contract/expect-object |render-echarts-on! $ to-js-data option
               chart .set-option! plain-option true
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
@@ -1032,7 +1030,7 @@
             let
                 root $ build-mathml-root expr display
               js-set el :inner-html |
-              el .append-child! $ unsafe-coerce root JsObject
+              el .append-child! $ contract/expect-object |render-mathml-on root
               , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
@@ -1057,7 +1055,7 @@
                       ensure-mermaid!
                       try
                         let
-                            api $ unsafe-coerce mermaid-lib MermaidHost
+                            api $ js-cast mermaid-lib 'MermaidHost
                             result $ unsafe-coerce
                               js-await $ api .render graph-id source
                               , MermaidResultHost
@@ -1111,7 +1109,7 @@
                       not $ string? tag-name
                       raise $ str path "| math expression requires string tag name"
                       do
-                        foldl (rest items) &unit $ fn (acc child)
+                        .foldl (rest items) &unit $ fn (acc child)
                           hint-fn $ {}
                             :args $ [] 'Unit 'Dynamic
                             :return 'Unit
@@ -1136,6 +1134,7 @@
             respo-alerts.core :refer $ use-alert use-drawer
             js-ffi.browser :as browser
             js-ffi.shared :as host
+            js-ffi.contract :as contract
     'app.config $ %{} 'FileEntry
       :defs $ {}
         'build-help-payload $ %{} 'CodeEntry (:doc |)
@@ -1167,7 +1166,7 @@
           :code $ quote $ defn build-skill-text (topics)
             let
                 sections $ select-skill-sections topics
-              foldl sections skill-overview $ fn (acc item)
+              .foldl sections skill-overview $ fn (acc item)
                 hint-fn $ {}
                   :args $ [] 'String $ :: 'Map 'Tag 'String
                   :return 'String
@@ -1560,7 +1559,7 @@
               when
                 and
                   .none? $ selected-relay-channel
-                  = 1 $ count normalized
+                  = 1 $ .len normalized
                 dispatch! $ :: :select-channel $ .unwrap (first normalized)
             , &unit
           :examples $ []
@@ -1955,7 +1954,7 @@
             if
               not $ map? changes
               raise "|Patch request expects map field :changes"
-              replace-layout-node-at-path node path $ merge (layout-node-at-path node path)
+              replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
                 decode-map-as changes $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
@@ -1992,7 +1991,7 @@
             :return $ :: 'Option $ :: 'List 'Number
         'normalize-layout-path-items $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-layout-path-items (items)
-            foldl items
+            .foldl items
               Option :some $ []
               fn (acc item)
                 hint-fn $ {}
@@ -2014,7 +2013,7 @@
         'normalize-renderer-topics $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-renderer-topics (topics)
             if (list? topics)
-              foldl
+              .foldl
                 assert-type topics $ :: 'List 'Dynamic
                 []
                 fn (acc item)
@@ -2040,7 +2039,7 @@
                 or (string? item) (tag? item)
                 let
                     text $ .unwrap $ protocol-name item
-                    digits? $ foldl (split text |) true $ fn (valid? ch)
+                    digits? $ .foldl (split text |) true $ fn (valid? ch)
                       hint-fn $ {}
                         :args $ [] 'Bool 'String
                         :return 'Bool
@@ -2344,7 +2343,7 @@
                   {}
                     :path $ layout-path-display path
                     :type node-type
-                    :child-count $ count children
+                    :child-count $ .len children
                   :: 'Map 'Tag 'Dynamic
                 meta $ assert-type
                   match node-type
@@ -2367,9 +2366,9 @@
                       :name $ .unwrap-or (get node :name) nil
                       :placeholder $ .unwrap-or (get node :placeholder) nil
                     |markdown $ {} $ :lines
-                      count $ split-lines $ decode-map-as (or text |) 'String
+                      .len $ split-lines $ decode-map-as (or text |) 'String
                     |mermaid $ {} $ :lines
-                      count $ split-lines $ decode-map-as (or text |) 'String
+                      .len $ split-lines $ decode-map-as (or text |) 'String
                     |chart $ {}
                       :kind $ or
                         .unwrap-or (get node :kind) nil
@@ -2377,7 +2376,7 @@
                       :title $ or
                         .unwrap-or (get node :title) nil
                         , |
-                      :series-count $ count $ decode-map-as
+                      :series-count $ .len $ decode-map-as
                         or
                           .unwrap-or (get node :series) nil
                           []
@@ -2395,8 +2394,8 @@
                         , nil
                     _ $ {}
                   :: 'Map 'Tag 'Dynamic
-              merge base $ if
-                > (count children) 0
+              .merge base $ if
+                > (.len children) 0
                 assoc meta :children $ map-indexed children $ fn (idx child)
                   hint-fn $ {}
                     :args $ [] 'Number $ :: 'Map 'Tag 'Dynamic
@@ -2520,7 +2519,7 @@
                       (:some channel-name)
                         .unwrap-or (get cache channel-name)
                           assert-type ({}) (:: 'Map 'Tag 'Dynamic)
-                  restore-renderer-layout $ merge renderer-channel-default cached
+                  restore-renderer-layout $ .merge renderer-channel-default cached
               -> renderer
                 assoc :layout $ .unwrap-or (get next-state :layout) nil
                 assoc :layout-dsl $ .unwrap-or (get next-state :layout-dsl) nil

@@ -28,7 +28,7 @@ renderer = restore_renderer_channel_state(renderer, channel)
 const restoredLayoutId = read(renderer, tags['layout-id'])
 const restoredWorkspaceEntry = read(renderer, tags['workspace-entry'])
 const restoredWorkspaceLayoutId = read(restoredWorkspaceEntry, tags['layout-id'])
-const cachedChannels = core.count(core.keys(read(renderer, tags['channel-cache'])))
+const cachedChannels = core.keys(read(renderer, tags['channel-cache'])).len()
 
 if (restoredLayoutId !== 'layout-a') {
   console.error('Expected layout-id to be restored for alpha, got:', restoredLayoutId)
