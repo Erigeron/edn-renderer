@@ -13,32 +13,34 @@ const config=q('config'),namespaces=q('ns').namespaces.map(n=>q('ns',n));
 function replace(id,path,old,value){assert.deepEqual(JSON.parse(run('tree','show',id,'--path','@'+path.join('.'),'--format','json')).tree,old);ops.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(value),...(typeof old==='string'?['--expect','quote '+old]:[])]);}
 function walk(x,path,id){
   if(!Array.isArray(x)||['quote','quasiquote',';','comment','defmacro'].includes(x[0]))return x;
-  if(['app.comp.container/dispose-echarts-on!','app.comp.container/render-echarts-on!'].includes(id)&&x[0]==='js-present?'&&x[1]==='existing'){
-    const value=['not',['js-nullish?','existing']];replace(id,path,x,value);counts.nullish=(counts.nullish||0)+1;return value;
-  }
   const head=x[0],alias={count:'.len',foldl:'.foldl',merge:'.merge'}[head];
   if(alias){counts[head]=(counts[head]||0)+1;replace(id,[...path,0],head,alias);x[0]=alias;}
   if(head==='unsafe-coerce'){
     let replacement;
     if(id.endsWith('/render-mermaid-on')&&x[2]==='MermaidResultHost')return x;
     if(x[2]==='JsObject')replacement=['contract/expect-object','|'+id.split('/')[1],structuredClone(x[1])];
-    else if(Array.isArray(x[2])&&x[2][0]==='::'&&x[2][1]==="'JsNullish")replacement=structuredClone(x[1]);
-    else{assert.ok(['MathElementHost','EChartHost','MermaidHost'].includes(x[2]));replacement=['js-cast',structuredClone(x[1]),"'"+x[2]];}
+    else if(Array.isArray(x[2])&&x[2][0]==='::'&&x[2][1]==="'JsNullish")replacement=[['js-cast','echarts-lib',"'EChartsApiHost"],'.get-instance','el'];
+    else{assert.ok(['MathElementHost','EChartHost','MermaidHost'].includes(x[2]));const value=Array.isArray(x[1])&&x[1][0]==='echarts-lib/init'?[['js-cast','echarts-lib',"'EChartsApiHost"],'.init','el']:structuredClone(x[1]);replacement=['js-cast',value,"'"+x[2]];}
     replace(id,path,x,replacement);counts.host=(counts.host||0)+1;return replacement;
   }
   return x.map((v,i)=>walk(v,[...path,i],id));
 }
 for(const d of expected){assert.deepEqual(q('def',d.id),before.find(x=>x.id===d.id));d.code=walk(d.code,[],d.id);}
-assert.deepEqual(counts,{host:15,merge:9,foldl:6,count:20,nullish:2});assert.equal(ops.length,52);
+assert.deepEqual(counts,{host:15,merge:9,foldl:6,count:20});assert.equal(ops.length,50);
 ops.push(['edit','add-import','app.comp.container','--input-format','json-ast','--code',JSON.stringify(['js-ffi.contract',':as','contract'])]);
+const apiId='app.comp.container/EChartsApiHost',apiType="'app.comp.container/EChartsApiHost";
+const fnType=returns=>['::',"'Fn",['{}',[':args',['[]',apiType,"'js-ffi.browser/DomElementHost"]],[':return',returns]]];
+const apiCode=['deftrait','EChartsApiHost',['.get-instance',fnType(['::',"'JsNullish","'JsObject"])],['.init',fnType("'JsObject")]];
+ops.unshift(['edit','def',apiId,'--input-format','json-ast','--code',JSON.stringify(apiCode)],['edit','schema',apiId,'--input-format','json-ast','--code',JSON.stringify("'Trait")],['edit','ffi',apiId,'--code','{} (:backend :js) (:kind :external-object) (:target :browser)\n  :names $ {} (:get-instance |getInstanceByDom) (:init |init)']);
 writeFileSync('acceptance/operations.json',JSON.stringify(ops,null,2));
 const args=['edit','transaction','--file','acceptance/operations.json','--format','json'];
 const preview=JSON.parse(run(...args,'--dry-run'));assert.ok(preview.scoped_revision);writeFileSync('acceptance/transaction-preview.json',JSON.stringify(preview,null,2));
 writeFileSync('acceptance/transaction-applied.json',run(...args,'--expect-revision',preview.scoped_revision));
-const actual=[];for(const ns of namespaces){const names=run('query','defs',ns.namespace).split('\n').filter(x=>/^  \S/.test(x)).map(x=>x.trim().split(' ')[0]);assert.equal(names.length,ns.definition_count);for(const n of names)actual.push(q('def',`${ns.namespace}/${n}`));}
-assert.deepEqual(actual,expected);assert.deepEqual(q('config'),config);
-const expectedNs=structuredClone(namespaces);expectedNs.find(n=>n.namespace==='app.comp.container').ns_code[2].push(['js-ffi.contract',':as','contract']);
+const actual=[];for(const ns of namespaces){const names=run('query','defs',ns.namespace).split('\n').filter(x=>/^  \S/.test(x)).map(x=>x.trim().split(' ')[0]);assert.equal(names.length,ns.definition_count+(ns.namespace==='app.comp.container'?1:0));for(const n of names)actual.push(q('def',`${ns.namespace}/${n}`));}
+assert.deepEqual(actual.filter(d=>d.id!==apiId),expected);assert.deepEqual(q('config'),config);
+const api=q('def',apiId);assert.deepEqual(api.code,apiCode);assert.equal(api.schema,"'Trait");assert.deepEqual(api.ffi,{':backend':{__edn_tag:'js'},':kind':{__edn_tag:'external-object'},':target':{__edn_tag:'browser'},':names':{':get-instance':'getInstanceByDom',':init':'init'}});assert.deepEqual(api.tests,[]);assert.deepEqual(api.examples,[]);
+const expectedNs=structuredClone(namespaces),container=expectedNs.find(n=>n.namespace==='app.comp.container');container.ns_code[2].push(['js-ffi.contract',':as','contract']);container.definition_count++;
 assert.deepEqual(q('ns').namespaces.map(n=>q('ns',n)),expectedNs);
 writeFileSync('acceptance/after.json',JSON.stringify(actual,null,2));writeFileSync('acceptance/config.json',JSON.stringify(config,null,2));writeFileSync('acceptance/namespaces.json',JSON.stringify(expectedNs,null,2));
-writeFileSync('acceptance/summary.json',JSON.stringify({definitions:110,operations:ops.length,counts,remainingUnsafe:1,preserved:'all other code,metadata,schemas,tests,FFI,entries,storage,HUD,Mermaid lock/order/optional callback and existing workflows;shape checks do not prove payloads'},null,2));
+writeFileSync('acceptance/summary.json',JSON.stringify({definitions:111,operations:ops.length,counts,remainingUnsafe:1,newContract:'ECharts getInstanceByDom: HTMLElement -> ECharts | undefined; init: HTMLElement -> ECharts, public 6.1.0 DTS, shallow checked methods and results',preserved:'all other code,metadata,schemas,tests,FFI,entries,storage,HUD,Mermaid lock/order/optional callback and existing workflows;shape checks do not prove payloads'},null,2));
 writeFileSync('acceptance/snapshot-after-blob.txt',blob());
