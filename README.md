@@ -53,6 +53,10 @@ again so the unplugged package is materialized on disk.
 迁移将旧 Map 读取改为公开 Option API，保留原有 nil/default 语义；DOM/effect 和文本字段在真实边界检查类型，无效输入可能更早报错。
 正式依赖为 Alerts 0.10.57、Reel 0.6.41、UI 0.8.0、Respo 0.16.124、JS-FFI 0.2.5（传递 Router 0.8.37）。legacy updater 回调在唯一入口检查 store、op-id、op-time，再调用原业务 updater，热重载返回值也经过 Map 解码，不以强转或放宽签名通过检查。见上游 [Reel #75](https://github.com/Respo/reel.calcit/issues/75)。
 
+集合调用继续迁为当前公开方法：20 处 `.len`、6 处 `.foldl`、9 处 `.merge`，保留原参数、累积顺序、覆盖顺序及 Unicode 字符计数。原缓存回归中的 JS Set 计数也使用公开 `.len()`，不新增检查脚本。
+
+MathML、Mermaid 模块和 ECharts 实例改用实际宿主成员检查，传给 DOM/图表的普通 JS 对象经过现有 `contract/expect-object`；非法宿主对象可能更早报错。13 处不受检查的强转被移除，仍保留 3 处真实外部合同：两处 ECharts `getInstanceByDom` 可空 JS 对象返回，以及含可选 `bindFunctions` 的 Mermaid 异步结果。它们不作为 nominal/payload 已验证的证据；具体图表实例另经 `js-cast` 检查。模块对象导入用法的限制见上游 [Calcit #2326](https://github.com/calcit-lang/calcit/issues/2326)。不改变 relay 协议、存档格式、Mermaid 渲染锁/失败缓存或 `hud!` 行为；依赖版本与生产部署路径不变。
+
 启动时先恢复`workflow`存档，再渲染及注册保存回调；恢复失败时保留原始值供排查，不用默认状态覆盖。MathML子节点由现有`list?`分支证明后直接使用，不再重复断言；真实DOM/图表/Promise边界仍显式保留，页面热更新继续使用`hud!`。
 
 布局预览由断言改为真实解码。Cirru EDN 恢复的派生 Enum 不保留声明身份，因此 hydration、频道缓存和 current workspace 恢复从保存的原始 DSL 重新校验、构造 LayoutNode；保留旧存档格式和缺失布局的 nil 语义，无效数据可能更早报错。21 处冗余 `do` 包装已删除，执行顺序不变。12 处兼容调用迁为当前公开 `match`、`Option :some/:none` 和 `remove-watch!`，保留原字面量分支、默认值和 watcher 行为；deprecated calls 已清零。
