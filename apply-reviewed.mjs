@@ -13,6 +13,9 @@ const config=q('config'),namespaces=q('ns').namespaces.map(n=>q('ns',n));
 function replace(id,path,old,value){assert.deepEqual(JSON.parse(run('tree','show',id,'--path','@'+path.join('.'),'--format','json')).tree,old);ops.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(value),...(typeof old==='string'?['--expect','quote '+old]:[])]);}
 function walk(x,path,id){
   if(!Array.isArray(x)||['quote','quasiquote',';','comment','defmacro'].includes(x[0]))return x;
+  if(['app.comp.container/dispose-echarts-on!','app.comp.container/render-echarts-on!'].includes(id)&&x[0]==='js-present?'&&x[1]==='existing'){
+    const value=['not',['js-nullish?','existing']];replace(id,path,x,value);counts.nullish=(counts.nullish||0)+1;return value;
+  }
   const head=x[0],alias={count:'.len',foldl:'.foldl',merge:'.merge'}[head];
   if(alias){counts[head]=(counts[head]||0)+1;replace(id,[...path,0],head,alias);x[0]=alias;}
   if(head==='unsafe-coerce'){
@@ -26,7 +29,7 @@ function walk(x,path,id){
   return x.map((v,i)=>walk(v,[...path,i],id));
 }
 for(const d of expected){assert.deepEqual(q('def',d.id),before.find(x=>x.id===d.id));d.code=walk(d.code,[],d.id);}
-assert.deepEqual(counts,{host:15,merge:9,foldl:6,count:20});assert.equal(ops.length,50);
+assert.deepEqual(counts,{host:15,merge:9,foldl:6,count:20,nullish:2});assert.equal(ops.length,52);
 ops.push(['edit','add-import','app.comp.container','--input-format','json-ast','--code',JSON.stringify(['js-ffi.contract',':as','contract'])]);
 writeFileSync('acceptance/operations.json',JSON.stringify(ops,null,2));
 const args=['edit','transaction','--file','acceptance/operations.json','--format','json'];
