@@ -244,8 +244,8 @@
                   get-in states $ [] :drawer :data :show?
                   , false
                 selected-channel $ decode-map-as
-                  .unwrap-or (get relay :selected-channel) nil
-                  :: 'Optional 'String
+                  .and-then (get relay :selected-channel) present-option
+                  :: 'Option 'String
                 channels $ match
                   data-view $ .unwrap-or (get relay :channels) nil
                   (:list items)
@@ -256,30 +256,25 @@
                   (:list items) items
                   _ $ []
                 selected-history $ decode-map-as
-                  .unwrap-or (get renderer :selected-history) nil
-                  :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                  .and-then (get renderer :selected-history) present-option
+                  :: 'Option $ :: 'Map 'Tag 'Dynamic
                 storage-status $ or
                   .unwrap-or (get renderer :storage-status) nil
                   , |idle
                 storage-error $ decode-map-as
-                  .unwrap-or (get renderer :storage-error) nil
-                  :: 'Optional 'String
+                  .and-then (get renderer :storage-error) present-option
+                  :: 'Option 'String
                 storage-entries $ match
                   data-view $ .unwrap-or (get renderer :storage-entries) nil
                   (:list items) items
                   _ $ []
                 selected-storage $ decode-map-as
-                  .unwrap-or (get renderer :selected-storage) nil
-                  :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                  .and-then (get renderer :selected-storage) present-option
+                  :: 'Option $ :: 'Map 'Tag 'Dynamic
                 workspace-entry $ decode-map-as
-                  .unwrap-or (get renderer :workspace-entry) nil
-                  :: 'Optional $ :: 'Map 'Tag 'Dynamic
-                detail-status $ if
-                  and (non-nil? selected-storage)
-                    =
-                      .unwrap-or (get selected-storage :kind) nil
-                      , :workspace-report
-                  , |workspace storage-status
+                  .and-then (get renderer :workspace-entry) present-option
+                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                detail-status $ if (storage-kind? selected-storage :workspace-report) |workspace storage-status
                 drawer-view $ or
                   .unwrap-or (get renderer :drawer-view) nil
                   , |history
@@ -303,10 +298,10 @@
                             div
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                               <> $ str "|Messages: " $ .len history
-                            if (non-nil? selected-channel)
+                            if (.some? selected-channel)
                               div
                                 {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                <> $ str "|Channel: " selected-channel
+                                <> $ str "|Channel: " $ .unwrap selected-channel
                             div
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                               <> $ str "|Reports: " $ .len storage-entries
@@ -323,14 +318,10 @@
                             if (= drawer-view |library)
                               div
                                 {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
-                                match (nil->option workspace-entry)
+                                match workspace-entry
                                   (:some item)
                                     let
-                                        active? $ if (non-nil? selected-storage)
-                                          =
-                                            .unwrap-or (get selected-storage :kind) nil
-                                            , :workspace-report
-                                          , false
+                                        active? $ storage-kind? selected-storage :workspace-report
                                       div
                                         {}
                                           :style $ {} (:padding "|8px 10px") (:border-radius 12)
@@ -363,7 +354,7 @@
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6)
                                     -> storage-entries .to-list $ map-indexed $ fn (idx item)
                                       let
-                                          active? $ match (nil->option selected-storage)
+                                          active? $ match selected-storage
                                             (:some current)
                                               if
                                                 =
@@ -407,7 +398,7 @@
                                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
                                   -> history .to-list $ map-indexed $ fn (idx item)
                                     let
-                                        active? $ match (nil->option selected-history)
+                                        active? $ match selected-history
                                           (:some current)
                                             =
                                               .unwrap-or (get item :raw) nil
@@ -456,7 +447,7 @@
                               {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
                               <> |Detail
                             if (= drawer-view |library)
-                              match (nil->option selected-storage)
+                              match selected-storage
                                 (:some item)
                                   div
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 8)
@@ -472,10 +463,10 @@
                                       div
                                         {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                         <> $ str "|Status: " detail-status
-                                      if (non-nil? selected-channel)
+                                      if (.some? selected-channel)
                                         div
                                           {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                          <> $ str "|Channel: " selected-channel
+                                          <> $ str "|Channel: " $ .unwrap selected-channel
                                     textarea $ {}
                                       :value $ format-cirru-edn $ {}
                                         :name $ or
@@ -493,7 +484,7 @@
                                   div
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|Click the current workspace snapshot or a saved report to load it into the preview."
-                              match (nil->option selected-history)
+                              match selected-history
                                 (:some item)
                                   div
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 8)
@@ -542,7 +533,7 @@
                         when dev? $ comp-reel (>> states :reel) reel $ {}
                 help-alert $ use-alert (>> states :help)
                   {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
-              effect-page-title $ if (nil? selected-channel) (Option :none) (Option :some selected-channel)
+              effect-page-title selected-channel
               div
                 {} $ :style $ {} (:min-height |100vh) (:padding 12) (:box-sizing |border-box) (:background-color |#efefeb) (:color |#1f2933) (:font-family |Avenir)
                 div
@@ -554,8 +545,8 @@
                       <> "|EDN Renderer"
                     div
                       {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                      if (non-nil? selected-channel)
-                        <> $ str "|Channel: " selected-channel
+                      if (.some? selected-channel)
+                        <> $ str "|Channel: " $ .unwrap selected-channel
                         <> "|No channel"
                   div
                     {} $ :style $ {} (:display |flex) (:gap 6) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
@@ -577,7 +568,7 @@
                         d! $ :: :open-history-drawer
                         .show drawer-plugin d!
                     button $ {} (:class-name css/button) (:inner-text |Library)
-                      :disabled $ nil? selected-channel
+                      :disabled $ .none? selected-channel
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         d! $ :: :open-library-drawer
@@ -592,24 +583,24 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!) (.show help-alert d! nil)
                 match
-                  nil->option $ decode-map-as
-                    .unwrap-or (get relay :last-error) nil
-                    :: 'Optional 'String
+                  decode-map-as
+                    .and-then (get relay :last-error) present-option
+                    :: 'Option 'String
                   (:some relay-error)
                     div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                       <> $ str "|Relay error: " relay-error
                   (:none) nil
                 match
-                  nil->option $ decode-map-as
-                    .unwrap-or (get renderer :last-error) nil
-                    :: 'Optional 'String
+                  decode-map-as
+                    .and-then (get renderer :last-error) present-option
+                    :: 'Option 'String
                   (:some render-error)
                     div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                       <> $ str "|Validation error: " render-error
                   (:none) nil
-                match (nil->option storage-error)
+                match storage-error
                   (:some current-storage-error)
                     div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff7e9) (:border "|1px solid #e8c48f") (:font-size 12) (:line-height |1.5) (:color |#8a541d) (:margin-top 8)
@@ -627,12 +618,8 @@
                       -> channels .to-list $ map-indexed $ fn (idx channel)
                         [] idx $ button $ {} (:class-name css/button) (:inner-text channel)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
-                            :background-color $ if
-                              if (string? selected-channel) (= channel selected-channel) false
-                              , |#dce3ea |#ffffff
-                            :border $ if
-                              if (string? selected-channel) (= channel selected-channel) false
-                              , "|1px solid #8a8f98" "|1px solid #d7d7cf"
+                            :background-color $ if (selected-channel? selected-channel channel) |#dce3ea |#ffffff
+                            :border $ if (selected-channel? selected-channel channel) "|1px solid #8a8f98" "|1px solid #d7d7cf"
                           :on-click $ fn (e d!)
                             d! $ :: :select-channel channel
                 div
@@ -640,7 +627,7 @@
                   div
                     {} $ :style $ {} (:font-size 13) (:font-weight |600) (:color |#4b5563)
                     <> |Preview
-                  if (nil? selected-channel)
+                  if (.none? selected-channel)
                     div
                       {} $ :style $ {} (:padding 20) (:border-radius 14) (:border "|1px dashed #d7d7cf") (:background-color |#f5f5f1) (:font-size 13) (:line-height |1.6) (:color |#6b7280)
                       if
@@ -648,9 +635,9 @@
                         <> "|Select a channel to start receiving layouts."
                         <> "|Waiting for a relay channel. Open this page with ?channel=<name>."
                     match
-                      nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout) nil
-                        :: 'Optional 'app.comp.container/LayoutNode
+                      decode-map-as
+                        .and-then (get renderer :layout) present-option
+                        :: 'Option 'app.comp.container/LayoutNode
                       (:some layout) (comp-layout-node layout)
                       (:none)
                         div
@@ -1013,6 +1000,14 @@
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'app.comp.container/LayoutNode)
             :args $ [] 'Dynamic 'String
+        'present-option $ %{} 'CodeEntry
+          :doc "|Read a store slot that may hold nil as an Option, so typed decoding happens on `Option :some` only."
+          :code $ quote $ defn present-option (value)
+            if (nil? value) (Option :none) (Option :some value)
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :return $ :: 'Option 'Dynamic
         'render-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-echarts-on! (el option)
             let
@@ -1077,6 +1072,27 @@
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ [] 'js-ffi.browser/DomElementHost 'app.comp.container/MermaidPayload
             :features $ #{} :js-ffi
+        'selected-channel? $ %{} 'CodeEntry
+          :doc "|Whether the optional selected channel is this channel."
+          :code $ quote $ defn selected-channel? (selected channel)
+            match selected
+              (:some current) (= current channel)
+              (:none) false
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Bool)
+            :args $ [] (:: 'Option 'String) 'String
+        'storage-kind? $ %{} 'CodeEntry
+          :doc "|Whether the optional selected storage entry has this :kind."
+          :code $ quote $ defn storage-kind? (selected kind)
+            match selected
+              (:some entry)
+                = kind $ .unwrap-or (get entry :kind) nil
+              (:none) false
+          :examples $ []
+          :schema $ :: 'Fn $ {} (:return 'Bool)
+            :args $ []
+              :: 'Option $ :: 'Map 'Tag 'Dynamic
+              , 'Tag
         'validate-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout (layout) (parse-layout-node layout |root)
           :examples $ []
@@ -1580,13 +1596,13 @@
                     layout $ -> payload validate-layout
                     ack-payload $ {} (:status :ok) (:layout_id layout-id)
                   dispatch! $ :: :genui-applied request-id layout-id layout payload source
-                  send-genui-ack! ws request-id true ack-payload $ calcit.core/nil->option $ assert-type nil (:: 'Optional 'String)
+                  send-genui-ack! ws request-id true ack-payload $ Option :none
                 fn (error)
                   let
                       message $ :message $ host/normalize-error error
                     dispatch! $ :: :genui-failed request-id message source
                     host/console-warn! $ str "|[renderer] validation failed: " message
-                    send-genui-ack! ws request-id false nil $ calcit.core/nil->option $ assert-type message (:: 'Optional 'String)
+                    send-genui-ack! ws request-id false nil $ Option :some message
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ [] 'js-ffi.browser/WebSocketHost $ :: 'Map 'Tag 'Dynamic
@@ -1602,11 +1618,11 @@
                 payload $ .unwrap-or (get frame :payload) nil
                 request $ parse-renderer-request payload
                 selected $ selected-relay-channel
-                pending-storage $ calcit.core/nil->option $ decode-map-as
-                  .unwrap-or
+                pending-storage $ decode-map-as
+                  .and-then
                     get-in @*reel $ [] :store :renderer :storage-pending
-                    , nil
-                  :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                    , present-option
+                  :: 'Option $ :: 'Map 'Tag 'Dynamic
                 summary $ if (= kind |hello-ok) "|Relay connected" $ if (= kind |channel-state) "|Channel list updated"
                   if (= kind |warning)
                     or
@@ -1658,13 +1674,12 @@
                 :raw raw
               if (= kind |hello-ok)
                 handle-channel-state! ws
-                  calcit.core/nil->option $ decode-map-as
-                    .unwrap-or (get frame :client_id) nil
-                    :: 'Optional 'String
+                  decode-map-as
+                    .and-then (get frame :client_id) present-option
+                    :: 'Option 'String
                   .unwrap-or (get frame :channels) nil
                 if (= kind |channel-state)
-                  handle-channel-state! ws
-                    calcit.core/nil->option $ assert-type nil $ :: 'Optional 'String
+                  handle-channel-state! ws (Option :none)
                     .unwrap-or (get frame :channels) nil
                   if (= kind |event)
                     if
@@ -1734,9 +1749,9 @@
                     send-genui-ack! ws request-id true (config/build-status-payload relay renderer) (Option :none)
                   (:snapshot path)
                     if-let
-                      layout-dsl $ nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout-dsl) nil
-                        :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                      layout-dsl $ decode-map-as
+                        .and-then (get renderer :layout-dsl) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :snapshot)
@@ -1746,9 +1761,9 @@
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:layout path)
                     if-let
-                      layout-dsl $ nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout-dsl) nil
-                        :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                      layout-dsl $ decode-map-as
+                        .and-then (get renderer :layout-dsl) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :layout)
@@ -1759,9 +1774,9 @@
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:node path)
                     if-let
-                      layout-dsl $ nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout-dsl) nil
-                        :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                      layout-dsl $ decode-map-as
+                        .and-then (get renderer :layout-dsl) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :node)
@@ -1774,9 +1789,9 @@
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:patch path changes)
                     if-let
-                      layout-dsl $ nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout-dsl) nil
-                        :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                      layout-dsl $ decode-map-as
+                        .and-then (get renderer :layout-dsl) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       let
                           next-dsl $ merge-layout-node-at-path layout-dsl path changes
                           next-layout $ validate-layout next-dsl
@@ -1791,9 +1806,9 @@
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:replace path next-node)
                     if-let
-                      layout-dsl $ nil->option $ decode-map-as
-                        .unwrap-or (get renderer :layout-dsl) nil
-                        :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                      layout-dsl $ decode-map-as
+                        .and-then (get renderer :layout-dsl) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       let
                           next-dsl $ replace-layout-node-at-path layout-dsl path $ decode-map-as next-node (:: 'Map 'Tag 'Dynamic)
                           next-layout $ validate-layout next-dsl
@@ -1823,11 +1838,11 @@
                 request-id $ decode-map-as
                   .unwrap-or (get frame :id) nil
                   , 'String
-                pending $ calcit.core/nil->option $ decode-map-as
-                  .unwrap-or
+                pending $ decode-map-as
+                  .and-then
                     get-in @*reel $ [] :store :renderer :storage-pending
-                    , nil
-                  :: 'Optional $ :: 'Map 'Tag 'Dynamic
+                    , present-option
+                  :: 'Option $ :: 'Map 'Tag 'Dynamic
               when
                 and (.some? pending)
                   = request-id $ .unwrap-or
@@ -2425,7 +2440,7 @@
         :code $ quote $ ns app.main
           :require
             respo.core :refer $ render! clear-cache!
-            app.comp.container :refer $ comp-container validate-layout
+            app.comp.container :refer $ comp-container validate-layout present-option
             app.updater :refer $ updater
             app.schema :as schema
             reel.util :refer $ listen-devtools!
@@ -2542,9 +2557,12 @@
             let
                 dsl $ .unwrap-or (get renderer :layout-dsl) nil
               assoc renderer :layout $ if (nil? dsl)
-                decode-map-as
-                  .unwrap-or (get renderer :layout) nil
-                  :: 'Optional 'app.comp.container/LayoutNode
+                match
+                  decode-map-as
+                    .and-then (get renderer :layout) present-option
+                    :: 'Option 'app.comp.container/LayoutNode
+                  (:some layout) layout
+                  (:none) nil
                 validate-layout dsl
           :examples $ []
           :schema $ :: 'Fn $ {}
@@ -2593,9 +2611,9 @@
                         .unwrap-or (get store :relay) nil
                         {}
                       :: 'Map 'Tag 'Dynamic
-                    current-channel $ calcit.core/nil->option $ decode-map-as
-                      .unwrap-or (get relay :selected-channel) nil
-                      :: 'Optional 'String
+                    current-channel $ decode-map-as
+                      .and-then (get relay :selected-channel) present-option
+                      :: 'Option 'String
                     prev-renderer $ decode-map-as
                       or
                         .unwrap-or (get store :renderer) nil
@@ -2604,8 +2622,8 @@
                     cached-renderer $ cache-renderer-channel-state prev-renderer current-channel
                   -> store
                     assoc :relay $ assoc relay :selected-channel channel
-                    assoc :renderer $ restore-renderer-channel-state cached-renderer $ nil->option
-                      decode-map-as channel $ :: 'Optional 'String
+                    assoc :renderer $ restore-renderer-channel-state cached-renderer $ if (nil? channel) (Option :none)
+                      Option :some $ decode-map-as channel 'String
               (:relay-status status message)
                 -> store
                   assoc-in ([] :relay :status) status
@@ -2652,9 +2670,10 @@
                     :return $ :: 'Map 'Tag 'Dynamic
                   let
                       prev-renderer renderer
-                      entry $ .unwrap-or (get prev-renderer :workspace-entry) nil
                     match
-                      calcit.core/nil->option $ decode-map-as entry $ :: 'Optional (:: 'Map 'Tag 'Dynamic)
+                      decode-map-as
+                        .and-then (get prev-renderer :workspace-entry) present-option
+                        :: 'Option $ :: 'Map 'Tag 'Dynamic
                       (:some current-entry)
                         -> prev-renderer (assoc :selected-storage current-entry)
                           assoc :layout $ validate-layout $ .unwrap-or (get current-entry :layout-dsl) nil
@@ -2768,4 +2787,4 @@
         :code $ quote $ ns app.updater
           :require
             respo.cursor :refer $ update-state-tree
-            app.comp.container :refer $ validate-layout
+            app.comp.container :refer $ validate-layout present-option
