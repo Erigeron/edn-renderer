@@ -18,6 +18,17 @@ Practical rule:
 
 ## Latest Verified Run
 
+2026-11-01：本地官方 Calcit / procs **0.32.1**，正常 strict Caps 安装 Alerts **0.11.0**、Reel **0.7.0**、UI **0.9.0**、Respo **0.17.1**、JS FFI **0.2.9**；不是本地候选模块图。
+
+- 323/323 all-defs、112/112 公开定义、完整 strict diagnostics 为空、deprecated-call 0，JS/Vite 构建、immutable、toolchain 与原频道缓存/名义 hydration/workspace 回归通过；无断言或类型门禁豁免。Vite 原大 chunk 提示保留。
+- 使用全新回环来源与专用合成频道；原 `test/ci-renderer-dsl.sh` 的四阶段 snapshot / MathML 和频道缓存回归通过，status / help components / skill workflow 协议正常。
+- 实际页面显示 MathML、Markdown、图表 canvas、Mermaid SVG；History 能选择 patch 明细，Tips 打开关闭正常。
+- Save 仅创建一条本轮合成报告；Library 显示 1 个报告与 current workspace，加载显示 loaded，切回显示 workspace 且报告数不增加。报告通过测试专用频道链接落在独立临时目录，不读取已有报告，不改 HOME 或 relay 服务代码。
+- patch 标题后实际刷新仍恢复中文/emoji 标题与混合布局；replace 替换 Markdown 内容正常。浏览器本轮 warn/error 为空。不包含坏存档、剪贴板、真实数据或生产部署验收。
+- 本地完整验收不代替精确 Linux PR CI，远端结果以 PR 为准；业务应用不合并或部署。
+
+### Previous run (2026-10-23)
+
 2026-10-23：正式 Calcit CLI / procs 0.30.1，PR #6 的源码提交 `51a29b7`。
 
 - Linux CI `39925754212`：6 个正式模块、all-defs 319 项（failed/blocked/cascaded 均为 0）、公开定义 108/108、完整 strict passed 且 diagnostics 为空、deprecated-call 0，原 channel-cache smoke 及名义布局/频道/workspace 恢复通过。
