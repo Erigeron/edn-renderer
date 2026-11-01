@@ -6,39 +6,37 @@
     {} (:description |) (:init-fn 'app.main/main!) (:mode :js) (:reload-fn 'app.main/reload!) (:target :browser)
       :feature-policy $ {}
       :modules $ [] |respo.calcit/ |respo-ui.calcit/ |reel.calcit/ |alerts.calcit/ |js-ffi/
-      :type-slots $ {}
+      :type-slots $ {} $ :dispatch-op |app.schema/DispatchOp
   :files $ {}
     'app.comp.container $ %{} 'FileEntry
       :defs $ {}
         '*mermaid-ready $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *mermaid-ready false
           :examples $ []
-          :schema $ :: 'Ref 'Bool
+          :schema $ quote $ Ref Bool
         '*rendered-svgs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *rendered-svgs ({})
           :examples $ []
-          :schema $ :: 'Ref $ :: 'Map 'String 'app.comp.container/MermaidCache
+          :schema $ quote $ Ref (Map String app.comp.container/MermaidCache)
         'ChartDatum $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstruct ChartDatum (:label 'String) (:value 'Number)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'EChartHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait EChartHost
-            .set-option! $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/EChartHost 'JsObject 'Bool
-              :return 'Unit
-            .dispose! $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/EChartHost
-              :return 'Unit
+            .set-option! $ quote $ Fn app.comp.container/EChartHost JsObject Bool (-> Unit)
+            .dispose! $ quote $ Fn app.comp.container/EChartHost (-> Unit)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:dispose! |dispose) (:set-option! |setOption)
-          :schema $ :: 'Trait
+          :schema $ quote Trait
         'LayoutNode $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum LayoutNode
-            :column $ :: 'List 'app.comp.container/LayoutNode
-            :row $ :: 'List 'app.comp.container/LayoutNode
-            :card (:: 'Option 'String) (:: 'List 'app.comp.container/LayoutNode)
+            :column $ quote $ List app.comp.container/LayoutNode
+            :row $ quote $ List app.comp.container/LayoutNode
+            :card
+              quote $ Option String
+              quote $ List app.comp.container/LayoutNode
             :text 'String
             :badge 'String
             :divider
@@ -46,53 +44,45 @@
             :input 'Dynamic 'Dynamic 'Dynamic
             :markdown 'String
             :mermaid 'String
-            :chart 'Dynamic 'Dynamic $ :: 'List $ :: 'Map 'Tag 'Dynamic
-            :math (:: 'List 'Dynamic) 'String
+            :chart 'Dynamic 'Dynamic $ quote $ List (Map Tag Dynamic)
+            :math
+              quote $ List Dynamic
+              , 'String
           :examples $ []
-          :schema $ :: 'EnumDef
+          :schema $ quote EnumDef
         'MathElementHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MathElementHost (:inner-html 'String)
-            .set-attribute! $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/MathElementHost 'String 'String
-              :return 'Unit
-            .append-child! $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/MathElementHost 'JsObject
-              :return 'JsObject
+            .set-attribute! $ quote $ Fn app.comp.container/MathElementHost String String (-> Unit)
+            .append-child! $ quote $ Fn app.comp.container/MathElementHost JsObject (-> JsObject)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:append-child! |appendChild) (:inner-html |innerHTML) (:set-attribute! |setAttribute)
             :writable $ #{} :inner-html
-          :schema $ :: 'Trait
+          :schema $ quote Trait
         'MermaidCache $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum MermaidCache (:rendering) (:failed) (:ready 'String)
           :examples $ []
-          :schema $ :: 'EnumDef
+          :schema $ quote EnumDef
         'MermaidHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MermaidHost
-            .initialize! $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/MermaidHost 'JsObject
-              :return 'Unit
-            .render $ :: 'Fn $ {}
-              :args $ [] 'app.comp.container/MermaidHost 'String 'String
-              :return 'js-ffi.shared/PromiseHost
+            .initialize! $ quote $ Fn app.comp.container/MermaidHost JsObject (-> Unit)
+            .render $ quote $ Fn app.comp.container/MermaidHost String String (-> js-ffi.shared/PromiseHost)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} $ :initialize! |initialize
-          :schema $ :: 'Trait
+          :schema $ quote Trait
         'MermaidPayload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstruct MermaidPayload (:empty? 'Bool) (:source 'String) (:graph-id 'String)
           :examples $ []
-          :schema $ :: 'StructDef
+          :schema $ quote StructDef
         'MermaidResultHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MermaidResultHost (:svg 'String)
-            :bind-functions $ :: 'JsNullish $ :: 'Fn
-              {}
-                :args $ [] 'js-ffi.browser/DomElementHost
-                :return 'Unit
+            :bind-functions $ quote $ JsNullish
+              Fn js-ffi.browser/DomElementHost $ -> Unit
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} $ :bind-functions |bindFunctions
-          :schema $ :: 'Trait
+          :schema $ quote Trait
         'append-mathml-child! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn append-mathml-child! (el child path)
             if (string? child)
@@ -104,18 +94,14 @@
                   raise $ str path "| invalid MathML child, expected string, number, or list"
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'app.comp.container/MathElementHost 'Dynamic 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn app.comp.container/MathElementHost Dynamic String (-> Unit) (:features :js-ffi)
         'build-echarts-option $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-echarts-option (series kind title)
             let
                 normalized-kind $ if (string? kind) kind |bar
                 normalized-series $ if (list? series) series $ []
                 points $ map normalized-series $ fn (item)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return 'app.comp.container/ChartDatum
+                  hint-fn $ Fn (Map Tag Dynamic) (-> app.comp.container/ChartDatum)
                   ChartDatum :label
                     decode-map-as
                       .unwrap-or (get item :label) nil
@@ -124,14 +110,10 @@
                       .unwrap-or (get item :value) nil
                       , 'Number
                 names $ map points $ fn (point)
-                  hint-fn $ {}
-                    :args $ [] 'app.comp.container/ChartDatum
-                    :return 'String
+                  hint-fn $ Fn app.comp.container/ChartDatum $ -> String
                   :label point
                 values $ map points $ fn (point)
-                  hint-fn $ {}
-                    :args $ [] 'app.comp.container/ChartDatum
-                    :return 'Number
+                  hint-fn $ Fn app.comp.container/ChartDatum $ -> Number
                   :value point
                 title-part $ if
                   or (nil? title) (= title |)
@@ -152,9 +134,7 @@
                 |pie $ .merge base $ {}
                   :series $ [] $ {} (:type |pie)
                     :data $ map points $ fn (point)
-                      hint-fn $ {}
-                        :args $ [] 'app.comp.container/ChartDatum
-                        :return $ :: 'Map 'Tag 'Dynamic
+                      hint-fn $ Fn app.comp.container/ChartDatum $ -> (Map Tag Dynamic)
                       {}
                         :name $ :label point
                         :value $ :value point
@@ -165,11 +145,10 @@
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |bar) (:data values)
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ []
-              :: 'List $ :: 'Map 'Tag 'Dynamic
-              , 'Dynamic 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn
+            List $ Map Tag Dynamic
+            , Dynamic Dynamic
+              -> $ Map Tag Dynamic
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
             let
@@ -179,15 +158,11 @@
                   _ $ raise $ str path "| math expression requires string tag name"
                 el $ js-cast (browser/create-element-ns mathml-namespace tag-name) 'MathElementHost
               .foldl (rest expr) &unit $ fn (acc child)
-                hint-fn $ {}
-                  :args $ [] 'Unit 'Dynamic
-                  :return 'Unit
+                hint-fn $ Fn Unit Dynamic $ -> Unit
                 append-mathml-child! el child $ str path |/ tag-name
               , el
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/MathElementHost)
-            :args $ [] (:: 'List 'Dynamic) 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (List Dynamic) String (-> app.comp.container/MathElementHost) (:features :js-ffi)
         'build-mathml-root $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-root (expr display)
             let
@@ -196,9 +171,7 @@
               root .append-child! $ contract/expect-object |build-mathml-root $ build-mathml-element expr |math
               , root
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/MathElementHost)
-            :args $ [] (:: 'List 'Dynamic) 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (List Dynamic) String (-> app.comp.container/MathElementHost) (:features :js-ffi)
         'build-mermaid-render-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mermaid-render-payload (text)
             if
@@ -206,8 +179,7 @@
               &%{} MermaidPayload :empty? true :source | :graph-id |
               &%{} MermaidPayload :empty? false :source text :graph-id $ str |mermaid- (.len text) |- $ .len (split-lines text)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/MermaidPayload)
-            :args $ [] 'String
+          :schema $ quote $ Fn String (-> app.comp.container/MermaidPayload)
         'comp-chart-block $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-chart-block (series kind title)
             let
@@ -216,11 +188,9 @@
                 div $ {} (:class-name |echarts-host)
                   :style $ {} (:width |100%) (:height |300px)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ []
-              :: 'List $ :: 'Map 'Tag 'Dynamic
-              , 'Dynamic 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn
+            List $ Map Tag Dynamic
+            , Dynamic Dynamic (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-container (reel)
             let
@@ -565,15 +535,23 @@
                       :inner-text $ str "|History " $ .len history
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
+                        hint-fn $ Fn (Map Tag Dynamic)
+                          Fn Enum $ -> Unit
+                          -> Unit
                         d! $ :: :open-history-drawer
                         .show drawer-plugin d!
+                        , &unit
                     button $ {} (:class-name css/button) (:inner-text |Library)
                       :disabled $ .none? selected-channel
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
+                        hint-fn $ Fn (Map Tag Dynamic)
+                          Fn Enum $ -> Unit
+                          -> Unit
                         d! $ :: :open-library-drawer
                         .show drawer-plugin d!
                         d! $ :: :request-storage-list
+                        , &unit
                     button $ {} (:class-name css/button) (:inner-text |Save)
                       :disabled $ nil? $ .unwrap-or (get renderer :layout-dsl) nil
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
@@ -581,7 +559,12 @@
                         d! $ :: :save-current-report
                     button $ {} (:class-name css/button) (:inner-text |Tips)
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
-                      :on-click $ fn (e d!) (.show help-alert d! nil)
+                      :on-click $ fn (e d!)
+                        hint-fn $ Fn (Map Tag Dynamic)
+                          Fn Enum $ -> Unit
+                          -> Unit
+                        .show help-alert d! $ Option :none
+                        , &unit
                 match
                   decode-map-as
                     .and-then (get relay :last-error) present-option
@@ -646,9 +629,7 @@
                 .render drawer-plugin
                 .render help-alert
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
         'comp-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-layout-node (node)
             match node
@@ -708,9 +689,7 @@
                 {} $ :style $ {} (:padding 12) (:border "|1px solid #f08c6c") (:border-radius 12) (:background-color |#fff4ef) (:color |#9b3d15)
                 <> "|Unsupported layout node"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ [] 'app.comp.container/LayoutNode
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn app.comp.container/LayoutNode (-> respo.schema/Component) (:features :js-ffi)
         'comp-markdown-block $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-markdown-block (text)
             let
@@ -749,9 +728,7 @@
                       {} $ :style $ {} (:font-size 15) (:line-height |1.7) (:color |#2e241c) (:white-space |pre-wrap)
                       <> line
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ [] 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn String (-> respo.schema/Component) (:features :js-ffi)
         'comp-math-block $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-math-block (expr display)
             let
@@ -764,9 +741,7 @@
                       {} $ :width |100%
                       {} $ :width |fit-content
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ [] (:: 'List 'Dynamic) 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (List Dynamic) String (-> respo.schema/Component) (:features :js-ffi)
         'comp-mermaid-block $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-mermaid-block (text)
             let
@@ -790,22 +765,19 @@
                     :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
                     :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
-            :args $ [] 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn String (-> respo.schema/Component) (:features :js-ffi)
         'dispose-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispose-echarts-on! (el)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'JsObject)
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el)
+                  quote $ JsNullish JsObject
               if (js-present? existing)
                 let
                     chart $ js-cast existing 'EChartHost
                   chart .dispose!
                 , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/DomElementHost
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/DomElementHost (-> Unit) (:features :js-ffi)
         'effect-echarts $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-echarts (option) (action el at?)
             let
@@ -816,9 +788,7 @@
                 :unmount $ dispose-echarts-on! target
                 _ &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Effect)
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Effect) (:features :js-ffi)
         'effect-mathml $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-mathml (expr display) (action el at?)
             let
@@ -833,9 +803,7 @@
                 :unmount $ do (js-set target :inner-html |) &unit
                 _ &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Effect)
-            :args $ [] (:: 'List 'Dynamic) 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (List Dynamic) String (-> respo.schema/Effect) (:features :js-ffi)
         'effect-mermaid $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-mermaid (text) (action el at?)
             let
@@ -847,9 +815,7 @@
                 :unmount &unit
                 _ &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Effect)
-            :args $ [] 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn String (-> respo.schema/Effect) (:features :js-ffi)
         'effect-page-title $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-page-title (selected-channel) (action el at?)
             let
@@ -860,9 +826,7 @@
                 :unmount $ browser/document-title! $ page-title-text (Option :none)
                 _ &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'respo.schema/Effect)
-            :args $ [] $ :: 'Option 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (Option String) (-> respo.schema/Effect) (:features :js-ffi)
         'ensure-mermaid! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ensure-mermaid! ()
             if (not @*mermaid-ready)
@@ -873,38 +837,31 @@
                 , &unit
               , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'math-display-value $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn math-display-value (display)
             if (= display |block) |block |inline
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] 'Dynamic
+          :schema $ quote $ Fn Dynamic (-> String)
         'mathml-namespace $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mathml-namespace |http://www.w3.org/1998/Math/MathML
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ quote String
         'page-title-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn page-title-text (selected-channel)
             str |EDN-Renderer/ $ .unwrap-or selected-channel |waiting
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] $ :: 'Option 'String
+          :schema $ quote $ Fn (Option String) (-> String)
         'parse-layout-children $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-children (children path)
             if (list? children)
               map children $ fn (child)
-                hint-fn $ {}
-                  :args $ [] 'Dynamic
-                  :return 'app.comp.container/LayoutNode
+                hint-fn $ Fn Dynamic $ -> app.comp.container/LayoutNode
                 parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic 'String
-            :return $ :: 'List 'app.comp.container/LayoutNode
+          :schema $ quote $ Fn Dynamic String
+            -> $ List app.comp.container/LayoutNode
         'parse-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-node (node path)
             if (map? node)
@@ -970,9 +927,7 @@
                     |chart $ if (list? series)
                       do
                         every? series $ fn (item)
-                          hint-fn $ {}
-                            :args $ [] 'Dynamic
-                            :return 'Bool
+                          hint-fn $ Fn Dynamic $ -> Bool
                           if (map? item)
                             if
                               and
@@ -998,28 +953,25 @@
                   raise $ str path "| is missing string field :type"
               raise $ str path "| expected a map node"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/LayoutNode)
-            :args $ [] 'Dynamic 'String
+          :schema $ quote $ Fn Dynamic String (-> app.comp.container/LayoutNode)
         'present-option $ %{} 'CodeEntry
           :doc "|Read a store slot that may hold nil as an Option, so typed decoding happens on `Option :some` only."
           :code $ quote $ defn present-option (value)
             if (nil? value) (Option :none) (Option :some value)
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Option 'Dynamic
+          :schema $ quote $ Fn Dynamic
+            -> $ Option Dynamic
         'render-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-echarts-on! (el option)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (:: 'JsNullish 'JsObject)
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el)
+                  quote $ JsNullish JsObject
                 chart $ if (js-present? existing) (js-cast existing 'EChartHost)
                   js-cast (echarts-lib/init el) 'EChartHost
                 plain-option $ contract/expect-object |render-echarts-on! $ to-js-data option
               chart .set-option! plain-option true
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/DomElementHost $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/DomElementHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'render-mathml-on $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-mathml-on (el expr display)
             let
@@ -1028,15 +980,10 @@
               el .append-child! $ contract/expect-object |render-mathml-on root
               , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'app.comp.container/MathElementHost (:: 'List 'Dynamic) 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn app.comp.container/MathElementHost (List Dynamic) String (-> Unit) (:features :js-ffi)
         'render-mermaid-on $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-mermaid-on (el payload)
-            hint-fn $ {} (:async true)
-              :args $ [] 'js-ffi.browser/DomElementHost 'app.comp.container/MermaidPayload
-              :return 'Unit
-              :features $ #{} :js-ffi
+            hint-fn $ Fn js-ffi.browser/DomElementHost app.comp.container/MermaidPayload (-> Unit) (:features :js-ffi) (:async)
             let
                 source $ :source payload
                 graph-id $ :graph-id payload
@@ -1063,15 +1010,11 @@
                           reset! *rendered-svgs $ assoc @*rendered-svgs source $ MermaidCache :ready svg
                           , &unit
                         fn (error)
-                          hint-fn $ {}
-                            :args $ [] 'Dynamic
-                            :return 'Unit
+                          hint-fn $ Fn Dynamic $ -> Unit
                           reset! *rendered-svgs $ assoc @*rendered-svgs source $ MermaidCache :failed
                           host/console-error! $ str "|[mermaid] render failed: " error
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/DomElementHost 'app.comp.container/MermaidPayload
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/DomElementHost app.comp.container/MermaidPayload (-> Unit) (:features :js-ffi)
         'selected-channel? $ %{} 'CodeEntry
           :doc "|Whether the optional selected channel is this channel."
           :code $ quote $ defn selected-channel? (selected channel)
@@ -1079,8 +1022,7 @@
               (:some current) (= current channel)
               (:none) false
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Bool)
-            :args $ [] (:: 'Option 'String) 'String
+          :schema $ quote $ Fn (Option String) String (-> Bool)
         'storage-kind? $ %{} 'CodeEntry
           :doc "|Whether the optional selected storage entry has this :kind."
           :code $ quote $ defn storage-kind? (selected kind)
@@ -1089,20 +1031,17 @@
                 = kind $ .unwrap-or (get entry :kind) nil
               (:none) false
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Bool)
-            :args $ []
-              :: 'Option $ :: 'Map 'Tag 'Dynamic
-              , 'Tag
+          :schema $ quote $ Fn
+            Option $ Map Tag Dynamic
+            , Tag (-> Bool)
         'validate-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout (layout) (parse-layout-node layout |root)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/LayoutNode)
-            :args $ [] 'Dynamic
+          :schema $ quote $ Fn Dynamic (-> app.comp.container/LayoutNode)
         'validate-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout-node (node path) (parse-layout-node node path)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.comp.container/LayoutNode)
-            :args $ [] 'Dynamic 'String
+          :schema $ quote $ Fn Dynamic String (-> app.comp.container/LayoutNode)
         'validate-mathml-child $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-child (child path)
             if
@@ -1110,8 +1049,7 @@
               , child $ if (list? child) (validate-mathml-expr child path)
                 raise $ str path "| invalid MathML child, expected string, number, or list"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
-            :args $ [] 'Dynamic 'String
+          :schema $ quote $ Fn Dynamic String (-> Dynamic)
         'validate-mathml-expr $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-expr (expr path)
             if (list? expr)
@@ -1126,17 +1064,14 @@
                       raise $ str path "| math expression requires string tag name"
                       do
                         .foldl (rest items) &unit $ fn (acc child)
-                          hint-fn $ {}
-                            :args $ [] 'Unit 'Dynamic
-                            :return 'Unit
+                          hint-fn $ Fn Unit Dynamic $ -> Unit
                           validate-mathml-child child $ str path |/ tag-name
                           , &unit
                         , items
               raise $ str path "| math node requires list field :expr"
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic 'String
-            :return $ :: 'List 'Dynamic
+          :schema $ quote $ Fn Dynamic String
+            -> $ List Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.container
           :require (respo-ui.css :as css)
@@ -1162,9 +1097,8 @@
                 :protocol_docs $ select-protocol-docs normalized-topics
                 :examples $ select-example-docs normalized-topics
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn Dynamic
+            -> $ Map Tag Dynamic
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
@@ -1175,23 +1109,19 @@
                 :title $ if full? "|edn-renderer Skill (full)" "|edn-renderer Skill"
                 :text text
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn Dynamic
+            -> $ Map Tag Dynamic
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
                 sections $ select-skill-sections topics
               .foldl sections skill-overview $ fn (acc item)
-                hint-fn $ {}
-                  :args $ [] 'String $ :: 'Map 'Tag 'String
-                  :return 'String
+                hint-fn $ Fn String (Map Tag String) (-> String)
                 str acc "|\n\n## "
                   .unwrap $ get item :title
                   , "|\n\n" $ .unwrap $ get item :text
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] 'Dynamic
+          :schema $ quote $ Fn Dynamic (-> String)
         'build-status-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-status-payload (relay renderer)
             {} (:status :ok) (:kind :status) (:renderer |edn-renderer)
@@ -1206,10 +1136,9 @@
               :last_request $ .unwrap-or (get renderer :last-request) nil
               :layout_ready? $ non-nil? $ .unwrap-or (get renderer :layout-dsl) nil
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Map 'Tag 'Dynamic)
-            :features $ #{} :js-ffi
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic)
+            -> $ Map Tag Dynamic
+            :features :js-ffi
         'component-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def component-docs
             []
@@ -1251,19 +1180,15 @@
                 :fields $ [] |name |placeholder |text
                 :example "|{} (:type |input) (:name |email) (:placeholder |Email)"
           :examples $ []
-          :schema $ :: 'List $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ List (Map Tag Dynamic)
         'current-page-title $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-page-title () (browser/document-title)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> String) (:features :js-ffi)
         'current-page-url $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-page-url () (browser/location-href)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> String) (:features :js-ffi)
         'current-relay-url $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-relay-url ()
             match (current-url-param |server)
@@ -1274,16 +1199,13 @@
                   (:none)
                     .unwrap $ get site :relay-url
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> String) (:features :js-ffi)
         'current-url-channel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-url-channel () (current-url-param |channel)
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ []
-            :features $ #{} :js-ffi
-            :return $ :: 'Option 'String
+          :schema $ quote $ Fn
+            -> $ Option String
+            :features :js-ffi
         'current-url-param $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-url-param (key)
             let
@@ -1293,15 +1215,14 @@
                   if (empty? value) (Option :none) (Option :some value)
                 (:none) (Option :none)
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'String
-            :features $ #{} :js-ffi
-            :return $ :: 'Option 'String
+          :schema $ quote $ Fn String
+            -> $ Option String
+            :features :js-ffi
         'dev? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def dev?
             = |dev $ .unwrap-or (get-env |mode) |release
           :examples $ []
-          :schema $ :: 'Bool
+          :schema $ quote Bool
         'example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def example-docs
             []
@@ -1323,7 +1244,7 @@
               {} (:name |mermaid-demo) (:summary "|Mermaid 流程图示例。")
                 :payload "|{}\n  :type |mermaid\n  :text \"|flowchart LR\\n  A --> B\\n  B --> C\""
           :examples $ []
-          :schema $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ List (Map Tag String)
         'protocol-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def protocol-docs
             []
@@ -1348,84 +1269,72 @@
               {} (:name |storage)
                 :summary "|页面上的 `Save` 和 `Library` 通过 relay 保留 channel `__relay_store__` 工作。`Save` 会把当前 report 落到 `~/.config/ed-relay/<channel>/`，`Library` 会列出同 channel 的 `.cirru` 文件并加载回当前预览。"
           :examples $ []
-          :schema $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ List (Map Tag String)
         'relay-commands $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def relay-commands ([] |send |help |skill |status |open)
           :examples $ []
-          :schema $ :: 'List 'String
+          :schema $ quote $ List String
         'renderer-help-overview $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def renderer-help-overview "|默认 `edn-relay help --channel <name>` 只返回总览；需要细节时再追加 topic，例如 `components`、`math`、`protocol`、`storage`、`editing`、`examples`、`layout`、`snapshot`、`layout-patch-demo`、`math-fraction-demo`，避免一次返回全部组件配置和案例。"
           :examples $ []
-          :schema $ :: 'String
+          :schema $ quote String
         'select-component-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-component-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ :: 'List 'Dynamic
+                  assert-type topics $ quote $ List Dynamic
                   []
               if (includes? normalized-topics |components) component-docs $ filter component-docs $ fn (item)
-                hint-fn $ {}
-                  :args $ [] $ :: 'Map 'Tag 'Dynamic
-                  :return 'Bool
+                hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn Dynamic
+            -> $ List $ Map Tag Dynamic
         'select-example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-example-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ :: 'List 'Dynamic
+                  assert-type topics $ quote $ List Dynamic
                   []
               if (includes? normalized-topics |examples) example-docs $ filter example-docs $ fn (item)
-                hint-fn $ {}
-                  :args $ [] $ :: 'Map 'Tag 'String
-                  :return 'Bool
+                hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ Fn Dynamic
+            -> $ List $ Map Tag String
         'select-protocol-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-protocol-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ :: 'List 'Dynamic
+                  assert-type topics $ quote $ List Dynamic
                   []
               if (includes? normalized-topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
-                hint-fn $ {}
-                  :args $ [] $ :: 'Map 'Tag 'String
-                  :return 'Bool
+                hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ Fn Dynamic
+            -> $ List $ Map Tag String
         'select-skill-sections $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-skill-sections (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ :: 'List 'Dynamic
+                  assert-type topics $ quote $ List Dynamic
                   []
               if (includes? normalized-topics |all) skill-sections $ filter skill-sections $ fn (item)
-                hint-fn $ {}
-                  :args $ [] $ :: 'Map 'Tag 'String
-                  :return 'Bool
+                hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ Fn Dynamic
+            -> $ List $ Map Tag String
         'site $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def site
             {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
           :examples $ []
-          :schema $ :: 'Map 'Tag 'String
+          :schema $ quote $ Map Tag String
         'skill-overview $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def skill-overview "|使用 `edn-relay skill --channel <name>` 获取高层工作流；默认只返回总览。需要细节时追加 topic，例如 `workflow`、`help`、`storage`、`layout`、`math`、`validation`；如果确实要整份文档，再用 `full`。"
           :examples $ []
-          :schema $ :: 'String
+          :schema $ quote String
         'skill-sections $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def skill-sections
             []
@@ -1444,19 +1353,18 @@
               {} (:name |validation) (:title |Validation)
                 :text "|浏览器验证优先看 `chrome-devtools take_snapshot` 和 `chrome-devtools list_console_messages`；CLI 侧优先看 `status`、`help`、`skill` 是否和当前页面一致。局部编辑失败时，优先检查返回的 `ack false` 和对应 `:path`。"
           :examples $ []
-          :schema $ :: 'List $ :: 'Map 'Tag 'String
+          :schema $ quote $ List (Map Tag String)
         'skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def skill-text (slurp-file |SKILL.md)
           :examples $ []
-          :schema $ :: 'String
+          :schema $ quote String
         'slurp-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defmacro slurp-file (file-path)
             read-file $ assert-type file-path 'String
           :examples $ []
-          :schema $ :: 'Macro $ {}
-            :capabilities $ #{} :fs-read
-            :expansion $ :: 'Expr 'String
-            :required $ [] 'Syntax
+          :schema $ quote $ Macro Syntax
+            -> $ Expr String
+            :capabilities :fs-read
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.config
           :require (js-ffi.browser :as browser) (js-ffi.shared :as shared)
@@ -1466,24 +1374,28 @@
           :code $ quote $ defref *reel
             -> reel-schema/reel (assoc :base schema/store) (assoc :store schema/store)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ quote $ Ref (Map Tag Dynamic)
         '*ws $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *ws (Option :none)
           :examples $ []
-          :schema $ :: 'Ref $ :: 'Option 'js-ffi.browser/WebSocketHost
+          :schema $ quote $ Ref (Option js-ffi.browser/WebSocketHost)
         'RendererRequest $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum RendererRequest
-            :help $ :: 'List 'String
-            :skill $ :: 'List 'String
+            :help $ quote $ List String
+            :skill $ quote $ List String
             :status
-            :snapshot $ :: 'List 'Number
-            :layout $ :: 'List 'Number
-            :node $ :: 'List 'Number
-            :patch (:: 'List 'Number) 'Dynamic
-            :replace (:: 'List 'Number) 'Dynamic
+            :snapshot $ quote $ List Number
+            :layout $ quote $ List Number
+            :node $ quote $ List Number
+            :patch
+              quote $ List Number
+              , 'Dynamic
+            :replace
+              quote $ List Number
+              , 'Dynamic
             :invalid
           :examples $ []
-          :schema $ :: 'EnumDef
+          :schema $ quote EnumDef
         'build-saved-report-entry $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-saved-report-entry (relay renderer)
             let
@@ -1502,10 +1414,9 @@
                 :layout layout-dsl
                 :source source
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Map 'Tag 'Dynamic)
-            :features $ #{} :js-ffi
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic)
+            -> $ Map Tag Dynamic
+            :features :js-ffi
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when
@@ -1514,9 +1425,7 @@
             let
                 next-reel $ reel-updater
                   fn (store op op-id op-time)
-                    hint-fn $ {}
-                      :args $ [] 'Dynamic 'Dynamic 'Dynamic 'Dynamic
-                      :return $ :: 'Map 'Tag 'Dynamic
+                    hint-fn $ Fn Dynamic Dynamic Dynamic Dynamic $ -> (Map Tag Dynamic)
                     updater
                       decode-map-as store $ :: 'Map 'Tag 'Dynamic
                       , op (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
@@ -1533,9 +1442,7 @@
                     _ &unit
                 (:none) &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn Dynamic (-> Unit) (:features :js-ffi)
         'ensure-relay! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ensure-relay! ()
             when (.none? @*ws)
@@ -1558,9 +1465,7 @@
                   , &unit
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'handle-channel-state! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-channel-state! (ws client-id channels)
             let
@@ -1579,9 +1484,7 @@
                 dispatch! $ :: :select-channel $ .unwrap (first normalized)
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost (:: 'Option 'String) 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (Option String) Dynamic (-> Unit) (:features :js-ffi)
         'handle-genui-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-genui-event! (ws frame)
             let
@@ -1604,9 +1507,7 @@
                     host/console-warn! $ str "|[renderer] validation failed: " message
                     send-genui-ack! ws request-id false nil $ Option :some message
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'handle-relay-message! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-relay-message! (ws raw)
             let
@@ -1619,9 +1520,10 @@
                 request $ parse-renderer-request payload
                 selected $ selected-relay-channel
                 pending-storage $ decode-map-as
-                  .and-then
+                  match
                     get-in @*reel $ [] :store :renderer :storage-pending
-                    , present-option
+                    (:ok value) (present-option value)
+                    (:err _) (Option :none)
                   :: 'Option $ :: 'Map 'Tag 'Dynamic
                 summary $ if (= kind |hello-ok) "|Relay connected" $ if (= kind |channel-state) "|Channel list updated"
                   if (= kind |warning)
@@ -1719,9 +1621,7 @@
                           , |ignored
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost String (-> Unit) (:features :js-ffi)
         'handle-renderer-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-renderer-event! (ws frame)
             let
@@ -1731,10 +1631,18 @@
                 payload $ .unwrap-or (get frame :payload) nil
                 request $ parse-renderer-request payload
                 relay $ decode-map-as
-                  .unwrap $ get-in @*reel $ [] :store :relay
+                  match
+                    get-in @*reel $ [] :store :relay
+                    (:ok value) value
+                    (:err error)
+                      raise $ str "|Required renderer state path missing: " error
                   :: 'Map 'Tag 'Dynamic
                 renderer $ decode-map-as
-                  .unwrap $ get-in @*reel $ [] :store :renderer
+                  match
+                    get-in @*reel $ [] :store :renderer
+                    (:ok value) value
+                    (:err error)
+                      raise $ str "|Required renderer state path missing: " error
                   :: 'Map 'Tag 'Dynamic
               host/console-log! $ str "|[renderer] request " payload
               try
@@ -1829,9 +1737,7 @@
                     host/console-warn! $ str "|[renderer] request failed: " message
                     send-genui-ack! ws request-id false nil $ Option :some message
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'handle-storage-ack! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-storage-ack! (frame)
             let
@@ -1839,9 +1745,10 @@
                   .unwrap-or (get frame :id) nil
                   , 'String
                 pending $ decode-map-as
-                  .and-then
+                  match
                     get-in @*reel $ [] :store :renderer :storage-pending
-                    , present-option
+                    (:ok value) (present-option value)
+                    (:err _) (Option :none)
                   :: 'Option $ :: 'Map 'Tag 'Dynamic
               when
                 and (.some? pending)
@@ -1895,13 +1802,11 @@
                     , "|Storage request failed"
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'internal-storage-channel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def internal-storage-channel |__relay_store__
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ quote Dynamic
         'layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn layout-node-at-path (node path)
             if (empty? path) node $ let
@@ -1918,15 +1823,13 @@
                   (:some child)
                     recur child $ rest path
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'Number)
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number)
+            -> $ Map Tag Dynamic
         'layout-path-display $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn layout-path-display (path)
             if (empty? path) |root $ layout-path-display-iter path |
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] $ :: 'List 'Number
+          :schema $ quote $ Fn (List Number) (-> String)
         'layout-path-display-iter $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn layout-path-display-iter (path acc)
             if (empty? path) acc $ let
@@ -1934,8 +1837,7 @@
               recur (rest path)
                 if (= acc |) step $ str acc |. step
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'String)
-            :args $ [] (:: 'List 'Number) 'String
+          :schema $ quote $ Fn (List Number) String (-> String)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
@@ -1961,9 +1863,7 @@
             ensure-relay!
             println "|App started."
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'merge-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn merge-layout-node-at-path (node path changes)
             if
@@ -1972,14 +1872,13 @@
               replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
                 decode-map-as changes $ :: 'Map 'Tag 'Dynamic
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'Number) 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number) Dynamic
+            -> $ Map Tag Dynamic
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mount-target
-            (fn () (hint-fn ({} (:args ([])) (:return 'respo.dom/DomElement) (:features (#{} :js-ffi)))) (.unwrap (js-nullish->option (.query-selector (js-cast (browser/document-host) 'respo.dom/DomDocument) |.app))))
+            (fn () (hint-fn (Fn (-> respo.dom/DomElement) (:features :js-ffi))) (.unwrap (js-nullish->option (.query-selector (js-cast (browser/document-host) 'respo.dom/DomDocument) |.app))))
           :examples $ []
-          :schema $ :: 'respo.dom/DomElement
+          :schema $ quote respo.dom/DomElement
         'normalize-layout-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-layout-path (path)
             if (nil? path)
@@ -1990,7 +1889,7 @@
                     Option :some $ [] segment
                   (:none) (Option :none)
                 if (list? path)
-                  normalize-layout-path-items $ assert-type path $ :: 'List 'Dynamic
+                  normalize-layout-path-items $ assert-type path $ quote (List Dynamic)
                   if
                     or (string? path) (tag? path)
                     let
@@ -2001,19 +1900,17 @@
                         normalize-layout-path-items $ split raw |.
                     Option :none
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Option $ :: 'List 'Number
+          :schema $ quote $ Fn Dynamic
+            -> $ Option $ List Number
         'normalize-layout-path-items $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-layout-path-items (items)
             .foldl items
               Option :some $ []
               fn (acc item)
-                hint-fn $ {}
-                  :args $ []
-                    :: 'Option $ :: 'List 'Number
-                    , 'Dynamic
-                  :return $ :: 'Option $ :: 'List 'Number
+                hint-fn $ Fn
+                  Option $ List Number
+                  , Dynamic $ ->
+                    Option $ List Number
                 match acc
                   (:none) (Option :none)
                   (:some segments)
@@ -2022,28 +1919,24 @@
                         Option :some $ append segments segment
                       (:none) (Option :none)
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'List 'Dynamic
-            :return $ :: 'Option $ :: 'List 'Number
+          :schema $ quote $ Fn (List Dynamic)
+            -> $ Option $ List Number
         'normalize-renderer-topics $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-renderer-topics (topics)
             if (list? topics)
               .foldl
-                assert-type topics $ :: 'List 'Dynamic
+                assert-type topics $ quote $ List Dynamic
                 []
                 fn (acc item)
-                  hint-fn $ {}
-                    :args $ [] (:: 'List 'String) 'Dynamic
-                    :return $ :: 'List 'String
+                  hint-fn $ Fn (List String) Dynamic $ -> (List String)
                   if
                     or (string? item) (tag? item)
                     append acc $ .unwrap $ protocol-name item
                     , acc
               []
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'List 'String
+          :schema $ quote $ Fn Dynamic
+            -> $ List String
         'parse-layout-path-segment $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-segment (item)
             if (number? item)
@@ -2055,9 +1948,7 @@
                 let
                     text $ .unwrap $ protocol-name item
                     digits? $ .foldl (split text |) true $ fn (valid? ch)
-                      hint-fn $ {}
-                        :args $ [] 'Bool 'String
-                        :return 'Bool
+                      hint-fn $ Fn Bool String $ -> Bool
                       and valid? $ includes? |0123456789 ch
                   if
                     and
@@ -2069,9 +1960,8 @@
                     Option :none
                 Option :none
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Option 'Number
+          :schema $ quote $ Fn Dynamic
+            -> $ Option Number
         'parse-renderer-request $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-renderer-request (payload)
             if (enum? payload)
@@ -2158,8 +2048,7 @@
                     _ $ RendererRequest :invalid
                 RendererRequest :invalid
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'app.main/RendererRequest)
-            :args $ [] 'Dynamic
+          :schema $ quote $ Fn Dynamic (-> app.main/RendererRequest)
         'persist-storage! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-storage! ()
             println "|Saved at" $ :iso $ host/date-now-snapshot
@@ -2167,9 +2056,7 @@
               .unwrap $ get config/site :storage-key
               format-cirru-edn $ .unwrap $ get @*reel :store
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'pick-layout-child $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn pick-layout-child (children position)
             if (list? children)
@@ -2185,9 +2072,8 @@
                     recur (rest items) (dec position)
               Option :none
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic 'Number
-            :return $ :: 'Option $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn Dynamic Number
+            -> $ Option $ Map Tag Dynamic
         'protocol-name $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn protocol-name (x)
             cond
@@ -2197,9 +2083,8 @@
                 Option :some $ to-string x
               true $ Option :none
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :return $ :: 'Option 'String
+          :schema $ quote $ Fn Dynamic
+            -> $ Option String
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if (nil? build-errors)
@@ -2211,16 +2096,12 @@
               hud! |error build-errors
             , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             render! mount-target (comp-container @*reel) dispatch!
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ []
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn replace-layout-node-at-path (node path next-node)
             if (empty? path) next-node $ let
@@ -2237,17 +2118,15 @@
                   assoc node :children $ map-indexed
                     decode-map-as children $ :: 'List $ :: 'Map 'Tag 'Dynamic
                     fn (idx child)
-                      hint-fn $ {}
-                        :args $ [] 'Number $ :: 'Map 'Tag 'Dynamic
-                        :return $ :: 'Map 'Tag 'Dynamic
+                      hint-fn $ Fn Number (Map Tag Dynamic)
+                        -> $ Map Tag Dynamic
                       if
                         = (inc idx) step
                         replace-layout-node-at-path child (rest path) next-node
                         , child
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'Number) (:: 'Map 'Tag 'Dynamic)
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number) (Map Tag Dynamic)
+            -> $ Map Tag Dynamic
         'request-storage-list! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn request-storage-list! (ws)
             match (selected-relay-channel)
@@ -2260,9 +2139,7 @@
               (:none)
                 dispatch! $ :: :storage-failed nil "|Select a channel before browsing saved reports"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (-> Unit) (:features :js-ffi)
         'request-storage-load! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn request-storage-load! (ws name)
             match (selected-relay-channel)
@@ -2275,17 +2152,23 @@
               (:none)
                 dispatch! $ :: :storage-failed nil "|Select a channel before loading saved reports"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost String (-> Unit) (:features :js-ffi)
         'request-storage-save! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn request-storage-save! (ws)
             let
                 relay $ decode-map-as
-                  .unwrap $ get-in @*reel $ [] :store :relay
+                  match
+                    get-in @*reel $ [] :store :relay
+                    (:ok value) value
+                    (:err error)
+                      raise $ str "|Required renderer state path missing: " error
                   :: 'Map 'Tag 'Dynamic
                 renderer $ decode-map-as
-                  .unwrap $ get-in @*reel $ [] :store :renderer
+                  match
+                    get-in @*reel $ [] :store :renderer
+                    (:ok value) value
+                    (:err error)
+                      raise $ str "|Required renderer state path missing: " error
                   :: 'Map 'Tag 'Dynamic
               if
                 and
@@ -2310,9 +2193,7 @@
                       :entry entry
                 dispatch! $ :: :storage-failed nil "|A validated layout is required before saving a report"
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (-> Unit) (:features :js-ffi)
         'selected-relay-channel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn selected-relay-channel ()
             match
@@ -2323,9 +2204,8 @@
               (:string channel) (Option :some channel)
               _ $ raise "|Renderer selected channel must be a string or nil"
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ []
-            :return $ :: 'Option 'String
+          :schema $ quote $ Fn
+            -> $ Option String
         'send-genui-ack! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-genui-ack! (ws request-id ok? payload error-message)
             send-relay-frame! ws $ {} (:kind :ack) (:id request-id) (:ok ok?) (:payload payload)
@@ -2333,16 +2213,12 @@
                 (:some present-value) present-value
                 (:none) nil
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost 'String 'Bool 'Dynamic $ :: 'Option 'String
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost String Bool Dynamic (Option String) (-> Unit) (:features :js-ffi)
         'send-relay-frame! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-relay-frame! (ws frame)
             browser/web-socket-send! ws $ format-cirru-edn frame
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost $ :: 'Map 'Tag 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'summarize-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn summarize-layout-node (node path)
             let
@@ -2359,7 +2235,7 @@
                     :path $ layout-path-display path
                     :type node-type
                     :child-count $ .len children
-                  :: 'Map 'Tag 'Dynamic
+                  quote $ Map Tag Dynamic
                 meta $ assert-type
                   match node-type
                     |card $ if (string? text)
@@ -2408,19 +2284,17 @@
                           :: 'List 'Dynamic
                         , nil
                     _ $ {}
-                  :: 'Map 'Tag 'Dynamic
+                  quote $ Map Tag Dynamic
               .merge base $ if
                 > (.len children) 0
                 assoc meta :children $ map-indexed children $ fn (idx child)
-                  hint-fn $ {}
-                    :args $ [] 'Number $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn Number (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   summarize-layout-node child $ append path $ inc idx
                 , meta
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'Number)
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number)
+            -> $ Map Tag Dynamic
         'sync-selected-channel! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn sync-selected-channel! (ws)
             let
@@ -2433,9 +2307,7 @@
                   (:none) ([] internal-storage-channel)
               send-relay-frame! ws $ {} (:kind :hello) (:role :receiver) (:client_id client-id) (:channels channels)
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'js-ffi.browser/WebSocketHost
-            :features $ #{} :js-ffi
+          :schema $ quote $ Fn js-ffi.browser/WebSocketHost (-> Unit) (:features :js-ffi)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.main
           :require
@@ -2452,8 +2324,12 @@
             js-ffi.shared :as host
             js-ffi.browser :as browser
     'app.schema $ %{} 'FileEntry
-      :defs $ {} $ 'store
-        %{} 'CodeEntry (:doc |)
+      :defs $ {}
+        'DispatchOp $ %{} 'CodeEntry (:doc "|Respo 入口事件合同，容纳应用和 Reel 控制事件；代表值不发送。")
+          :code $ quote $ def DispatchOp (:: :unhandled)
+          :examples $ []
+          :schema $ quote Enum
+        'store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def store
             {}
               :states $ {} $ :cursor ([])
@@ -2471,7 +2347,7 @@
                 :selected-storage nil
                 :workspace-entry nil
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ quote Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.schema
     'app.updater $ %{} 'FileEntry
@@ -2489,9 +2365,8 @@
                       :: 'Map 'String $ :: 'Map 'Tag 'Dynamic
                   assoc renderer :channel-cache $ assoc cache channel-name $ pick-renderer-channel-state renderer
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Option 'String)
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (Option String)
+            -> $ Map Tag Dynamic
         'pick-renderer-channel-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn pick-renderer-channel-state (renderer)
             {}
@@ -2508,9 +2383,8 @@
               :selected-storage $ .unwrap-or (get renderer :selected-storage) nil
               :workspace-entry $ .unwrap-or (get renderer :workspace-entry) nil
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            -> $ Map Tag Dynamic
         'renderer-channel-default $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def renderer-channel-default
             {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil) (:storage-status |idle) (:storage-error nil) (:storage-pending nil)
@@ -2518,7 +2392,7 @@
               :selected-storage nil
               :workspace-entry nil
           :examples $ []
-          :schema $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Map Tag Dynamic
         'restore-renderer-channel-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn restore-renderer-channel-state (renderer channel)
             let
@@ -2530,10 +2404,12 @@
                       :: 'Map 'String $ :: 'Map 'Tag 'Dynamic
                     cached $ match channel
                       (:none)
-                        assert-type ({}) (:: 'Map 'Tag 'Dynamic)
+                        assert-type ({})
+                          quote $ Map Tag Dynamic
                       (:some channel-name)
                         .unwrap-or (get cache channel-name)
-                          assert-type ({}) (:: 'Map 'Tag 'Dynamic)
+                          assert-type ({})
+                            quote $ Map Tag Dynamic
                   restore-renderer-layout $ .merge renderer-channel-default cached
               -> renderer
                 assoc :layout $ .unwrap-or (get next-state :layout) nil
@@ -2549,9 +2425,8 @@
                 assoc :selected-storage $ .unwrap-or (get next-state :selected-storage) nil
                 assoc :workspace-entry $ .unwrap-or (get next-state :workspace-entry) nil
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Option 'String)
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (Option String)
+            -> $ Map Tag Dynamic
         'restore-renderer-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn restore-renderer-layout (renderer)
             let
@@ -2565,9 +2440,8 @@
                   (:none) nil
                 validate-layout dsl
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            -> $ Map Tag Dynamic
         'update-renderer $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn update-renderer (store f)
             let
@@ -2578,12 +2452,10 @@
                   :: 'Map 'Tag 'Dynamic
               assoc store :renderer $ f renderer
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic)
-              :: 'Fn $ {}
-                :args $ [] $ :: 'Map 'Tag 'Dynamic
-                :return $ :: 'Map 'Tag 'Dynamic
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            Fn (Map Tag Dynamic)
+              -> $ Map Tag Dynamic
+            -> $ Map Tag Dynamic
         'updater $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn updater (store op op-id op-time)
             match op
@@ -2630,9 +2502,8 @@
                   assoc-in ([] :relay :last-error) message
               (:record-relay-message entry)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   let
                       prev-renderer renderer
                       prev-history $ match
@@ -2644,30 +2515,26 @@
                       assoc :selected-history entry
               (:select-history entry)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   assoc renderer :selected-history entry
               (:open-history-drawer)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   assoc renderer :drawer-view |history
               (:open-library-drawer)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   assoc renderer :drawer-view |library
               (:request-storage-list) store
               (:save-current-report) store
               (:load-stored-report _) store
               (:load-workspace-report)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   let
                       prev-renderer renderer
                     match
@@ -2687,43 +2554,38 @@
                       (:none) prev-renderer
               (:storage-pending request-id op-name)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer
                     assoc :storage-pending $ {} (:request-id request-id) (:op op-name)
                     assoc :storage-status |working
                     assoc :storage-error nil
               (:storage-saved request-id entry)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer (assoc :storage-pending nil) (assoc :storage-status |saved) (assoc :storage-error nil) (assoc :selected-storage entry)
               (:storage-listed request-id entries)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer (assoc :storage-pending nil) (assoc :storage-status |ready) (assoc :storage-error nil) (assoc :storage-entries entries)
               (:storage-loaded request-id entry layout-id layout layout-dsl source)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer (assoc :storage-pending nil) (assoc :storage-status |loaded) (assoc :storage-error nil) (assoc :selected-storage entry) (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil)
               (:storage-failed request-id message)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer (assoc :storage-pending nil) (assoc :storage-status |error) (assoc :storage-error message)
               (:genui-applied request-id layout-id layout layout-dsl source)
                 let
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
-                        :: 'Map 'Tag 'Dynamic
+                        quote $ Map Tag Dynamic
                       assoc :channel $ .unwrap-or
                         get-in store $ [] :relay :selected-channel
                         , nil
@@ -2741,22 +2603,20 @@
                       assoc :layout-dsl layout-dsl
                       assoc :source source
                   update-renderer store $ fn (renderer)
-                    hint-fn $ {}
-                      :args $ [] $ :: 'Map 'Tag 'Dynamic
-                      :return $ :: 'Map 'Tag 'Dynamic
+                    hint-fn $ Fn (Map Tag Dynamic)
+                      -> $ Map Tag Dynamic
                     -> renderer (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil) (assoc :workspace-entry entry) (assoc :selected-storage entry) (assoc :storage-status |workspace) (assoc :storage-error nil)
               (:genui-failed request-id message source)
                 update-renderer store $ fn (renderer)
-                  hint-fn $ {}
-                    :args $ [] $ :: 'Map 'Tag 'Dynamic
-                    :return $ :: 'Map 'Tag 'Dynamic
+                  hint-fn $ Fn (Map Tag Dynamic)
+                    -> $ Map Tag Dynamic
                   -> renderer (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error message)
               (:layout-mutated request-id layout-id layout layout-dsl source)
                 let
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
-                        :: 'Map 'Tag 'Dynamic
+                        quote $ Map Tag Dynamic
                       assoc :channel $ .unwrap-or
                         get-in store $ [] :relay :selected-channel
                         , nil
@@ -2774,15 +2634,13 @@
                       assoc :layout-dsl layout-dsl
                       assoc :source source
                   update-renderer store $ fn (renderer)
-                    hint-fn $ {}
-                      :args $ [] $ :: 'Map 'Tag 'Dynamic
-                      :return $ :: 'Map 'Tag 'Dynamic
+                    hint-fn $ Fn (Map Tag Dynamic)
+                      -> $ Map Tag Dynamic
                     -> renderer (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil) (assoc :workspace-entry entry) (assoc :selected-storage entry) (assoc :storage-status |workspace) (assoc :storage-error nil)
               _ $ do (eprintln "|unknown op:" op) store
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'String 'Number
-            :return $ :: 'Map 'Tag 'Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic String Number
+            -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
           :require

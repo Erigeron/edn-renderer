@@ -14,7 +14,7 @@ import { store } from './js-out/app.schema.mjs'
 
 const tags = core.init_tags(['renderer', 'layout-id', 'workspace-entry', 'channel-cache'])
 const read = (value, key) => core.option_$o_unwrap(core.get(value, key))
-const channel = core._PCT_some('alpha')
+const channel = core._PCT__$o__$o_(core.Option, core.newTag('some'), 'alpha')
 
 let renderer = read(store, tags.renderer)
 renderer = core.assoc(renderer, tags['layout-id'], 'layout-a')
