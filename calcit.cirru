@@ -19,82 +19,86 @@
           :examples $ []
           :schema $ quote $ Ref (Map String app.comp.container/MermaidCache)
         'ChartDatum $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defstruct ChartDatum (:label 'String) (:value 'Number)
+          :code $ quote $ defstruct ChartDatum (:label String) (:value Number)
           :examples $ []
           :schema $ quote StructDef
         'EChartHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait EChartHost
-            .set-option! $ quote $ Fn app.comp.container/EChartHost JsObject Bool (-> Unit)
-            .dispose! $ quote $ Fn app.comp.container/EChartHost (-> Unit)
+            .set-option! $ Fn app.comp.container/EChartHost JsObject Bool $ -> Unit
+            .dispose! $ Fn app.comp.container/EChartHost $ -> Unit
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:dispose! |dispose) (:set-option! |setOption)
           :schema $ quote Trait
         'LayoutNode $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum LayoutNode
-            :column $ quote $ List app.comp.container/LayoutNode
-            :row $ quote $ List app.comp.container/LayoutNode
-            :card
-              quote $ Option String
-              quote $ List app.comp.container/LayoutNode
-            :text 'String
-            :badge 'String
+            :column $ List app.comp.container/LayoutNode
+            :row $ List app.comp.container/LayoutNode
+            :card (Option String) (List app.comp.container/LayoutNode)
+            :text String
+            :badge String
             :divider
-            :button 'String
-            :input 'Dynamic 'Dynamic 'Dynamic
-            :markdown 'String
-            :mermaid 'String
-            :chart 'Dynamic 'Dynamic $ quote $ List (Map Tag Dynamic)
-            :math
-              quote $ List Dynamic
-              , 'String
+            :button String
+            :input Dynamic Dynamic Dynamic
+            :markdown String
+            :mermaid String
+            :chart Dynamic Dynamic $ List $ Map Tag Dynamic
+            :math app.comp.container/MathExpr String
           :examples $ []
           :schema $ quote EnumDef
+        'MathChild $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion MathChild String Number app.comp.container/MathExpr
+          :examples $ []
+          :schema $ quote UnionDef
         'MathElementHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MathElementHost (:inner-html 'String)
-            .set-attribute! $ quote $ Fn app.comp.container/MathElementHost String String (-> Unit)
-            .append-child! $ quote $ Fn app.comp.container/MathElementHost JsObject (-> JsObject)
+            .set-attribute! $ Fn app.comp.container/MathElementHost String String $ -> Unit
+            .append-child! $ Fn app.comp.container/MathElementHost JsObject $ -> JsObject
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:append-child! |appendChild) (:inner-html |innerHTML) (:set-attribute! |setAttribute)
             :writable $ #{} :inner-html
           :schema $ quote Trait
+        'MathExpr $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defstruct MathExpr (:tag String)
+            :children $ List app.comp.container/MathChild
+          :examples $ []
+          :schema $ quote StructDef
         'MermaidCache $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defenum MermaidCache (:rendering) (:failed) (:ready 'String)
+          :code $ quote $ defenum MermaidCache (:rendering) (:failed) (:ready String)
           :examples $ []
           :schema $ quote EnumDef
         'MermaidHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MermaidHost
-            .initialize! $ quote $ Fn app.comp.container/MermaidHost JsObject (-> Unit)
-            .render $ quote $ Fn app.comp.container/MermaidHost String String (-> js-ffi.shared/PromiseHost)
+            .initialize! $ Fn app.comp.container/MermaidHost JsObject $ -> Unit
+            .render $ Fn app.comp.container/MermaidHost String String $ -> js-ffi.shared/PromiseHost
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} $ :initialize! |initialize
           :schema $ quote Trait
         'MermaidPayload $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defstruct MermaidPayload (:empty? 'Bool) (:source 'String) (:graph-id 'String)
+          :code $ quote $ defstruct MermaidPayload (:empty? Bool) (:source String) (:graph-id String)
           :examples $ []
           :schema $ quote StructDef
         'MermaidResultHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait MermaidResultHost (:svg 'String)
-            :bind-functions $ quote $ JsNullish
-              Fn js-ffi.browser/DomElementHost $ -> Unit
+            :bind-functions $ JsNullish $ Fn js-ffi.browser/DomElementHost (-> Unit)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} $ :bind-functions |bindFunctions
           :schema $ quote Trait
         'append-mathml-child! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn append-mathml-child! (el child path)
-            if (string? child)
-              el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode child
-              if (number? child)
-                el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode (str child)
-                if (list? child)
-                  el .append-child! $ contract/expect-object |append-mathml-child! $ build-mathml-element child path
-                  raise $ str path "| invalid MathML child, expected string, number, or list"
+            match child
+              (String text)
+                el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode text
+              (Number value)
+                el .append-child! $ contract/expect-object |append-mathml-child! $ js/document.createTextNode (str value)
+              (app.comp.container/MathExpr nested)
+                el .append-child! $ contract/expect-object |append-mathml-child! $ build-mathml-element nested path
             , &unit
           :examples $ []
-          :schema $ quote $ Fn app.comp.container/MathElementHost Dynamic String (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathElementHost app.comp.container/MathChild String (-> Unit) (:features :js-ffi)
         'build-echarts-option $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-echarts-option (series kind title)
             let
@@ -152,17 +156,14 @@
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
             let
-                tag-name $ match
-                  data-view $ .unwrap $ first expr
-                  (:string name) name
-                  _ $ raise $ str path "| math expression requires string tag name"
+                tag-name $ :tag expr
                 el $ js-cast (browser/create-element-ns mathml-namespace tag-name) 'MathElementHost
-              .foldl (rest expr) &unit $ fn (acc child)
-                hint-fn $ Fn Unit Dynamic $ -> Unit
+              .foldl (:children expr) &unit $ fn (acc child)
+                hint-fn $ Fn Unit app.comp.container/MathChild $ -> Unit
                 append-mathml-child! el child $ str path |/ tag-name
               , el
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic) String (-> app.comp.container/MathElementHost) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathExpr String (-> app.comp.container/MathElementHost) (:features :js-ffi)
         'build-mathml-root $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-root (expr display)
             let
@@ -171,7 +172,7 @@
               root .append-child! $ contract/expect-object |build-mathml-root $ build-mathml-element expr |math
               , root
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic) String (-> app.comp.container/MathElementHost) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathExpr String (-> app.comp.container/MathElementHost) (:features :js-ffi)
         'build-mermaid-render-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mermaid-render-payload (text)
             if
@@ -196,30 +197,30 @@
             let
                 store $ decode-map-as
                   .unwrap $ get reel :store
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 states $ decode-map-as
                   .unwrap $ get store :states
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 relay $ decode-map-as
                   or
                     .unwrap-or (get store :relay) nil
                     {}
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 renderer $ decode-map-as
                   or
                     .unwrap-or (get store :renderer) nil
                     {}
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 drawer-open? $ .unwrap-or
                   get-in states $ [] :drawer :data :show?
                   , false
                 selected-channel $ decode-map-as
                   .and-then (get relay :selected-channel) present-option
-                  :: 'Option 'String
+                  Option String
                 channels $ match
                   data-view $ .unwrap-or (get relay :channels) nil
                   (:list items)
-                    decode-map-as items $ :: 'List 'String
+                    decode-map-as items $ List String
                   _ $ []
                 history $ match
                   data-view $ .unwrap-or (get renderer :history) nil
@@ -227,23 +228,23 @@
                   _ $ []
                 selected-history $ decode-map-as
                   .and-then (get renderer :selected-history) present-option
-                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                  Option $ Map Tag Dynamic
                 storage-status $ or
                   .unwrap-or (get renderer :storage-status) nil
                   , |idle
                 storage-error $ decode-map-as
                   .and-then (get renderer :storage-error) present-option
-                  :: 'Option 'String
+                  Option String
                 storage-entries $ match
                   data-view $ .unwrap-or (get renderer :storage-entries) nil
                   (:list items) items
                   _ $ []
                 selected-storage $ decode-map-as
                   .and-then (get renderer :selected-storage) present-option
-                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                  Option $ Map Tag Dynamic
                 workspace-entry $ decode-map-as
                   .and-then (get renderer :workspace-entry) present-option
-                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                  Option $ Map Tag Dynamic
                 detail-status $ if (storage-kind? selected-storage :workspace-report) |workspace storage-status
                 drawer-view $ or
                   .unwrap-or (get renderer :drawer-view) nil
@@ -269,9 +270,10 @@
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                               <> $ str "|Messages: " $ .len history
                             if (.some? selected-channel)
-                              div
+                              Option :some $ div
                                 {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                 <> $ str "|Channel: " $ .unwrap selected-channel
+                              Option :none
                             div
                               {} $ :style $ {} (:padding "|2px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                               <> $ str "|Reports: " $ .len storage-entries
@@ -434,9 +436,10 @@
                                         {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                         <> $ str "|Status: " detail-status
                                       if (.some? selected-channel)
-                                        div
+                                        Option :some $ div
                                           {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
                                           <> $ str "|Channel: " $ .unwrap selected-channel
+                                        Option :none
                                     textarea $ {}
                                       :value $ format-cirru-edn $ {}
                                         :name $ or
@@ -500,7 +503,9 @@
                                   div
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|Click a message to inspect its raw relay frame."
-                        when dev? $ comp-reel (>> states :reel) reel $ {}
+                        if dev?
+                          Option :some $ comp-reel (>> states :reel) reel $ {}
+                          Option :none
                 help-alert $ use-alert (>> states :help)
                   {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
               effect-page-title selected-channel
@@ -536,7 +541,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn (Map Tag Dynamic)
-                          Fn Enum $ -> Unit
+                          Fn AnyEnum $ -> Unit
                           -> Unit
                         d! $ :: :open-history-drawer
                         .show drawer-plugin d!
@@ -546,7 +551,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn (Map Tag Dynamic)
-                          Fn Enum $ -> Unit
+                          Fn AnyEnum $ -> Unit
                           -> Unit
                         d! $ :: :open-library-drawer
                         .show drawer-plugin d!
@@ -561,14 +566,14 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn (Map Tag Dynamic)
-                          Fn Enum $ -> Unit
+                          Fn AnyEnum $ -> Unit
                           -> Unit
                         .show help-alert d! $ Option :none
                         , &unit
                 match
                   decode-map-as
                     .and-then (get relay :last-error) present-option
-                    :: 'Option 'String
+                    Option String
                   (:some relay-error)
                     div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
@@ -577,7 +582,7 @@
                 match
                   decode-map-as
                     .and-then (get renderer :last-error) present-option
-                    :: 'Option 'String
+                    Option String
                   (:some render-error)
                     div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
@@ -591,7 +596,7 @@
                   (:none) nil
                 if
                   > (.len channels) 1
-                  div
+                  Option :some $ div
                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:padding 10) (:border-radius 12) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:margin-top 8)
                     div
                       {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
@@ -605,6 +610,7 @@
                             :border $ if (selected-channel? selected-channel channel) "|1px solid #8a8f98" "|1px solid #d7d7cf"
                           :on-click $ fn (e d!)
                             d! $ :: :select-channel channel
+                  Option :none
                 div
                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 10) (:padding 12) (:border-radius 16) (:background-color |#fbfbf8) (:border "|1px solid #d7d7cf") (:min-height |420px) (:margin-top 8)
                   div
@@ -620,7 +626,7 @@
                     match
                       decode-map-as
                         .and-then (get renderer :layout) present-option
-                        :: 'Option 'app.comp.container/LayoutNode
+                        Option app.comp.container/LayoutNode
                       (:some layout) (comp-layout-node layout)
                       (:none)
                         div
@@ -741,7 +747,7 @@
                       {} $ :width |100%
                       {} $ :width |fit-content
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic) String (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathExpr String (-> respo.schema/Component) (:features :js-ffi)
         'comp-mermaid-block $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-mermaid-block (text)
             let
@@ -769,8 +775,7 @@
         'dispose-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispose-echarts-on! (el)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el)
-                  quote $ JsNullish JsObject
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (JsNullish JsObject)
               if (js-present? existing)
                 let
                     chart $ js-cast existing 'EChartHost
@@ -783,8 +788,8 @@
             let
                 target $ browser/element-host el
               match action
-                :mount $ render-echarts-on! target $ decode-map-as option (:: 'Map 'Tag 'Dynamic)
-                :update $ render-echarts-on! target $ decode-map-as option (:: 'Map 'Tag 'Dynamic)
+                :mount $ render-echarts-on! target $ decode-map-as option (Map Tag Dynamic)
+                :update $ render-echarts-on! target $ decode-map-as option (Map Tag Dynamic)
                 :unmount $ dispose-echarts-on! target
                 _ &unit
           :examples $ []
@@ -794,16 +799,12 @@
             let
                 target $ js-cast el 'MathElementHost
               match action
-                :mount $ render-mathml-on target
-                  decode-map-as expr $ :: 'List 'Dynamic
-                  decode-map-as display 'String
-                :update $ render-mathml-on target
-                  decode-map-as expr $ :: 'List 'Dynamic
-                  decode-map-as display 'String
+                :mount $ render-mathml-on target (decode-map-as expr app.comp.container/MathExpr) (decode-map-as display 'String)
+                :update $ render-mathml-on target (decode-map-as expr app.comp.container/MathExpr) (decode-map-as display 'String)
                 :unmount $ do (js-set target :inner-html |) &unit
                 _ &unit
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic) String (-> respo.schema/Effect) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathExpr String (-> respo.schema/Effect) (:features :js-ffi)
         'effect-mermaid $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-mermaid (text) (action el at?)
             let
@@ -819,7 +820,7 @@
         'effect-page-title $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-page-title (selected-channel) (action el at?)
             let
-                next-title $ page-title-text $ decode-map-as selected-channel (:: 'Option 'String)
+                next-title $ page-title-text $ decode-map-as selected-channel (Option String)
               match action
                 :mount $ browser/document-title! next-title
                 :update $ browser/document-title! next-title
@@ -942,7 +943,7 @@
                           or
                             .unwrap-or (get node :title) nil
                             , |
-                          decode-map-as series $ :: 'List $ :: 'Map 'Tag 'Dynamic
+                          decode-map-as series $ List $ Map Tag Dynamic
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
                       validate-mathml-expr
@@ -964,8 +965,7 @@
         'render-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-echarts-on! (el option)
             let
-                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el)
-                  quote $ JsNullish JsObject
+                existing $ unsafe-coerce (echarts-lib/getInstanceByDom el) (JsNullish JsObject)
                 chart $ if (js-present? existing) (js-cast existing 'EChartHost)
                   js-cast (echarts-lib/init el) 'EChartHost
                 plain-option $ contract/expect-object |render-echarts-on! $ to-js-data option
@@ -980,7 +980,7 @@
               el .append-child! $ contract/expect-object |render-mathml-on root
               , &unit
           :examples $ []
-          :schema $ quote $ Fn app.comp.container/MathElementHost (List Dynamic) String (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn app.comp.container/MathElementHost app.comp.container/MathExpr String (-> Unit) (:features :js-ffi)
         'render-mermaid-on $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-mermaid-on (el payload)
             hint-fn $ Fn js-ffi.browser/DomElementHost app.comp.container/MermaidPayload (-> Unit) (:features :js-ffi) (:async)
@@ -1044,34 +1044,28 @@
           :schema $ quote $ Fn Dynamic String (-> app.comp.container/LayoutNode)
         'validate-mathml-child $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-child (child path)
-            if
-              or (string? child) (number? child)
-              , child $ if (list? child) (validate-mathml-expr child path)
-                raise $ str path "| invalid MathML child, expected string, number, or list"
+            if (string? child) child $ if (number? child) child $ if (list? child) (validate-mathml-expr child path)
+              raise $ str path "| invalid MathML child, expected string, number, or list"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String (-> Dynamic)
+          :schema $ quote $ Fn Dynamic String (-> app.comp.container/MathChild)
         'validate-mathml-expr $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-expr (expr path)
             if (list? expr)
-              let
-                  items expr
-                if (empty? items)
+              match (first expr)
+                (:some tag-name)
+                  if (string? tag-name)
+                    let
+                        children $ map (rest expr)
+                          fn (child)
+                            hint-fn $ Fn Dynamic $ -> app.comp.container/MathChild
+                            validate-mathml-child child $ str path |/ tag-name
+                      MathExpr :tag tag-name :children children
+                    raise $ str path "| math expression requires string tag name"
+                (:none)
                   raise $ str path "| math expression should not be empty"
-                  let
-                      tag-name $ .unwrap $ first items
-                    if
-                      not $ string? tag-name
-                      raise $ str path "| math expression requires string tag name"
-                      do
-                        .foldl (rest items) &unit $ fn (acc child)
-                          hint-fn $ Fn Unit Dynamic $ -> Unit
-                          validate-mathml-child child $ str path |/ tag-name
-                          , &unit
-                        , items
               raise $ str path "| math node requires list field :expr"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String
-            -> $ List Dynamic
+          :schema $ quote $ Fn Dynamic String (-> app.comp.container/MathExpr)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.container
           :require (respo-ui.css :as css)
@@ -1282,7 +1276,7 @@
           :code $ quote $ defn select-component-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ quote $ List Dynamic
+                  assert-type topics $ List Dynamic
                   []
               if (includes? normalized-topics |components) component-docs $ filter component-docs $ fn (item)
                 hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
@@ -1294,7 +1288,7 @@
           :code $ quote $ defn select-example-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ quote $ List Dynamic
+                  assert-type topics $ List Dynamic
                   []
               if (includes? normalized-topics |examples) example-docs $ filter example-docs $ fn (item)
                 hint-fn $ Fn (Map Tag String) (-> Bool)
@@ -1306,7 +1300,7 @@
           :code $ quote $ defn select-protocol-docs (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ quote $ List Dynamic
+                  assert-type topics $ List Dynamic
                   []
               if (includes? normalized-topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
                 hint-fn $ Fn (Map Tag String) (-> Bool)
@@ -1318,7 +1312,7 @@
           :code $ quote $ defn select-skill-sections (topics)
             let
                 normalized-topics $ if (list? topics)
-                  assert-type topics $ quote $ List Dynamic
+                  assert-type topics $ List Dynamic
                   []
               if (includes? normalized-topics |all) skill-sections $ filter skill-sections $ fn (item)
                 hint-fn $ Fn (Map Tag String) (-> Bool)
@@ -1381,18 +1375,14 @@
           :schema $ quote $ Ref (Option js-ffi.browser/WebSocketHost)
         'RendererRequest $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum RendererRequest
-            :help $ quote $ List String
-            :skill $ quote $ List String
+            :help $ List String
+            :skill $ List String
             :status
-            :snapshot $ quote $ List Number
-            :layout $ quote $ List Number
-            :node $ quote $ List Number
-            :patch
-              quote $ List Number
-              , 'Dynamic
-            :replace
-              quote $ List Number
-              , 'Dynamic
+            :snapshot $ List Number
+            :layout $ List Number
+            :node $ List Number
+            :patch (List Number) Dynamic
+            :replace (List Number) Dynamic
             :invalid
           :examples $ []
           :schema $ quote EnumDef
@@ -1427,7 +1417,7 @@
                   fn (store op op-id op-time)
                     hint-fn $ Fn Dynamic Dynamic Dynamic Dynamic $ -> (Map Tag Dynamic)
                     updater
-                      decode-map-as store $ :: 'Map 'Tag 'Dynamic
+                      decode-map-as store $ Map Tag Dynamic
                       , op (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
                   , @*reel op
               reset! *reel next-reel
@@ -1470,7 +1460,7 @@
           :code $ quote $ defn handle-channel-state! (ws client-id channels)
             let
                 normalized $ if (list? channels)
-                  decode-map-as channels $ :: 'List 'String
+                  decode-map-as channels $ List String
                   []
               match client-id
                 (:some id)
@@ -1511,7 +1501,7 @@
         'handle-relay-message! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-relay-message! (ws raw)
             let
-                frame $ decode-map-as (parse-cirru-edn raw) (:: 'Map 'Tag 'Dynamic)
+                frame $ decode-map-as (parse-cirru-edn raw) (Map Tag Dynamic)
                 kind $ match
                   protocol-name $ .unwrap-or (get frame :kind) nil
                   (:some protocol-text) protocol-text
@@ -1524,7 +1514,7 @@
                     get-in @*reel $ [] :store :renderer :storage-pending
                     (:ok value) (present-option value)
                     (:err _) (Option :none)
-                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                  Option $ Map Tag Dynamic
                 summary $ if (= kind |hello-ok) "|Relay connected" $ if (= kind |channel-state) "|Channel list updated"
                   if (= kind |warning)
                     or
@@ -1578,7 +1568,7 @@
                 handle-channel-state! ws
                   decode-map-as
                     .and-then (get frame :client_id) present-option
-                    :: 'Option 'String
+                    Option String
                   .unwrap-or (get frame :channels) nil
                 if (= kind |channel-state)
                   handle-channel-state! ws (Option :none)
@@ -1636,14 +1626,14 @@
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 renderer $ decode-map-as
                   match
                     get-in @*reel $ [] :store :renderer
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
               host/console-log! $ str "|[renderer] request " payload
               try
                 match request
@@ -1659,7 +1649,7 @@
                     if-let
                       layout-dsl $ decode-map-as
                         .and-then (get renderer :layout-dsl) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :snapshot)
@@ -1671,7 +1661,7 @@
                     if-let
                       layout-dsl $ decode-map-as
                         .and-then (get renderer :layout-dsl) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :layout)
@@ -1684,7 +1674,7 @@
                     if-let
                       layout-dsl $ decode-map-as
                         .and-then (get renderer :layout-dsl) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
                           response-payload $ {} (:status :ok) (:kind :node)
@@ -1699,7 +1689,7 @@
                     if-let
                       layout-dsl $ decode-map-as
                         .and-then (get renderer :layout-dsl) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       let
                           next-dsl $ merge-layout-node-at-path layout-dsl path changes
                           next-layout $ validate-layout next-dsl
@@ -1716,9 +1706,9 @@
                     if-let
                       layout-dsl $ decode-map-as
                         .and-then (get renderer :layout-dsl) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       let
-                          next-dsl $ replace-layout-node-at-path layout-dsl path $ decode-map-as next-node (:: 'Map 'Tag 'Dynamic)
+                          next-dsl $ replace-layout-node-at-path layout-dsl path $ decode-map-as next-node (Map Tag Dynamic)
                           next-layout $ validate-layout next-dsl
                           next-source $ format-cirru-edn next-dsl
                           next-layout-id $ str |layout- request-id
@@ -1749,7 +1739,7 @@
                     get-in @*reel $ [] :store :renderer :storage-pending
                     (:ok value) (present-option value)
                     (:err _) (Option :none)
-                  :: 'Option $ :: 'Map 'Tag 'Dynamic
+                  Option $ Map Tag Dynamic
               when
                 and (.some? pending)
                   = request-id $ .unwrap-or
@@ -1761,7 +1751,7 @@
                     let
                         payload $ decode-map-as
                           .unwrap-or (get frame :payload) nil
-                          :: 'Map 'Tag 'Dynamic
+                          Map Tag Dynamic
                         kind $ match
                           protocol-name $ .unwrap-or (get payload :kind) nil
                           (:some protocol-text) protocol-text
@@ -1781,7 +1771,7 @@
                             let
                                 entry $ decode-map-as
                                   .unwrap-or (get payload :entry) nil
-                                  :: 'Map 'Tag 'Dynamic
+                                  Map Tag Dynamic
                                 layout-dsl $ .unwrap-or (get entry :layout) nil
                                 source $ or
                                   .unwrap-or (get payload :source) nil
@@ -1870,7 +1860,7 @@
               not $ map? changes
               raise "|Patch request expects map field :changes"
               replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
-                decode-map-as changes $ :: 'Map 'Tag 'Dynamic
+                decode-map-as changes $ Map Tag Dynamic
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (List Number) Dynamic
             -> $ Map Tag Dynamic
@@ -1889,7 +1879,7 @@
                     Option :some $ [] segment
                   (:none) (Option :none)
                 if (list? path)
-                  normalize-layout-path-items $ assert-type path $ quote (List Dynamic)
+                  normalize-layout-path-items $ assert-type path $ List Dynamic
                   if
                     or (string? path) (tag? path)
                     let
@@ -1925,7 +1915,7 @@
           :code $ quote $ defn normalize-renderer-topics (topics)
             if (list? topics)
               .foldl
-                assert-type topics $ quote $ List Dynamic
+                assert-type topics $ List Dynamic
                 []
                 fn (acc item)
                   hint-fn $ Fn (List String) Dynamic $ -> (List String)
@@ -2068,7 +2058,7 @@
                   if (= position 1)
                     Option :some $ decode-map-as
                       .unwrap $ first items
-                      :: 'Map 'Tag 'Dynamic
+                      Map Tag Dynamic
                     recur (rest items) (dec position)
               Option :none
           :examples $ []
@@ -2090,7 +2080,7 @@
             if (nil? build-errors)
               do (remove-watch! *reel :changes) (clear-cache!)
                 add-watch! *reel :changes $ fn (reel prev) (render-app!)
-                reset! *reel $ decode-map-as (refresh-reel @*reel schema/store updater) (:: 'Map 'Tag 'Dynamic)
+                reset! *reel $ decode-map-as (refresh-reel @*reel schema/store updater) (Map Tag Dynamic)
                 ensure-relay!
                 hud! |ok~ |Ok
               hud! |error build-errors
@@ -2116,7 +2106,7 @@
                   .none? $ pick-layout-child children step
                   raise $ str "|Missing layout node at path " $ layout-path-display path
                   assoc node :children $ map-indexed
-                    decode-map-as children $ :: 'List $ :: 'Map 'Tag 'Dynamic
+                    decode-map-as children $ List $ Map Tag Dynamic
                     fn (idx child)
                       hint-fn $ Fn Number (Map Tag Dynamic)
                         -> $ Map Tag Dynamic
@@ -2162,14 +2152,14 @@
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
                 renderer $ decode-map-as
                   match
                     get-in @*reel $ [] :store :renderer
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
               if
                 and
                   non-nil? $ .unwrap-or (get relay :selected-channel) nil
@@ -2228,14 +2218,14 @@
                   list? $ .unwrap-or (get node :children) nil
                   decode-map-as
                     .unwrap-or (get node :children) nil
-                    :: 'List $ :: 'Map 'Tag 'Dynamic
+                    List $ Map Tag Dynamic
                   []
                 base $ assert-type
                   {}
                     :path $ layout-path-display path
                     :type node-type
                     :child-count $ .len children
-                  quote $ Map Tag Dynamic
+                  Map Tag Dynamic
                 meta $ assert-type
                   match node-type
                     |card $ if (string? text)
@@ -2271,7 +2261,7 @@
                         or
                           .unwrap-or (get node :series) nil
                           []
-                        :: 'List 'Dynamic
+                        List Dynamic
                     |math $ {}
                       :display $ or
                         .unwrap-or (get node :display) nil
@@ -2281,10 +2271,10 @@
                           or
                             .unwrap-or (get node :expr) nil
                             []
-                          :: 'List 'Dynamic
+                          List Dynamic
                         , nil
                     _ $ {}
-                  quote $ Map Tag Dynamic
+                  Map Tag Dynamic
               .merge base $ if
                 > (.len children) 0
                 assoc meta :children $ map-indexed children $ fn (idx child)
@@ -2328,7 +2318,7 @@
         'DispatchOp $ %{} 'CodeEntry (:doc "|Respo 入口事件合同，容纳应用和 Reel 控制事件；代表值不发送。")
           :code $ quote $ def DispatchOp (:: :unhandled)
           :examples $ []
-          :schema $ quote Enum
+          :schema $ quote AnyEnum
         'store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def store
             {}
@@ -2362,7 +2352,7 @@
                       or
                         .unwrap-or (get renderer :channel-cache) nil
                         {}
-                      :: 'Map 'String $ :: 'Map 'Tag 'Dynamic
+                      Map String $ Map Tag Dynamic
                   assoc renderer :channel-cache $ assoc cache channel-name $ pick-renderer-channel-state renderer
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Option String)
@@ -2401,15 +2391,13 @@
                       or
                         .unwrap-or (get renderer :channel-cache) nil
                         {}
-                      :: 'Map 'String $ :: 'Map 'Tag 'Dynamic
+                      Map String $ Map Tag Dynamic
                     cached $ match channel
                       (:none)
-                        assert-type ({})
-                          quote $ Map Tag Dynamic
+                        assert-type ({}) (Map Tag Dynamic)
                       (:some channel-name)
                         .unwrap-or (get cache channel-name)
-                          assert-type ({})
-                            quote $ Map Tag Dynamic
+                          assert-type ({}) (Map Tag Dynamic)
                   restore-renderer-layout $ .merge renderer-channel-default cached
               -> renderer
                 assoc :layout $ .unwrap-or (get next-state :layout) nil
@@ -2435,7 +2423,7 @@
                 match
                   decode-map-as
                     .and-then (get renderer :layout) present-option
-                    :: 'Option 'app.comp.container/LayoutNode
+                    Option app.comp.container/LayoutNode
                   (:some layout) layout
                   (:none) nil
                 validate-layout dsl
@@ -2449,7 +2437,7 @@
                   or
                     .unwrap-or (get store :renderer) nil
                     {}
-                  :: 'Map 'Tag 'Dynamic
+                  Map Tag Dynamic
               assoc store :renderer $ f renderer
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
@@ -2462,11 +2450,11 @@
               (:states cursor s)
                 assoc store :states $ update-state-tree
                   .unwrap-or (get store :states) ({})
-                  decode-map-as cursor $ :: 'List 'Dynamic
+                  decode-map-as cursor $ List respo.schema/CoordKey
                   , s
               (:hydrate-storage data)
                 update-renderer
-                  decode-map-as data $ :: 'Map 'Tag 'Dynamic
+                  decode-map-as data $ Map Tag Dynamic
                   , restore-renderer-layout
               (:relay-connected client-id channels)
                 -> store
@@ -2482,15 +2470,15 @@
                       or
                         .unwrap-or (get store :relay) nil
                         {}
-                      :: 'Map 'Tag 'Dynamic
+                      Map Tag Dynamic
                     current-channel $ decode-map-as
                       .and-then (get relay :selected-channel) present-option
-                      :: 'Option 'String
+                      Option String
                     prev-renderer $ decode-map-as
                       or
                         .unwrap-or (get store :renderer) nil
                         {}
-                      :: 'Map 'Tag 'Dynamic
+                      Map Tag Dynamic
                     cached-renderer $ cache-renderer-channel-state prev-renderer current-channel
                   -> store
                     assoc :relay $ assoc relay :selected-channel channel
@@ -2540,7 +2528,7 @@
                     match
                       decode-map-as
                         .and-then (get prev-renderer :workspace-entry) present-option
-                        :: 'Option $ :: 'Map 'Tag 'Dynamic
+                        Option $ Map Tag Dynamic
                       (:some current-entry)
                         -> prev-renderer (assoc :selected-storage current-entry)
                           assoc :layout $ validate-layout $ .unwrap-or (get current-entry :layout-dsl) nil
@@ -2585,7 +2573,7 @@
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
-                        quote $ Map Tag Dynamic
+                        Map Tag Dynamic
                       assoc :channel $ .unwrap-or
                         get-in store $ [] :relay :selected-channel
                         , nil
@@ -2616,7 +2604,7 @@
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
-                        quote $ Map Tag Dynamic
+                        Map Tag Dynamic
                       assoc :channel $ .unwrap-or
                         get-in store $ [] :relay :selected-channel
                         , nil
