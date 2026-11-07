@@ -39,7 +39,7 @@
             :badge String
             :divider
             :button String
-            :input Dynamic Dynamic Dynamic
+            :input (Option Dynamic) (Option Dynamic) (Option Dynamic)
             :markdown String
             :mermaid String
             :chart Dynamic Dynamic $ List $ Map Tag Dynamic
@@ -108,10 +108,10 @@
                   hint-fn $ Fn (Map Tag Dynamic) (-> app.comp.container/ChartDatum)
                   ChartDatum :label
                     decode-map-as
-                      .unwrap-or (get item :label) nil
+                      .unwrap $ get item :label
                       , 'String
                     , :value $ decode-map-as
-                      .unwrap-or (get item :value) nil
+                      .unwrap $ get item :value
                       , 'Number
                 names $ map points $ fn (point)
                   hint-fn $ Fn app.comp.container/ChartDatum $ -> String
@@ -202,14 +202,10 @@
                   .unwrap $ get store :states
                   Map Tag Dynamic
                 relay $ decode-map-as
-                  or
-                    .unwrap-or (get store :relay) nil
-                    {}
+                  field-or store :relay $ {}
                   Map Tag Dynamic
                 renderer $ decode-map-as
-                  or
-                    .unwrap-or (get store :renderer) nil
-                    {}
+                  field-or store :renderer $ {}
                   Map Tag Dynamic
                 drawer-open? $ .unwrap-or
                   get-in states $ [] :drawer :data :show?
@@ -218,25 +214,23 @@
                   .and-then (get relay :selected-channel) present-option
                   Option String
                 channels $ match
-                  data-view $ .unwrap-or (get relay :channels) nil
+                  data-view $ field-or relay :channels $ []
                   (:list items)
                     decode-map-as items $ List String
                   _ $ []
                 history $ match
-                  data-view $ .unwrap-or (get renderer :history) nil
+                  data-view $ field-or renderer :history $ []
                   (:list items) items
                   _ $ []
                 selected-history $ decode-map-as
                   .and-then (get renderer :selected-history) present-option
                   Option $ Map Tag Dynamic
-                storage-status $ or
-                  .unwrap-or (get renderer :storage-status) nil
-                  , |idle
+                storage-status $ field-or renderer :storage-status |idle
                 storage-error $ decode-map-as
                   .and-then (get renderer :storage-error) present-option
                   Option String
                 storage-entries $ match
-                  data-view $ .unwrap-or (get renderer :storage-entries) nil
+                  data-view $ field-or renderer :storage-entries $ []
                   (:list items) items
                   _ $ []
                 selected-storage $ decode-map-as
@@ -246,9 +240,7 @@
                   .and-then (get renderer :workspace-entry) present-option
                   Option $ Map Tag Dynamic
                 detail-status $ if (storage-kind? selected-storage :workspace-report) |workspace storage-status
-                drawer-view $ or
-                  .unwrap-or (get renderer :drawer-view) nil
-                  , |history
+                drawer-view $ field-or renderer :drawer-view |history
                 drawer-plugin $ use-drawer (>> states :drawer)
                   {}
                     :style $ {} (:width 820) (:min-width 0) (:max-width "|calc(100vw - 24px)") (:padding "|12px 12px 14px") (:gap 12) (:background-color |#f7f7f3) (:border-left "|1px solid #d7d7cf") (:box-shadow "|-12px 0 28px hsla(210, 8%, 18%, 0.12)") (:overflow |auto)
@@ -292,7 +284,7 @@
                                 {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
                                 match workspace-entry
                                   (:some item)
-                                    let
+                                    Option :some $ let
                                         active? $ storage-kind? selected-storage :workspace-report
                                       div
                                         {}
@@ -307,19 +299,11 @@
                                             d! $ :: :load-workspace-report
                                         div
                                           {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                          <> $ decode-map-as
-                                            or
-                                              .unwrap-or (get item :name) nil
-                                              , "|Current workspace"
-                                            , 'String
+                                          <> $ decode-map-as (field-or item :name "|Current workspace") 'String
                                         div
                                           {} $ :style $ {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                          <> $ decode-map-as
-                                            or
-                                              .unwrap-or (get item :path) nil
-                                              , |
-                                            , 'String
-                                  (:none) nil
+                                          <> $ decode-map-as (field-or item :path |) 'String
+                                  (:none) (Option :none)
                                 if
                                   > (.len storage-entries) 0
                                   list->
@@ -329,12 +313,8 @@
                                           active? $ match selected-storage
                                             (:some current)
                                               if
-                                                =
-                                                  .unwrap-or (get current :kind) nil
-                                                  , :workspace-report
-                                                , false $ =
-                                                  .unwrap-or (get item :name) nil
-                                                  .unwrap-or (get current :name) nil
+                                                = (field current :kind) (Option :some :workspace-report)
+                                                , false $ = (field item :name) (field current :name)
                                             (:none) false
                                         [] idx $ div
                                           {}
@@ -346,21 +326,13 @@
                                               :flex-direction |column
                                               :gap 4
                                             :on-click $ fn (e d!)
-                                              d! $ :: :load-stored-report $ .unwrap-or (get item :name) nil
+                                              d! $ :: :load-stored-report $ .unwrap (get item :name)
                                           div
                                             {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                            <> $ decode-map-as
-                                              or
-                                                .unwrap-or (get item :name) nil
-                                                , "|Saved report"
-                                              , 'String
+                                            <> $ decode-map-as (field-or item :name "|Saved report") 'String
                                           div
                                             {} $ :style $ {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                            <> $ decode-map-as
-                                              or
-                                                .unwrap-or (get item :path) nil
-                                                , |
-                                              , 'String
+                                            <> $ decode-map-as (field-or item :path |) 'String
                                   div
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|No saved reports for current channel yet."
@@ -372,16 +344,10 @@
                                     let
                                         active? $ match selected-history
                                           (:some current)
-                                            =
-                                              .unwrap-or (get item :raw) nil
-                                              .unwrap-or (get current :raw) nil
+                                            = (field item :raw) (field current :raw)
                                           (:none) false
-                                        meta-channel $ or
-                                          .unwrap-or (get item :channel) nil
-                                          , |session
-                                        meta-request $ or
-                                          .unwrap-or (get item :request-id) nil
-                                          , |-
+                                        meta-channel $ field-or item :channel |session
+                                        meta-request $ field-or item :request-id |-
                                       [] idx $ div
                                         {}
                                           :style $ {} (:padding "|8px 10px") (:border-radius 12)
@@ -391,25 +357,15 @@
                                             :display |flex
                                             :flex-direction |column
                                             :gap 4
-                                            :opacity $ if
-                                              .unwrap-or (get item :matched?) nil
-                                              , |1 |0.72
+                                            :opacity $ if (field-or item :matched? false) |1 |0.72
                                           :on-click $ fn (e d!)
                                             d! $ :: :select-history item
                                         div
                                           {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#1f2933)
-                                          <> $ decode-map-as
-                                            or
-                                              .unwrap-or (get item :summary) nil
-                                              , |Message
-                                            , 'String
+                                          <> $ decode-map-as (field-or item :summary |Message) 'String
                                         div
                                           {} $ :style $ {} (:font-size 11) (:line-height |1.5) (:color |#6b7280)
-                                          <> $ str
-                                            or
-                                              .unwrap-or (get item :kind) nil
-                                              , |unknown
-                                            , "| / " meta-channel "| / " meta-request
+                                          <> $ str (field-or item :kind |unknown) "| / " meta-channel "| / " meta-request
                                 div
                                   {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                   <> "|No relay messages yet."
@@ -425,11 +381,7 @@
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 8)
                                     div
                                       {} $ :style $ {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
-                                      <> $ decode-map-as
-                                        or
-                                          .unwrap-or (get item :name) nil
-                                          , "|Saved report"
-                                        , 'String
+                                      <> $ decode-map-as (field-or item :name "|Saved report") 'String
                                     div
                                       {} $ :style $ {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
                                       div
@@ -442,12 +394,8 @@
                                         Option :none
                                     textarea $ {}
                                       :value $ format-cirru-edn $ {}
-                                        :name $ or
-                                          .unwrap-or (get item :name) nil
-                                          , |-
-                                        :path $ or
-                                          .unwrap-or (get item :path) nil
-                                          , |-
+                                        :name $ field-or item :name |-
+                                        :path $ field-or item :path |-
                                         :status detail-status
                                       :read-only true
                                       :spell-check false
@@ -463,38 +411,25 @@
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 8)
                                     div
                                       {} $ :style $ {} (:font-size 14) (:font-weight |700) (:color |#1f2933)
-                                      <> $ decode-map-as
-                                        or
-                                          .unwrap-or (get item :summary) nil
-                                          , |Message
-                                        , 'String
+                                      <> $ decode-map-as (field-or item :summary |Message) 'String
                                     div
                                       {} $ :style $ {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
                                       div
                                         {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                        <> $ str "|Kind: " $ or
-                                          .unwrap-or (get item :kind) nil
-                                          , |unknown
+                                        <> $ str "|Kind: " $ field-or item :kind |unknown
                                       div
                                         {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                        <> $ str "|Channel: " $ or
-                                          .unwrap-or (get item :channel) nil
-                                          , |session
+                                        <> $ str "|Channel: " $ field-or item :channel |session
                                       div
                                         {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#ffffff) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                                        <> $ str "|Request: " $ or
-                                          .unwrap-or (get item :request-id) nil
-                                          , |-
-                                    if
-                                      .unwrap-or (get item :matched?) nil
+                                        <> $ str "|Request: " $ field-or item :request-id |-
+                                    if (field-or item :matched? false)
                                       div $ {}
                                       div
                                         {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#f4f4f1) (:border "|1px solid #deded8") (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                         <> "|This message did not match the current channel filter."
                                     textarea $ {}
-                                      :value $ or
-                                        .unwrap-or (get item :raw) nil
-                                        , |
+                                      :value $ field-or item :raw |
                                       :read-only true
                                       :spell-check false
                                       :placeholder "|Relay frame detail"
@@ -527,15 +462,10 @@
                     {} $ :style $ {} (:display |flex) (:gap 6) (:flex-wrap |wrap) (:align-items |center) (:justify-content |flex-end)
                     div
                       {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#f4f4f1) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                      <> $ str "|Relay: " $ or
-                        .unwrap-or (get relay :status) nil
-                        , |idle
+                      <> $ str "|Relay: " $ field-or relay :status |idle
                     div
                       {} $ :style $ {} (:padding "|3px 8px") (:border-radius 999) (:background-color |#f4f4f1) (:border "|1px solid #d7d7cf") (:font-size 11) (:color |#4b5563)
-                      if
-                        non-nil? $ .unwrap-or (get renderer :layout-id) nil
-                        <> |Ready
-                        <> |Waiting
+                      if (field-is? renderer :layout-id non-nil?) (<> |Ready) (<> |Waiting)
                     button $ {} (:class-name css/button)
                       :inner-text $ str "|History " $ .len history
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
@@ -558,7 +488,7 @@
                         d! $ :: :request-storage-list
                         , &unit
                     button $ {} (:class-name css/button) (:inner-text |Save)
-                      :disabled $ nil? $ .unwrap-or (get renderer :layout-dsl) nil
+                      :disabled $ not $ field-is? renderer :layout-dsl non-nil?
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         d! $ :: :save-current-report
@@ -575,25 +505,25 @@
                     .and-then (get relay :last-error) present-option
                     Option String
                   (:some relay-error)
-                    div
+                    Option :some $ div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                       <> $ str "|Relay error: " relay-error
-                  (:none) nil
+                  (:none) (Option :none)
                 match
                   decode-map-as
                     .and-then (get renderer :last-error) present-option
                     Option String
                   (:some render-error)
-                    div
+                    Option :some $ div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff1ec) (:border "|1px solid #f0c4b4") (:font-size 12) (:line-height |1.5) (:color |#a23f1a) (:margin-top 8)
                       <> $ str "|Validation error: " render-error
-                  (:none) nil
+                  (:none) (Option :none)
                 match storage-error
                   (:some current-storage-error)
-                    div
+                    Option :some $ div
                       {} $ :style $ {} (:padding "|8px 10px") (:border-radius 12) (:background-color |#fff7e9) (:border "|1px solid #e8c48f") (:font-size 12) (:line-height |1.5) (:color |#8a541d) (:margin-top 8)
                       <> $ str "|Storage error: " current-storage-error
-                  (:none) nil
+                  (:none) (Option :none)
                 if
                   > (.len channels) 1
                   Option :some $ div
@@ -654,10 +584,10 @@
                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 12) (:padding 16) (:border "|1px solid #e4d4c6") (:border-radius 16) (:background-color |#fffdf9)
                   match title
                     (:some title-text)
-                      div
+                      Option :some $ div
                         {} $ :style $ {} (:font-size 18) (:font-weight |600) (:color |#7e4f2c)
                         <> title-text
-                    (:none) nil
+                    (:none) (Option :none)
                   list->
                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 10)
                     -> children .to-list $ map-indexed $ fn (idx child)
@@ -678,8 +608,8 @@
                   :style $ {} (:padding 10) (:border "|1px solid #cf8b5d") (:background-color |#e8b488) (:color |#3e2515) (:border-radius 999) (:font-size 14) (:font-weight |600) (:cursor |not-allowed)
               (:input name placeholder value)
                 input $ {} (:disabled true)
-                  :value $ or value |
-                  :placeholder $ or placeholder $ or name |Input
+                  :value $ .unwrap-or value |
+                  :placeholder $ .unwrap-or placeholder $ .unwrap-or name |Input
                   :style $ {} (:padding 10) (:border "|1px solid #d8c8ba") (:border-radius 12) (:font-size 14) (:background-color |#fff) (:min-width |160px)
               (:markdown text)
                 div
@@ -752,14 +682,15 @@
           :code $ quote $ defcomp comp-mermaid-block (text)
             let
                 payload $ build-mermaid-render-payload text
-                svg-str $ if (:empty? payload) nil $ match
-                  get @*rendered-svgs $ :source payload
-                  (:none) nil
-                  (:some result)
-                    match result
-                      (:ready svg) svg
-                      (:rendering) nil
-                      (:failed) nil
+                svg-str $ if (:empty? payload) (Option :none)
+                  match
+                    get @*rendered-svgs $ :source payload
+                    (:none) (Option :none)
+                    (:some result)
+                      match result
+                        (:ready svg) (Option :some svg)
+                        (:rendering) (Option :none)
+                        (:failed) (Option :none)
               [] (effect-mermaid text)
                 div
                   {} (:class-name |mermaid-host)
@@ -769,7 +700,7 @@
                     <> |Mermaid
                   div $ {} (:class-name |mermaid-output)
                     :style $ {} (:min-height |120px) (:padding 12) (:border-radius 12) (:background-color |#fff) (:overflow |auto) (:border "|1px solid #eadccf") (:color |#6f5743) (:font-size 13) (:line-height |1.6) (:white-space |pre-wrap)
-                    :innerHTML $ if (nil? svg-str) "|Rendering Mermaid diagram..." svg-str
+                    :innerHTML $ .unwrap-or svg-str "|Rendering Mermaid diagram..."
           :examples $ []
           :schema $ quote $ Fn String (-> respo.schema/Component) (:features :js-ffi)
         'dispose-echarts-on! $ %{} 'CodeEntry (:doc |)
@@ -867,23 +798,23 @@
           :code $ quote $ defn parse-layout-node (node path)
             if (map? node)
               let
-                  node-type $ .unwrap-or (get node :type) nil
-                  children $ or
-                    .unwrap-or (get node :children) nil
-                    []
-                  series $ or
-                    .unwrap-or (get node :series) nil
-                    []
-                  text $ .unwrap-or (get node :text) nil
-                if (string? node-type)
+                  node-type $ match (field node :type)
+                    (:some value)
+                      if (string? value) value |
+                    (:none) |
+                  children $ field-or node :children $ []
+                  series $ field-or node :series $ []
+                  text $ field-or node :text |
+                if (not= node-type |)
                   match node-type
                     |column $ LayoutNode :column $ parse-layout-children children path
                     |row $ LayoutNode :row $ parse-layout-children children path
                     |card $ LayoutNode :card
-                      match (data-view text)
-                        (:nil) (Option :none)
-                        (:string card-text) (Option :some card-text)
-                        _ $ raise $ str path "| card node requires string :text"
+                      match (field node :text)
+                        (:some card-text)
+                          if (string? card-text) (Option :some card-text)
+                            raise $ str path "| card node requires string :text"
+                        (:none) (Option :none)
                       parse-layout-children children path
                     |text $ if (string? text)
                       if
@@ -905,13 +836,8 @@
                         raise $ str path "| button node requires non-empty :text"
                       raise $ str path "| button node requires non-empty :text"
                     |input $ if
-                      or
-                        non-nil? $ .unwrap-or (get node :name) nil
-                        non-nil? $ .unwrap-or (get node :placeholder) nil
-                      LayoutNode :input
-                        .unwrap-or (get node :name) nil
-                        .unwrap-or (get node :placeholder) nil
-                        , text
+                      or (field-is? node :name non-nil?) (field-is? node :placeholder non-nil?)
+                      LayoutNode :input (field node :name) (field node :placeholder) (field node :text)
                       raise $ str path "| input node requires :name or :placeholder"
                     |markdown $ if (string? text)
                       if
@@ -931,25 +857,19 @@
                           hint-fn $ Fn Dynamic $ -> Bool
                           if (map? item)
                             if
-                              and
-                                string? $ .unwrap-or (get item :label) nil
-                                number? $ .unwrap-or (get item :value) nil
+                              and (field-is? item :label string?) (field-is? item :value number?)
                               , true $ raise $ str path "| chart series item requires string :label and number :value"
                             raise $ str path "| chart series item should be a map"
-                        LayoutNode :chart
-                          or
-                            .unwrap-or (get node :kind) nil
-                            , |bar
-                          or
-                            .unwrap-or (get node :title) nil
-                            , |
+                        LayoutNode :chart (field-or node :kind |bar) (field-or node :title |)
                           decode-map-as series $ List $ Map Tag Dynamic
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
-                      validate-mathml-expr
-                        .unwrap-or (get node :expr) nil
-                        str path |.expr
-                      math-display-value $ .unwrap-or (get node :display) nil
+                      match (field node :expr)
+                        (:some expr)
+                          validate-mathml-expr expr $ str path |.expr
+                        (:none)
+                          raise $ str path "|.expr math node requires list field :expr"
+                      math-display-value $ field-or node :display |inline
                     _ $ raise $ str path "| does not support node type " node-type
                   raise $ str path "| is missing string field :type"
               raise $ str path "| expected a map node"
@@ -1028,7 +948,7 @@
           :code $ quote $ defn storage-kind? (selected kind)
             match selected
               (:some entry)
-                = kind $ .unwrap-or (get entry :kind) nil
+                = (Option :some kind) (field entry :kind)
               (:none) false
           :examples $ []
           :schema $ quote $ Fn
@@ -1069,6 +989,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.container
           :require (respo-ui.css :as css)
+            app.field :refer $ field field-is? field-or put-field
             respo.css :refer $ defstyle
             respo.core :refer $ defcomp defeffect <> >> div button textarea span input list->
             respo.comp.space :refer $ =<
@@ -1118,17 +1039,16 @@
           :schema $ quote $ Fn Dynamic (-> String)
         'build-status-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-status-payload (relay renderer)
-            {} (:status :ok) (:kind :status) (:renderer |edn-renderer)
-              :title $ current-page-title
-              :page_url $ current-page-url
-              :commands relay-commands
-              :channel $ .unwrap-or (get relay :selected-channel) nil
-              :channels $ or
-                .unwrap-or (get relay :channels) nil
-                []
-              :layout_id $ .unwrap-or (get renderer :layout-id) nil
-              :last_request $ .unwrap-or (get renderer :last-request) nil
-              :layout_ready? $ non-nil? $ .unwrap-or (get renderer :layout-dsl) nil
+            ->
+              {} (:status :ok) (:kind :status) (:renderer |edn-renderer)
+                :title $ current-page-title
+                :page_url $ current-page-url
+                :commands relay-commands
+                :channels $ field-or relay :channels $ []
+                :layout_ready? $ field-is? renderer :layout-dsl non-nil?
+              put-field :channel $ field relay :selected-channel
+              put-field :layout_id $ field renderer :layout-id
+              put-field :last_request $ field renderer :last-request
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic)
             -> $ Map Tag Dynamic
@@ -1362,6 +1282,82 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.config
           :require (js-ffi.browser :as browser) (js-ffi.shared :as shared)
+            app.field :refer $ field field-is? field-or put-field
+    'app.field $ %{} 'FileEntry
+      :defs $ {}
+        'field $ %{} 'CodeEntry
+          :doc "|Read an optional map field as an Option. A missing key and a stored nil both read as None, matching how the store and relay frames use nil for absence."
+          :code $ quote $ defn field (m k)
+            match (get m k)
+              (:some v)
+                if (nil? v) (Option :none) (Option :some v)
+              (:none) (Option :none)
+          :examples $ []
+          :schema $ quote $ Fn Dynamic Dynamic
+            -> $ Option Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |folds-nil-into-none)
+            :code $ quote $ let
+                m $ {} (:a 1) (:b nil) (:c false)
+              assert= (Option :some 1) (field m :a)
+              assert= (Option :none) (field m :b)
+              assert= (Option :none) (field m :missing)
+              assert= (Option :some false) (field m :c)
+            :tags $ #{} :unit
+        'field-is? $ %{} 'CodeEntry
+          :doc "|Whether a map field is present and its value passes pred. A missing key is false without calling pred."
+          :code $ quote $ defn field-is? (m k pred)
+            match (get m k)
+              (:some v) (pred v)
+              (:none) false
+          :examples $ []
+          :schema $ quote $ Fn Dynamic Dynamic
+            Fn Dynamic $ -> Bool
+            -> Bool
+          :tests $ [] $ %{} 'TestEntry (:name |checks-present-values)
+            :code $ quote $ let
+                m $ {} (:a |x) (:b nil)
+              assert= true $ field-is? m :a string?
+              assert= false $ field-is? m :b non-nil?
+              assert= false $ field-is? m :missing non-nil?
+            :tags $ #{} :unit
+        'field-or $ %{} 'CodeEntry
+          :doc "|Read a map field with `or` semantics: a missing key, nil or false gives fallback."
+          :code $ quote $ defn field-or (m k fallback)
+            match (get m k)
+              (:some v) (or v fallback)
+              (:none) fallback
+          :examples $ []
+          :schema $ quote $ Fn Dynamic Dynamic Dynamic (-> Dynamic)
+          :tests $ [] $ %{} 'TestEntry (:name |falls-back-like-or)
+            :code $ quote $ let
+                m $ {} (:a |x) (:b nil) (:c false)
+              assert= |x $ field-or m :a |d
+              assert= |d $ field-or m :b |d
+              assert= |d $ field-or m :c |d
+              assert= |d $ field-or m :missing |d
+            :tags $ #{} :unit
+        'put-field $ %{} 'CodeEntry
+          :doc "|Set a map field from an Option: `:some` stores the value, `:none` removes the key, so absence stays absence instead of becoming a stored nil."
+          :code $ quote $ defn put-field (m k value)
+            match value
+              (:some v) (assoc m k v)
+              (:none) (dissoc m k)
+          :examples $ []
+          :schema $ quote $ Fn (Map Tag Dynamic) Tag (Option Dynamic)
+            -> $ Map Tag Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |assoc-or-dissoc)
+            :code $ quote $ let
+                m $ {} (:a 1) (:b 2)
+              assert=
+                {} (:a 3) (:b 2)
+                put-field m :a $ Option :some 3
+              assert=
+                {} $ :b 2
+                put-field m :a $ Option :none
+            :tags $ #{} :unit
+      :ns $ %{} 'NsEntry
+        :doc "|Helpers for reading optional fields of open maps (store slots, relay frames, layout DSL) without turning an Option back into nil."
+        :code $ quote $ ns app.field
     'app.main $ %{} 'FileEntry
       :defs $ {}
         '*reel $ %{} 'CodeEntry (:doc |)
@@ -1381,28 +1377,31 @@
             :snapshot $ List Number
             :layout $ List Number
             :node $ List Number
-            :patch (List Number) Dynamic
-            :replace (List Number) Dynamic
+            :patch (List Number) (Option Dynamic)
+            :replace (List Number) (Option Dynamic)
             :invalid
           :examples $ []
           :schema $ quote EnumDef
         'build-saved-report-entry $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-saved-report-entry (relay renderer)
             let
-                channel $ .unwrap-or (get relay :selected-channel) nil
-                layout-dsl $ .unwrap-or (get renderer :layout-dsl) nil
-                layout-id $ .unwrap-or (get renderer :layout-id) nil
-                request-id $ .unwrap-or (get renderer :last-request) nil
+                channel $ field relay :selected-channel
+                layout-dsl $ field renderer :layout-dsl
+                layout-id $ field renderer :layout-id
                 saved-at $ :iso $ host/date-now-snapshot
-                layout-source $ .unwrap-or (get renderer :layout-source) nil
-                source $ if (non-nil? layout-source) layout-source $ format-cirru-edn layout-dsl
-              {} (:kind :saved-report) (:channel channel)
-                :title $ str (or channel |report) "| / " $ or layout-id |snapshot
-                :layout_id layout-id
-                :request_id request-id
-                :saved_at saved-at
-                :layout layout-dsl
-                :source source
+                source $ match (field renderer :layout-source)
+                  (:some layout-source) layout-source
+                  (:none)
+                    format-cirru-edn $ .unwrap layout-dsl
+              ->
+                {} (:kind :saved-report)
+                  :title $ str (.unwrap-or channel |report) "| / " $ .unwrap-or layout-id |snapshot
+                  :saved_at saved-at
+                  :source source
+                put-field :channel channel
+                put-field :layout_id layout-id
+                put-field :request_id $ field renderer :last-request
+                put-field :layout layout-dsl
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic)
             -> $ Map Tag Dynamic
@@ -1479,16 +1478,21 @@
           :code $ quote $ defn handle-genui-event! (ws frame)
             let
                 request-id $ decode-map-as
-                  .unwrap-or (get frame :id) nil
+                  .unwrap $ get frame :id
                   , 'String
-                payload $ .unwrap-or (get frame :payload) nil
-                source $ format-cirru-edn payload
+                payload $ field frame :payload
+                source $ match payload
+                  (:some layout-dsl) (format-cirru-edn layout-dsl)
+                  (:none) |
                 layout-id $ str |layout- request-id
               try
                 let
-                    layout $ -> payload validate-layout
+                    layout-dsl $ match payload
+                      (:some value) value
+                      (:none) (raise "|genui event requires :payload")
+                    layout $ validate-layout layout-dsl
                     ack-payload $ {} (:status :ok) (:layout_id layout-id)
-                  dispatch! $ :: :genui-applied request-id layout-id layout payload source
+                  dispatch! $ :: :genui-applied request-id layout-id layout layout-dsl source
                   send-genui-ack! ws request-id true ack-payload $ Option :none
                 fn (error)
                   let
@@ -1502,12 +1506,11 @@
           :code $ quote $ defn handle-relay-message! (ws raw)
             let
                 frame $ decode-map-as (parse-cirru-edn raw) (Map Tag Dynamic)
-                kind $ match
-                  protocol-name $ .unwrap-or (get frame :kind) nil
-                  (:some protocol-text) protocol-text
-                  (:none) nil
-                payload $ .unwrap-or (get frame :payload) nil
-                request $ parse-renderer-request payload
+                kind-name $ .and-then (field frame :kind) protocol-name
+                kind $ .unwrap-or kind-name |
+                request $ match (field frame :payload)
+                  (:some payload) (parse-renderer-request payload)
+                  (:none) (RendererRequest :invalid)
                 selected $ selected-relay-channel
                 pending-storage $ decode-map-as
                   match
@@ -1516,26 +1519,13 @@
                     (:err _) (Option :none)
                   Option $ Map Tag Dynamic
                 summary $ if (= kind |hello-ok) "|Relay connected" $ if (= kind |channel-state) "|Channel list updated"
-                  if (= kind |warning)
-                    or
-                      .unwrap-or (get frame :error) nil
-                      , "|Relay warning"
-                    if (= kind |error)
-                      or
-                        .unwrap-or (get frame :error) nil
-                        , "|Relay error"
+                  if (= kind |warning) (field-or frame :error "|Relay warning")
+                    if (= kind |error) (field-or frame :error "|Relay error")
                       if
                         and (= kind |ack) (.some? pending-storage)
-                          =
-                            .unwrap-or (get frame :id) nil
-                            .unwrap-or
-                              get (.unwrap pending-storage) :request-id
-                              , nil
-                        str "|Storage " $ or
-                          .unwrap-or
-                            get (.unwrap pending-storage) :op
-                            , nil
-                          , |request
+                          = (field frame :id)
+                            field (.unwrap pending-storage) :request-id
+                        str "|Storage " $ field-or (.unwrap pending-storage) :op |request
                         if (= kind |event)
                           match request
                             (:help _) "|Renderer help"
@@ -1553,32 +1543,30 @@
                               str "|Layout replace " $ layout-path-display path
                             _ "|Layout payload"
                           str "|Relay " kind
-              dispatch! $ :: :record-relay-message $ {} (:kind kind)
-                :channel $ .unwrap-or (get frame :channel) nil
-                :request-id $ .unwrap-or (get frame :id) nil
-                :matched? $ if (= kind |event)
-                  and (.some? selected)
-                    =
-                      .unwrap-or (get frame :channel) nil
-                      .unwrap selected
-                  , true
-                :summary summary
-                :raw raw
+              dispatch! $ :: :record-relay-message $ ->
+                {}
+                  :matched? $ if (= kind |event)
+                    and (.some? selected)
+                      = (field frame :channel) selected
+                    , true
+                  :summary summary
+                  :raw raw
+                put-field :kind kind-name
+                put-field :channel $ field frame :channel
+                put-field :request-id $ field frame :id
               if (= kind |hello-ok)
                 handle-channel-state! ws
                   decode-map-as
                     .and-then (get frame :client_id) present-option
                     Option String
-                  .unwrap-or (get frame :channels) nil
+                  field-or frame :channels $ []
                 if (= kind |channel-state)
                   handle-channel-state! ws (Option :none)
-                    .unwrap-or (get frame :channels) nil
+                    field-or frame :channels $ []
                   if (= kind |event)
                     if
                       and (.some? selected)
-                        =
-                          .unwrap-or (get frame :channel) nil
-                          .unwrap selected
+                        = (field frame :channel) selected
                       match request
                         (:help _) (handle-renderer-event! ws frame)
                         (:skill _) (handle-renderer-event! ws frame)
@@ -1592,22 +1580,13 @@
                       , |ignored
                     if
                       and (= kind |ack) (.some? pending-storage)
-                        =
-                          .unwrap-or (get frame :id) nil
-                          .unwrap-or
-                            get (.unwrap pending-storage) :request-id
-                            , nil
+                        = (field frame :id)
+                          field (.unwrap pending-storage) :request-id
                       handle-storage-ack! frame
                       if (= kind |warning)
-                        host/console-warn! $ decode-map-as
-                          or
-                            .unwrap-or (get frame :error) nil
-                            , "|Relay warning"
-                          , 'String
+                        host/console-warn! $ decode-map-as (field-or frame :error "|Relay warning") 'String
                         if (= kind |error)
-                          dispatch! $ :: :relay-status |error $ or
-                            .unwrap-or (get frame :error) nil
-                            , "|Relay error"
+                          dispatch! $ :: :relay-status |error $ field-or frame :error "|Relay error"
                           , |ignored
             , &unit
           :examples $ []
@@ -1616,10 +1595,12 @@
           :code $ quote $ defn handle-renderer-event! (ws frame)
             let
                 request-id $ decode-map-as
-                  .unwrap-or (get frame :id) nil
+                  .unwrap $ get frame :id
                   , 'String
-                payload $ .unwrap-or (get frame :payload) nil
-                request $ parse-renderer-request payload
+                payload $ field frame :payload
+                request $ match payload
+                  (:some value) (parse-renderer-request value)
+                  (:none) (RendererRequest :invalid)
                 relay $ decode-map-as
                   match
                     get-in @*reel $ [] :store :relay
@@ -1634,7 +1615,7 @@
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
                   Map Tag Dynamic
-              host/console-log! $ str "|[renderer] request " payload
+              host/console-log! $ str "|[renderer] request " $ .unwrap-or payload |
               try
                 match request
                   (:help topics)
@@ -1664,10 +1645,11 @@
                         Option $ Map Tag Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
-                          response-payload $ {} (:status :ok) (:kind :layout)
-                            :layout_id $ .unwrap-or (get renderer :layout-id) nil
-                            :path $ layout-path-display path
-                            :summary $ summarize-layout-node target-node path
+                          response-payload $ put-field
+                            {} (:status :ok) (:kind :layout)
+                              :path $ layout-path-display path
+                              :summary $ summarize-layout-node target-node path
+                            , :layout_id $ field renderer :layout-id
                         send-genui-ack! ws request-id true response-payload $ Option :none
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:node path)
@@ -1677,12 +1659,13 @@
                         Option $ Map Tag Dynamic
                       let
                           target-node $ layout-node-at-path layout-dsl path
-                          response-payload $ {} (:status :ok) (:kind :node)
-                            :layout_id $ .unwrap-or (get renderer :layout-id) nil
-                            :path $ layout-path-display path
-                            :dsl target-node
-                            :source $ format-cirru-edn target-node
-                            :summary $ summarize-layout-node target-node path
+                          response-payload $ put-field
+                            {} (:status :ok) (:kind :node)
+                              :path $ layout-path-display path
+                              :dsl target-node
+                              :source $ format-cirru-edn target-node
+                              :summary $ summarize-layout-node target-node path
+                            , :layout_id $ field renderer :layout-id
                         send-genui-ack! ws request-id true response-payload $ Option :none
                       send-genui-ack! ws request-id false nil $ Option :some "|No layout loaded in renderer"
                   (:patch path changes)
@@ -1708,7 +1691,10 @@
                         .and-then (get renderer :layout-dsl) present-option
                         Option $ Map Tag Dynamic
                       let
-                          next-dsl $ replace-layout-node-at-path layout-dsl path $ decode-map-as next-node (Map Tag Dynamic)
+                          next-dsl $ replace-layout-node-at-path layout-dsl path $ match next-node
+                            (:some value)
+                              decode-map-as value $ Map Tag Dynamic
+                            (:none) (raise "|Replace request requires map field :node")
                           next-layout $ validate-layout next-dsl
                           next-source $ format-cirru-edn next-dsl
                           next-layout-id $ str |layout- request-id
@@ -1732,7 +1718,7 @@
           :code $ quote $ defn handle-storage-ack! (frame)
             let
                 request-id $ decode-map-as
-                  .unwrap-or (get frame :id) nil
+                  .unwrap $ get frame :id
                   , 'String
                 pending $ decode-map-as
                   match
@@ -1742,25 +1728,22 @@
                   Option $ Map Tag Dynamic
               when
                 and (.some? pending)
-                  = request-id $ .unwrap-or
-                    get (.unwrap pending) :request-id
-                    , nil
-                if
-                  .unwrap-or (get frame :ok) nil
+                  = (Option :some request-id)
+                    field (.unwrap pending) :request-id
+                if (field-or frame :ok false)
                   try
                     let
                         payload $ decode-map-as
-                          .unwrap-or (get frame :payload) nil
+                          .unwrap $ get frame :payload
                           Map Tag Dynamic
-                        kind $ match
-                          protocol-name $ .unwrap-or (get payload :kind) nil
-                          (:some protocol-text) protocol-text
-                          (:none) nil
+                        kind $ .unwrap-or
+                          .and-then (field payload :kind) protocol-name
+                          , |
                       if (= kind |storage-list)
-                        dispatch! $ :: :storage-listed request-id $ if
-                          list? $ .unwrap-or (get payload :entries) nil
-                          .unwrap-or (get payload :entries) nil
-                          []
+                        dispatch! $ :: :storage-listed request-id $ match (field payload :entries)
+                          (:some entries)
+                            if (list? entries) entries $ []
+                          (:none) ([])
                         if (= kind |storage-save)
                           do
                             dispatch! $ :: :storage-saved request-id payload
@@ -1770,16 +1753,13 @@
                           if (= kind |storage-load)
                             let
                                 entry $ decode-map-as
-                                  .unwrap-or (get payload :entry) nil
+                                  .unwrap $ get payload :entry
                                   Map Tag Dynamic
-                                layout-dsl $ .unwrap-or (get entry :layout) nil
-                                source $ or
-                                  .unwrap-or (get payload :source) nil
-                                  .unwrap-or (get entry :source) nil
-                                  format-cirru-edn layout-dsl
-                                layout-id $ or
-                                  .unwrap-or (get entry :layout_id) nil
-                                  str |saved- $ .unwrap-or (get payload :name) nil
+                                layout-dsl $ match (field entry :layout)
+                                  (:some value) value
+                                  (:none) (raise "|Stored report requires :layout")
+                                source $ field-or payload :source $ field-or entry :source (format-cirru-edn layout-dsl)
+                                layout-id $ field-or entry :layout_id $ str |saved- (field-or payload :name |)
                                 layout $ validate-layout layout-dsl
                               dispatch! $ :: :storage-loaded request-id payload layout-id layout layout-dsl source
                             dispatch! $ :: :storage-failed request-id "|Unsupported storage ack payload"
@@ -1787,9 +1767,7 @@
                       let
                           message $ :message $ host/normalize-error error
                         dispatch! $ :: :storage-failed request-id message
-                  dispatch! $ :: :storage-failed request-id $ or
-                    .unwrap-or (get frame :error) nil
-                    , "|Storage request failed"
+                  dispatch! $ :: :storage-failed request-id $ field-or frame :error "|Storage request failed"
             , &unit
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
@@ -1800,9 +1778,7 @@
         'layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn layout-node-at-path (node path)
             if (empty? path) node $ let
-                children $ or
-                  .unwrap-or (get node :children) nil
-                  []
+                children $ field-or node :children $ []
                 step $ .unwrap $ first path
               if
                 not $ list? children
@@ -1856,13 +1832,15 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'merge-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn merge-layout-node-at-path (node path changes)
-            if
-              not $ map? changes
-              raise "|Patch request expects map field :changes"
-              replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
-                decode-map-as changes $ Map Tag Dynamic
+            match changes
+              (:some value)
+                if (map? value)
+                  replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
+                    decode-map-as value $ Map Tag Dynamic
+                  raise "|Patch request expects map field :changes"
+              (:none) (raise "|Patch request expects map field :changes")
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (List Number) Dynamic
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number) (Option Dynamic)
             -> $ Map Tag Dynamic
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mount-target
@@ -1910,6 +1888,16 @@
                       (:none) (Option :none)
           :examples $ []
           :schema $ quote $ Fn (List Dynamic)
+            -> $ Option $ List Number
+        'normalize-payload-path $ %{} 'CodeEntry
+          :doc "|Layout path of a map request payload; a missing or nil :path is the root."
+          :code $ quote $ defn normalize-payload-path (payload)
+            match (field payload :path)
+              (:some path) (normalize-layout-path path)
+              (:none)
+                Option :some $ []
+          :examples $ []
+          :schema $ quote $ Fn Dynamic
             -> $ Option $ List Number
         'normalize-renderer-topics $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-renderer-topics (topics)
@@ -1987,53 +1975,50 @@
                 (:patch path changes)
                   if-let
                     normalized $ normalize-layout-path path
-                    RendererRequest :patch normalized changes
+                    RendererRequest :patch normalized $ present-option changes
                     RendererRequest :invalid
                 (:replace path next-node)
                   if-let
                     normalized $ normalize-layout-path path
-                    RendererRequest :replace normalized next-node
+                    RendererRequest :replace normalized $ present-option next-node
                     RendererRequest :invalid
                 _ $ RendererRequest :invalid
               if (map? payload)
                 let
-                    op-name $ match
-                      protocol-name $ .unwrap-or (get payload :op) nil
-                      (:some protocol-text) protocol-text
-                      (:none) nil
-                    topics $ normalize-renderer-topics $ .unwrap-or (get payload :topics) nil
+                    op-name $ .unwrap-or
+                      .and-then (field payload :op) protocol-name
+                      , |
+                    topics $ normalize-renderer-topics $ field-or payload :topics ([])
                   match op-name
                     |help $ RendererRequest :help topics
                     |skill $ RendererRequest :skill topics
                     |status $ RendererRequest :status
                     |snapshot $ let
-                        normalized $ normalize-layout-path $ .unwrap-or (get payload :path) nil
+                        normalized $ normalize-payload-path payload
                       if (.some? normalized)
                         RendererRequest :snapshot $ .unwrap normalized
                         RendererRequest :invalid
                     |layout $ let
-                        normalized $ normalize-layout-path $ .unwrap-or (get payload :path) nil
+                        normalized $ normalize-payload-path payload
                       if (.some? normalized)
                         RendererRequest :layout $ .unwrap normalized
                         RendererRequest :invalid
                     |node $ let
-                        normalized $ normalize-layout-path $ .unwrap-or (get payload :path) nil
+                        normalized $ normalize-payload-path payload
                       if (.some? normalized)
                         RendererRequest :node $ .unwrap normalized
                         RendererRequest :invalid
                     |patch $ let
-                        normalized $ normalize-layout-path $ .unwrap-or (get payload :path) nil
+                        normalized $ normalize-payload-path payload
                       if (.some? normalized)
-                        RendererRequest :patch (.unwrap normalized)
-                          .unwrap-or (get payload :changes) nil
+                        RendererRequest :patch (.unwrap normalized) (field payload :changes)
                         RendererRequest :invalid
                     |replace $ let
-                        normalized $ normalize-layout-path $ .unwrap-or (get payload :path) nil
+                        normalized $ normalize-payload-path payload
                       if (.some? normalized)
                         RendererRequest :replace (.unwrap normalized)
-                          or
-                            .unwrap-or (get payload :node) nil
-                            .unwrap-or (get payload :dsl) nil
+                          .or-else (field payload :node)
+                            fn () $ field payload :dsl
                         RendererRequest :invalid
                     _ $ RendererRequest :invalid
                 RendererRequest :invalid
@@ -2095,9 +2080,7 @@
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn replace-layout-node-at-path (node path next-node)
             if (empty? path) next-node $ let
-                children $ or
-                  .unwrap-or (get node :children) nil
-                  []
+                children $ field-or node :children $ []
                 step $ .unwrap $ first path
               if
                 not $ list? children
@@ -2161,24 +2144,15 @@
                       raise $ str "|Required renderer state path missing: " error
                   Map Tag Dynamic
               if
-                and
-                  non-nil? $ .unwrap-or (get relay :selected-channel) nil
-                  non-nil? $ .unwrap-or (get renderer :layout-dsl) nil
+                and (field-is? relay :selected-channel non-nil?) (field-is? renderer :layout-dsl non-nil?)
                 let
                     request-id $ str |storage-save- $ host/now-ms
                     entry $ build-saved-report-entry relay renderer
-                    file-name $ str
-                      or
-                        .unwrap-or (get relay :selected-channel) nil
-                        , |report
-                      , |- $ or
-                        .unwrap-or (get renderer :layout-id) nil
-                        .unwrap-or (get renderer :last-request) nil
-                        , |snapshot
+                    file-name $ str (field-or relay :selected-channel |report) |- $ field-or renderer :layout-id (field-or renderer :last-request |snapshot)
                   dispatch! $ :: :storage-pending request-id |save
                   send-relay-frame! ws $ {} (:kind :request) (:id request-id) (:channel internal-storage-channel)
                     :payload $ {} (:op :save)
-                      :channel $ .unwrap-or (get relay :selected-channel) nil
+                      :channel $ .unwrap $ field relay :selected-channel
                       :name file-name
                       :entry entry
                 dispatch! $ :: :storage-failed nil "|A validated layout is required before saving a report"
@@ -2198,10 +2172,9 @@
             -> $ Option String
         'send-genui-ack! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-genui-ack! (ws request-id ok? payload error-message)
-            send-relay-frame! ws $ {} (:kind :ack) (:id request-id) (:ok ok?) (:payload payload)
-              :error $ match error-message
-                (:some present-value) present-value
-                (:none) nil
+            send-relay-frame! ws $ put-field
+              {} (:kind :ack) (:id request-id) (:ok ok?) (:payload payload)
+              , :error error-message
           :examples $ []
           :schema $ quote $ Fn js-ffi.browser/WebSocketHost String Bool Dynamic (Option String) (-> Unit) (:features :js-ffi)
         'send-relay-frame! $ %{} 'CodeEntry (:doc |)
@@ -2212,67 +2185,51 @@
         'summarize-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn summarize-layout-node (node path)
             let
-                text $ .unwrap-or (get node :text) nil
-                node-type $ .unwrap-or (get node :type) nil
-                children $ if
-                  list? $ .unwrap-or (get node :children) nil
+                text $ match (field node :text)
+                  (:some value)
+                    if (string? value)
+                      Option :some $ assert-type value 'String
+                      Option :none
+                  (:none) (Option :none)
+                children $ if (field-is? node :children list?)
                   decode-map-as
-                    .unwrap-or (get node :children) nil
+                    field-or node :children $ []
                     List $ Map Tag Dynamic
                   []
                 base $ assert-type
-                  {}
-                    :path $ layout-path-display path
-                    :type node-type
-                    :child-count $ .len children
+                  put-field
+                    {}
+                      :path $ layout-path-display path
+                      :child-count $ .len children
+                    , :type $ field node :type
                   Map Tag Dynamic
                 meta $ assert-type
-                  match node-type
-                    |card $ if (string? text)
-                      {} $ :title text
-                      {}
-                    |text $ if (string? text)
-                      {} $ :text $ match
-                        first $ split-lines text
-                        (:some present-value) present-value
-                        (:none) nil
-                      {}
-                    |badge $ if (string? text)
-                      {} $ :text text
-                      {}
-                    |button $ if (string? text)
-                      {} $ :text text
-                      {}
-                    |input $ {}
-                      :name $ .unwrap-or (get node :name) nil
-                      :placeholder $ .unwrap-or (get node :placeholder) nil
+                  match (field-or node :type |)
+                    |card $ put-field ({}) :title text
+                    |text $ put-field ({}) :text $ .and-then text
+                      fn (value)
+                        first $ split-lines value
+                    |badge $ put-field ({}) :text text
+                    |button $ put-field ({}) :text text
+                    |input $ -> ({})
+                      put-field :name $ field node :name
+                      put-field :placeholder $ field node :placeholder
                     |markdown $ {} $ :lines
-                      .len $ split-lines $ decode-map-as (or text |) 'String
+                      .len $ split-lines $ .unwrap-or text |
                     |mermaid $ {} $ :lines
-                      .len $ split-lines $ decode-map-as (or text |) 'String
+                      .len $ split-lines $ .unwrap-or text |
                     |chart $ {}
-                      :kind $ or
-                        .unwrap-or (get node :kind) nil
-                        , |bar
-                      :title $ or
-                        .unwrap-or (get node :title) nil
-                        , |
+                      :kind $ field-or node :kind |bar
+                      :title $ field-or node :title |
                       :series-count $ .len $ decode-map-as
-                        or
-                          .unwrap-or (get node :series) nil
-                          []
+                        field-or node :series $ []
                         List Dynamic
-                    |math $ {}
-                      :display $ or
-                        .unwrap-or (get node :display) nil
-                        , |inline
-                      :expr-tag $ .unwrap-or
-                        first $ decode-map-as
-                          or
-                            .unwrap-or (get node :expr) nil
-                            []
+                    |math $ put-field
+                      {} $ :display $ field-or node :display |inline
+                      , :expr-tag $ first
+                        decode-map-as
+                          field-or node :expr $ []
                           List Dynamic
-                        , nil
                     _ $ {}
                   Map Tag Dynamic
               .merge base $ if
@@ -2303,6 +2260,7 @@
           :require
             respo.core :refer $ render! clear-cache!
             app.comp.container :refer $ comp-container validate-layout present-option
+            app.field :refer $ field field-is? field-or put-field
             app.updater :refer $ updater
             app.schema :as schema
             reel.util :refer $ listen-devtools!
@@ -2349,29 +2307,14 @@
               (:some channel-name)
                 let
                     cache $ decode-map-as
-                      or
-                        .unwrap-or (get renderer :channel-cache) nil
-                        {}
+                      field-or renderer :channel-cache $ {}
                       Map String $ Map Tag Dynamic
                   assoc renderer :channel-cache $ assoc cache channel-name $ pick-renderer-channel-state renderer
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Option String)
             -> $ Map Tag Dynamic
         'pick-renderer-channel-state $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn pick-renderer-channel-state (renderer)
-            {}
-              :layout $ .unwrap-or (get renderer :layout) nil
-              :layout-dsl $ .unwrap-or (get renderer :layout-dsl) nil
-              :layout-id $ .unwrap-or (get renderer :layout-id) nil
-              :layout-source $ .unwrap-or (get renderer :layout-source) nil
-              :last-request $ .unwrap-or (get renderer :last-request) nil
-              :last-error $ .unwrap-or (get renderer :last-error) nil
-              :storage-status $ .unwrap-or (get renderer :storage-status) nil
-              :storage-error $ .unwrap-or (get renderer :storage-error) nil
-              :storage-pending $ .unwrap-or (get renderer :storage-pending) nil
-              :storage-entries $ .unwrap-or (get renderer :storage-entries) nil
-              :selected-storage $ .unwrap-or (get renderer :selected-storage) nil
-              :workspace-entry $ .unwrap-or (get renderer :workspace-entry) nil
+          :code $ quote $ defn pick-renderer-channel-state (renderer) (select-keys renderer renderer-channel-keys)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Dynamic
@@ -2383,14 +2326,18 @@
               :workspace-entry nil
           :examples $ []
           :schema $ quote $ Map Tag Dynamic
+        'renderer-channel-keys $ %{} 'CodeEntry
+          :doc "|Renderer slots cached per channel; `renderer-channel-default` gives each one a value."
+          :code $ quote $ def renderer-channel-keys
+            [] :layout :layout-dsl :layout-id :layout-source :last-request :last-error :storage-status :storage-error :storage-pending :storage-entries :selected-storage :workspace-entry
+          :examples $ []
+          :schema $ quote $ List Tag
         'restore-renderer-channel-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn restore-renderer-channel-state (renderer channel)
             let
                 next-state $ let
                     cache $ decode-map-as
-                      or
-                        .unwrap-or (get renderer :channel-cache) nil
-                        {}
+                      field-or renderer :channel-cache $ {}
                       Map String $ Map Tag Dynamic
                     cached $ match channel
                       (:none)
@@ -2399,34 +2346,19 @@
                         .unwrap-or (get cache channel-name)
                           assert-type ({}) (Map Tag Dynamic)
                   restore-renderer-layout $ .merge renderer-channel-default cached
-              -> renderer
-                assoc :layout $ .unwrap-or (get next-state :layout) nil
-                assoc :layout-dsl $ .unwrap-or (get next-state :layout-dsl) nil
-                assoc :layout-id $ .unwrap-or (get next-state :layout-id) nil
-                assoc :layout-source $ .unwrap-or (get next-state :layout-source) nil
-                assoc :last-request $ .unwrap-or (get next-state :last-request) nil
-                assoc :last-error $ .unwrap-or (get next-state :last-error) nil
-                assoc :storage-status $ .unwrap-or (get next-state :storage-status) nil
-                assoc :storage-error $ .unwrap-or (get next-state :storage-error) nil
-                assoc :storage-pending $ .unwrap-or (get next-state :storage-pending) nil
-                assoc :storage-entries $ .unwrap-or (get next-state :storage-entries) nil
-                assoc :selected-storage $ .unwrap-or (get next-state :selected-storage) nil
-                assoc :workspace-entry $ .unwrap-or (get next-state :workspace-entry) nil
+              .merge renderer $ select-keys next-state renderer-channel-keys
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Option String)
             -> $ Map Tag Dynamic
         'restore-renderer-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn restore-renderer-layout (renderer)
-            let
-                dsl $ .unwrap-or (get renderer :layout-dsl) nil
-              assoc renderer :layout $ if (nil? dsl)
-                match
-                  decode-map-as
-                    .and-then (get renderer :layout) present-option
-                    Option app.comp.container/LayoutNode
-                  (:some layout) layout
-                  (:none) nil
-                validate-layout dsl
+            match (field renderer :layout-dsl)
+              (:some dsl)
+                assoc renderer :layout $ validate-layout dsl
+              (:none)
+                put-field renderer :layout $ decode-map-as
+                  .and-then (get renderer :layout) present-option
+                  Option app.comp.container/LayoutNode
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Map Tag Dynamic
@@ -2434,9 +2366,7 @@
           :code $ quote $ defn update-renderer (store f)
             let
                 renderer $ decode-map-as
-                  or
-                    .unwrap-or (get store :renderer) nil
-                    {}
+                  field-or store :renderer $ {}
                   Map Tag Dynamic
               assoc store :renderer $ f renderer
           :examples $ []
@@ -2467,17 +2397,13 @@
               (:select-channel channel)
                 let
                     relay $ decode-map-as
-                      or
-                        .unwrap-or (get store :relay) nil
-                        {}
+                      field-or store :relay $ {}
                       Map Tag Dynamic
                     current-channel $ decode-map-as
                       .and-then (get relay :selected-channel) present-option
                       Option String
                     prev-renderer $ decode-map-as
-                      or
-                        .unwrap-or (get store :renderer) nil
-                        {}
+                      field-or store :renderer $ {}
                       Map Tag Dynamic
                     cached-renderer $ cache-renderer-channel-state prev-renderer current-channel
                   -> store
@@ -2495,7 +2421,7 @@
                   let
                       prev-renderer renderer
                       prev-history $ match
-                        data-view $ .unwrap-or (get prev-renderer :history) nil
+                        data-view $ field-or prev-renderer :history $ []
                         (:list history-items) history-items
                         _ $ []
                     -> prev-renderer
@@ -2531,11 +2457,11 @@
                         Option $ Map Tag Dynamic
                       (:some current-entry)
                         -> prev-renderer (assoc :selected-storage current-entry)
-                          assoc :layout $ validate-layout $ .unwrap-or (get current-entry :layout-dsl) nil
-                          assoc :layout-dsl $ .unwrap-or (get current-entry :layout-dsl) nil
-                          assoc :layout-id $ .unwrap-or (get current-entry :layout_id) nil
-                          assoc :layout-source $ .unwrap-or (get current-entry :source) nil
-                          assoc :last-request $ .unwrap-or (get current-entry :request_id) nil
+                          put-field :layout $ .map (field current-entry :layout-dsl) validate-layout
+                          put-field :layout-dsl $ field current-entry :layout-dsl
+                          put-field :layout-id $ field current-entry :layout_id
+                          put-field :layout-source $ field current-entry :source
+                          put-field :last-request $ field current-entry :request_id
                           assoc :last-error nil
                           assoc :storage-status |workspace
                           assoc :storage-error nil
@@ -2570,20 +2496,15 @@
                   -> renderer (assoc :storage-pending nil) (assoc :storage-status |error) (assoc :storage-error message)
               (:genui-applied request-id layout-id layout layout-dsl source)
                 let
+                    channel $ field
+                      field-or store :relay $ {}
+                      , :selected-channel
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
                         Map Tag Dynamic
-                      assoc :channel $ .unwrap-or
-                        get-in store $ [] :relay :selected-channel
-                        , nil
-                      assoc :name $ str
-                        or
-                          .unwrap-or
-                            get-in store $ [] :relay :selected-channel
-                            , nil
-                          , |workspace
-                        , "| / current workspace"
+                      put-field :channel channel
+                      assoc :name $ str (.unwrap-or channel |workspace) "| / current workspace"
                       assoc :path "|Local workspace snapshot. Not saved in library."
                       assoc :layout_id layout-id
                       assoc :request_id request-id
@@ -2601,20 +2522,15 @@
                   -> renderer (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error message)
               (:layout-mutated request-id layout-id layout layout-dsl source)
                 let
+                    channel $ field
+                      field-or store :relay $ {}
+                      , :selected-channel
                     entry $ ->
                       assert-type
                         {} $ :kind :workspace-report
                         Map Tag Dynamic
-                      assoc :channel $ .unwrap-or
-                        get-in store $ [] :relay :selected-channel
-                        , nil
-                      assoc :name $ str
-                        or
-                          .unwrap-or
-                            get-in store $ [] :relay :selected-channel
-                            , nil
-                          , |workspace
-                        , "| / current workspace"
+                      put-field :channel channel
+                      assoc :name $ str (.unwrap-or channel |workspace) "| / current workspace"
                       assoc :path "|Local workspace snapshot. Not saved in library."
                       assoc :layout_id layout-id
                       assoc :request_id request-id
@@ -2634,3 +2550,4 @@
           :require
             respo.cursor :refer $ update-state-tree
             app.comp.container :refer $ validate-layout present-option
+            app.field :refer $ field field-is? field-or put-field
