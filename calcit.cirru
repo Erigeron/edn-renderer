@@ -6,7 +6,7 @@
     {} (:description |) (:init-fn 'app.main/main!) (:mode :js) (:reload-fn 'app.main/reload!) (:target :browser)
       :feature-policy $ {}
       :modules $ [] |respo.calcit/ |respo-ui.calcit/ |reel.calcit/ |alerts.calcit/ |js-ffi/
-      :type-slots $ {} $ :dispatch-op |app.schema/DispatchOp
+      :type-slots $ {} $ :dispatch-op 'app.schema/DispatchOp
   :files $ {}
     'app.comp.container $ %{} 'FileEntry
       :defs $ {}
@@ -1369,6 +1369,14 @@
           :code $ quote $ defref *ws (Option :none)
           :examples $ []
           :schema $ quote $ Ref (Option js-ffi.browser/WebSocketHost)
+        'LayoutPath $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion LayoutPath app.main/PathSegment (List app.main/PathSegment)
+          :examples $ []
+          :schema $ quote UnionDef
+        'PathSegment $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion PathSegment Number String Tag
+          :examples $ []
+          :schema $ quote UnionDef
         'RendererRequest $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum RendererRequest
             :help $ List String
@@ -1851,22 +1859,22 @@
           :code $ quote $ defn normalize-layout-path (path)
             if (nil? path)
               Option :some $ []
-              if (number? path)
-                match (parse-layout-path-segment path)
-                  (:some segment)
-                    Option :some $ [] segment
-                  (:none) (Option :none)
-                if (list? path)
-                  normalize-layout-path-items $ assert-type path $ List Dynamic
-                  if
-                    or (string? path) (tag? path)
-                    let
-                        raw $ .unwrap $ protocol-name path
+              match (try-decode-map-as path app.main/LayoutPath)
+                (:ok checked)
+                  match checked
+                    (Number n)
+                      match (parse-layout-path-segment n)
+                        (:some segment)
+                          Option :some $ [] segment
+                        (:none) (Option :none)
+                    (List items) (normalize-layout-path-items items)
+                    _ $ let
+                        raw $ .unwrap $ protocol-name checked
                       if
                         or (= raw |) (= raw |root)
                         Option :some $ []
                         normalize-layout-path-items $ split raw |.
-                    Option :none
+                (:err _) (Option :none)
           :examples $ []
           :schema $ quote $ Fn Dynamic
             -> $ Option $ List Number
@@ -1877,7 +1885,7 @@
               fn (acc item)
                 hint-fn $ Fn
                   Option $ List Number
-                  , Dynamic $ ->
+                  , app.main/PathSegment $ ->
                     Option $ List Number
                 match acc
                   (:none) (Option :none)
@@ -1887,7 +1895,7 @@
                         Option :some $ append segments segment
                       (:none) (Option :none)
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic)
+          :schema $ quote $ Fn (List app.main/PathSegment)
             -> $ Option $ List Number
         'normalize-payload-path $ %{} 'CodeEntry
           :doc "|Layout path of a map request payload; a missing or nil :path is the root."
@@ -1917,28 +1925,24 @@
             -> $ List String
         'parse-layout-path-segment $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-segment (item)
-            if (number? item)
-              let
-                  n $ assert-type item 'Number
+            match item
+              (Number n)
                 if (> n 0) (Option :some n) (Option :none)
-              if
-                or (string? item) (tag? item)
-                let
-                    text $ .unwrap $ protocol-name item
-                    digits? $ .foldl (split text |) true $ fn (valid? ch)
-                      hint-fn $ Fn Bool String $ -> Bool
-                      and valid? $ includes? |0123456789 ch
-                  if
-                    and
-                      not $ empty? text
-                      , digits?
-                    match (parse-float text)
-                      (:ok n) (Option :some n)
-                      (:err _) (Option :none)
-                    Option :none
-                Option :none
+              _ $ let
+                  text $ .unwrap $ protocol-name item
+                  digits? $ .foldl (split text |) true $ fn (valid? ch)
+                    hint-fn $ Fn Bool String $ -> Bool
+                    and valid? $ includes? |0123456789 ch
+                if
+                  and
+                    not $ empty? text
+                    , digits?
+                  match (parse-float text)
+                    (:ok n) (Option :some n)
+                    (:err _) (Option :none)
+                  Option :none
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn app.main/PathSegment
             -> $ Option Number
         'parse-renderer-request $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-renderer-request (payload)
