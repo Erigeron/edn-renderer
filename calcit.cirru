@@ -42,7 +42,7 @@
             :input (Option Dynamic) (Option Dynamic) (Option Dynamic)
             :markdown String
             :mermaid String
-            :chart Dynamic Dynamic $ List $ Map Tag Dynamic
+            :chart String Dynamic $ List app.comp.container/ChartDatum
             :math app.comp.container/MathExpr String
           :examples $ []
           :schema $ quote EnumDef
@@ -100,19 +100,8 @@
           :examples $ []
           :schema $ quote $ Fn app.comp.container/MathElementHost app.comp.container/MathChild String (-> Unit) (:features :js-ffi)
         'build-echarts-option $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn build-echarts-option (series kind title)
+          :code $ quote $ defn build-echarts-option (points kind title)
             let
-                normalized-kind $ if (string? kind) kind |bar
-                normalized-series $ if (list? series) series $ []
-                points $ map normalized-series $ fn (item)
-                  hint-fn $ Fn (Map Tag Dynamic) (-> app.comp.container/ChartDatum)
-                  ChartDatum :label
-                    decode-map-as
-                      .unwrap $ get item :label
-                      , 'String
-                    , :value $ decode-map-as
-                      .unwrap $ get item :value
-                      , 'Number
                 names $ map points $ fn (point)
                   hint-fn $ Fn app.comp.container/ChartDatum $ -> String
                   :label point
@@ -131,7 +120,7 @@
                   {} (:animation false)
                     :tooltip $ {}
                   , title-part grid-part
-              match normalized-kind
+              match kind
                 |line $ .merge base $ {} (:xAxis category-axis)
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |line) (:data values)
@@ -149,10 +138,8 @@
                   :yAxis $ {} $ :type |value
                   :series $ [] $ {} (:type |bar) (:data values)
           :examples $ []
-          :schema $ quote $ Fn
-            List $ Map Tag Dynamic
-            , Dynamic Dynamic
-              -> $ Map Tag Dynamic
+          :schema $ quote $ Fn (List app.comp.container/ChartDatum) String Dynamic
+            -> $ Map Tag Dynamic
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
             let
@@ -189,9 +176,7 @@
                 div $ {} (:class-name |echarts-host)
                   :style $ {} (:width |100%) (:height |300px)
           :examples $ []
-          :schema $ quote $ Fn
-            List $ Map Tag Dynamic
-            , Dynamic Dynamic (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn (List app.comp.container/ChartDatum) String Dynamic (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-container (reel)
             let
@@ -852,16 +837,27 @@
                         raise $ str path "| mermaid node requires non-empty :text"
                       raise $ str path "| mermaid node requires non-empty :text"
                     |chart $ if (list? series)
-                      do
-                        every? series $ fn (item)
-                          hint-fn $ Fn Dynamic $ -> Bool
-                          if (map? item)
-                            if
-                              and (field-is? item :label string?) (field-is? item :value number?)
-                              , true $ raise $ str path "| chart series item requires string :label and number :value"
-                            raise $ str path "| chart series item should be a map"
-                        LayoutNode :chart (field-or node :kind |bar) (field-or node :title |)
-                          decode-map-as series $ List $ Map Tag Dynamic
+                      LayoutNode :chart
+                        let
+                            kind $ field-or node :kind |bar
+                          if (string? kind) kind |bar
+                        field-or node :title |
+                        map
+                          decode-map-as series $ List Dynamic
+                          fn (item)
+                            hint-fn $ Fn Dynamic $ -> app.comp.container/ChartDatum
+                            if (map? item)
+                              if
+                                and (field-is? item :label string?) (field-is? item :value number?)
+                                ChartDatum :label
+                                  decode-map-as
+                                    .unwrap $ get item :label
+                                    , String
+                                  , :value $ decode-map-as
+                                    .unwrap $ get item :value
+                                    , Number
+                                raise $ str path "| chart series item requires string :label and number :value"
+                              raise $ str path "| chart series item should be a map"
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
                       match (field node :expr)
