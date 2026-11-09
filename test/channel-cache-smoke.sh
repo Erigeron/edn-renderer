@@ -91,5 +91,16 @@ const fallbackOptions = build_echarts_option(fallbackPoints, fallbackKind, fallb
 assert.equal(read(read(fallbackOptions, core.newTag('series')).get(0), core.newTag('type')), 'bar')
 assert.equal(core._$n_map_$o_contains_$q_(fallbackOptions, core.newTag('title')), false)
 
+for (const chartType of ['bar', 'line', 'scatter']) {
+  const axisChart = validate_layout(core.parse_cirru_edn(`{} (:type |chart) (:kind |${chartType})
+  :series $ [] ({} (:label |zero) (:value 0)) ({} (:label |loss) (:value -3))`))
+  const [kind, title, points] = axisChart.extra
+  const options = build_echarts_option(points, kind, title)
+  const series = read(options, core.newTag('series')).get(0)
+  assert.equal(read(series, core.newTag('type')), chartType)
+  assert.deepEqual(read(series, core.newTag('data')).toArray(), [0, -3])
+  assert.deepEqual(read(read(options, core.newTag('xAxis')), core.newTag('data')).toArray(), ['zero', 'loss'])
+}
+
 console.log('persisted layout, channel and workspace nominal restoration passed')
 EOF
