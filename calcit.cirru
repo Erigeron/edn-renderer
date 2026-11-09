@@ -22,6 +22,10 @@
           :code $ quote $ defstruct ChartDatum (:label String) (:value Number)
           :examples $ []
           :schema $ quote StructDef
+        'ChartKind $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defenum ChartKind (:bar) (:line) (:pie) (:scatter)
+          :examples $ []
+          :schema $ quote EnumDef
         'EChartHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait EChartHost
             .set-option! $ Fn app.comp.container/EChartHost JsObject Bool $ -> Unit
@@ -42,7 +46,7 @@
             :input (Option Dynamic) (Option Dynamic) (Option Dynamic)
             :markdown String
             :mermaid String
-            :chart String Dynamic $ List app.comp.container/ChartDatum
+            :chart app.comp.container/ChartKind (Option String) (List app.comp.container/ChartDatum)
             :math app.comp.container/MathExpr String
           :examples $ []
           :schema $ quote EnumDef
@@ -108,10 +112,10 @@
                 values $ map points $ fn (point)
                   hint-fn $ Fn app.comp.container/ChartDatum $ -> Number
                   :value point
-                title-part $ if
-                  or (nil? title) (= title |)
-                  {}
-                  {} $ :title $ {} (:text title)
+                title-part $ match title
+                  (:none) ({})
+                  (:some text)
+                    {} $ :title $ {} (:text text)
                 category-axis $ {} (:type |category) (:data names)
                   :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
                 grid-part $ {} $ :grid
@@ -121,24 +125,28 @@
                     :tooltip $ {}
                   , title-part grid-part
               match kind
-                |line $ .merge base $ {} (:xAxis category-axis)
-                  :yAxis $ {} $ :type |value
-                  :series $ [] $ {} (:type |line) (:data values)
-                |pie $ .merge base $ {}
-                  :series $ [] $ {} (:type |pie)
-                    :data $ map points $ fn (point)
-                      hint-fn $ Fn app.comp.container/ChartDatum $ -> (Map Tag Dynamic)
-                      {}
-                        :name $ :label point
-                        :value $ :value point
-                |scatter $ .merge base $ {} (:xAxis category-axis)
-                  :yAxis $ {} $ :type |value
-                  :series $ [] $ {} (:type |scatter) (:data values)
-                _ $ .merge base $ {} (:xAxis category-axis)
-                  :yAxis $ {} $ :type |value
-                  :series $ [] $ {} (:type |bar) (:data values)
+                (:line)
+                  .merge base $ {} (:xAxis category-axis)
+                    :yAxis $ {} $ :type |value
+                    :series $ [] $ {} (:type |line) (:data values)
+                (:pie)
+                  .merge base $ {} $ :series
+                    [] $ {} (:type |pie)
+                      :data $ map points $ fn (point)
+                        hint-fn $ Fn app.comp.container/ChartDatum $ -> (Map Tag Dynamic)
+                        {}
+                          :name $ :label point
+                          :value $ :value point
+                (:scatter)
+                  .merge base $ {} (:xAxis category-axis)
+                    :yAxis $ {} $ :type |value
+                    :series $ [] $ {} (:type |scatter) (:data values)
+                (:bar)
+                  .merge base $ {} (:xAxis category-axis)
+                    :yAxis $ {} $ :type |value
+                    :series $ [] $ {} (:type |bar) (:data values)
           :examples $ []
-          :schema $ quote $ Fn (List app.comp.container/ChartDatum) String Dynamic
+          :schema $ quote $ Fn (List app.comp.container/ChartDatum) app.comp.container/ChartKind (Option String)
             -> $ Map Tag Dynamic
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
@@ -176,7 +184,7 @@
                 div $ {} (:class-name |echarts-host)
                   :style $ {} (:width |100%) (:height |300px)
           :examples $ []
-          :schema $ quote $ Fn (List app.comp.container/ChartDatum) String Dynamic (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn (List app.comp.container/ChartDatum) app.comp.container/ChartKind (Option String) (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-container (reel)
             let
@@ -838,10 +846,17 @@
                       raise $ str path "| mermaid node requires non-empty :text"
                     |chart $ if (list? series)
                       LayoutNode :chart
+                        match (field-or node :kind |bar)
+                          |line $ ChartKind :line
+                          |pie $ ChartKind :pie
+                          |scatter $ ChartKind :scatter
+                          _ $ ChartKind :bar
                         let
-                            kind $ field-or node :kind |bar
-                          if (string? kind) kind |bar
-                        field-or node :title |
+                            title $ field-or node :title |
+                          if
+                            or (nil? title) (= title |)
+                            Option :none
+                            Option :some $ str title
                         map
                           decode-map-as series $ List Dynamic
                           fn (item)
