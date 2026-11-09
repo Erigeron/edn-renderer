@@ -9,7 +9,7 @@ node - <<'EOF'
 import * as core from './js-out/calcit.core.mjs'
 import assert from 'node:assert/strict'
 import { cache_renderer_channel_state, restore_renderer_channel_state, updater } from './js-out/app.updater.mjs'
-import { validate_layout } from './js-out/app.comp.container.mjs'
+import { build_echarts_option, validate_layout } from './js-out/app.comp.container.mjs'
 import { store } from './js-out/app.schema.mjs'
 
 const tags = core.init_tags(['renderer', 'layout-id', 'workspace-entry', 'channel-cache'])
@@ -50,7 +50,11 @@ console.log('channel cache smoke passed')
 // Real reload regression: EDN restores enum payloads but not their nominal prototype.
 // Rebuild the application model from the saved DSL, including channel/workspace restore.
 const stateTags = core.init_tags(['renderer', 'layout', 'layout-dsl', 'workspace-entry', 'layout-data'])
-const dsl = core.parse_cirru_edn('{} (:type |text) (:text "|031 persisted layout 🐈")')
+const dsl = core.parse_cirru_edn(`{} (:type |column)
+  :children $ []
+    {} (:type |text) (:text "|031 persisted layout 🐈")
+    {} (:type |chart) (:kind |pie)
+      :series $ [] ({} (:label |zero) (:value 0)) ({} (:label |loss) (:value -3))`)
 const layout = validate_layout(dsl)
 const entry = core._$n__$M_(stateTags['layout-dsl'], dsl, stateTags['layout-data'], layout)
 let persistedRenderer = core.assoc(read(store, stateTags.renderer), stateTags.layout, layout)
@@ -66,6 +70,18 @@ assert.equal(read(hydratedRenderer, stateTags.layout).enumPrototype, layout.enum
 const restoredChannel = restore_renderer_channel_state(hydratedRenderer, channel)
 assert.equal(read(restoredChannel, stateTags.layout).enumPrototype, layout.enumPrototype)
 const workspace = updater(hydrated, core._$o__$o_(core.newTag('load-workspace-report')), 'synthetic-workspace', 0)
-assert.equal(read(read(workspace, stateTags.renderer), stateTags.layout).enumPrototype, layout.enumPrototype)
+const restoredLayout = read(read(workspace, stateTags.renderer), stateTags.layout)
+assert.equal(restoredLayout.enumPrototype, layout.enumPrototype)
+const [text, chart] = restoredLayout.extra[0].toArray()
+assert.equal(text.extra[0], '031 persisted layout 🐈')
+const [kind, title, points] = chart.extra
+const options = build_echarts_option(points, kind, title)
+const series = read(options, core.newTag('series')).get(0)
+assert.equal(read(series, core.newTag('type')), 'pie')
+assert.deepEqual(
+  read(series, core.newTag('data')).toArray().map(point =>
+    [read(point, core.newTag('name')), read(point, core.newTag('value'))]),
+  [['zero', 0], ['loss', -3]],
+)
 console.log('persisted layout, channel and workspace nominal restoration passed')
 EOF
