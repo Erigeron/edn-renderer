@@ -53,7 +53,7 @@ const stateTags = core.init_tags(['renderer', 'layout', 'layout-dsl', 'workspace
 const dsl = core.parse_cirru_edn(`{} (:type |column)
   :children $ []
     {} (:type |text) (:text "|031 persisted layout 🐈")
-    {} (:type |chart) (:kind |pie)
+    {} (:type |chart) (:kind |pie) (:title |Revenue)
       :series $ [] ({} (:label |zero) (:value 0)) ({} (:label |loss) (:value -3))`)
 const layout = validate_layout(dsl)
 const entry = core._$n__$M_(stateTags['layout-dsl'], dsl, stateTags['layout-data'], layout)
@@ -78,10 +78,18 @@ const [kind, title, points] = chart.extra
 const options = build_echarts_option(points, kind, title)
 const series = read(options, core.newTag('series')).get(0)
 assert.equal(read(series, core.newTag('type')), 'pie')
+assert.equal(read(read(options, core.newTag('title')), core.newTag('text')), 'Revenue')
 assert.deepEqual(
   read(series, core.newTag('data')).toArray().map(point =>
     [read(point, core.newTag('name')), read(point, core.newTag('value'))]),
   [['zero', 0], ['loss', -3]],
 )
+
+const fallback = validate_layout(core.parse_cirru_edn('{} (:type |chart) (:kind |unknown) (:title |) (:series ([]))'))
+const [fallbackKind, fallbackTitle, fallbackPoints] = fallback.extra
+const fallbackOptions = build_echarts_option(fallbackPoints, fallbackKind, fallbackTitle)
+assert.equal(read(read(fallbackOptions, core.newTag('series')).get(0), core.newTag('type')), 'bar')
+assert.equal(core._$n_map_$o_contains_$q_(fallbackOptions, core.newTag('title')), false)
+
 console.log('persisted layout, channel and workspace nominal restoration passed')
 EOF
