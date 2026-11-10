@@ -26,6 +26,11 @@
           :code $ quote $ defenum ChartKind (:bar) (:line) (:pie) (:scatter)
           :examples $ []
           :schema $ quote EnumDef
+        'ChartOptionValue $ %{} 'CodeEntry
+          :doc "|Closed value family emitted by the ECharts option builder."
+          :code $ quote $ defunion ChartOptionValue String Number Bool (List ChartOptionValue) (Map Tag ChartOptionValue)
+          :examples $ []
+          :schema $ quote UnionDef
         'EChartHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait EChartHost
             .set-option! $ Fn app.comp.container/EChartHost JsObject Bool $ -> Unit
@@ -106,48 +111,44 @@
         'build-echarts-option $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-echarts-option (points kind title)
             let
-                names $ map points $ fn (point)
-                  hint-fn $ Fn app.comp.container/ChartDatum $ -> String
-                  :label point
-                values $ map points $ fn (point)
-                  hint-fn $ Fn app.comp.container/ChartDatum $ -> Number
-                  :value point
-                title-part $ match title
-                  (:none) ({})
-                  (:some text)
-                    {} $ :title $ {} (:text text)
-                category-axis $ {} (:type |category) (:data names)
-                  :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
-                grid-part $ {} $ :grid
-                  {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
-                base $ .merge
+                series-type $ match kind
+                  (:line) |line
+                  (:pie) |pie
+                  (:scatter) |scatter
+                  (:bar) |bar
+                series-data $ if (= series-type |pie)
+                  map points $ fn (point)
+                    hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                    {}
+                      :name $ :label point
+                      :value $ :value point
+                  map points $ fn (point)
+                    hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                    :value point
+                option $ assert-type
                   {} (:animation false)
                     :tooltip $ {}
-                  , title-part grid-part
-              match kind
-                (:line)
-                  .merge base $ {} (:xAxis category-axis)
-                    :yAxis $ {} $ :type |value
-                    :series $ [] $ {} (:type |line) (:data values)
-                (:pie)
-                  .merge base $ {} $ :series
-                    [] $ {} (:type |pie)
-                      :data $ map points $ fn (point)
-                        hint-fn $ Fn app.comp.container/ChartDatum $ -> (Map Tag Dynamic)
-                        {}
-                          :name $ :label point
-                          :value $ :value point
-                (:scatter)
-                  .merge base $ {} (:xAxis category-axis)
-                    :yAxis $ {} $ :type |value
-                    :series $ [] $ {} (:type |scatter) (:data values)
-                (:bar)
-                  .merge base $ {} (:xAxis category-axis)
-                    :yAxis $ {} $ :type |value
-                    :series $ [] $ {} (:type |bar) (:data values)
+                    :grid $ {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
+                    :series $ [] $ {} (:type series-type) (:data series-data)
+                  Map Tag app.comp.container/ChartOptionValue
+                with-title $ match title
+                  (:none) option
+                  (:some text)
+                    .merge option $ assert-type
+                      {} $ :title $ {} (:text text)
+                      Map Tag app.comp.container/ChartOptionValue
+              if (= series-type |pie) with-title $ .merge with-title $ assert-type
+                {}
+                  :xAxis $ {} (:type |category)
+                    :data $ map points $ fn (point)
+                      hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                      :label point
+                    :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
+                  :yAxis $ {} $ :type |value
+                Map Tag app.comp.container/ChartOptionValue
           :examples $ []
           :schema $ quote $ Fn (List app.comp.container/ChartDatum) app.comp.container/ChartKind (Option String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag app.comp.container/ChartOptionValue
         'build-mathml-element $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-mathml-element (expr path)
             let
@@ -712,12 +713,12 @@
             let
                 target $ browser/element-host el
               match action
-                :mount $ render-echarts-on! target $ decode-map-as option (Map Tag Dynamic)
-                :update $ render-echarts-on! target $ decode-map-as option (Map Tag Dynamic)
+                :mount $ render-echarts-on! target $ decode-map-as option (Map Tag app.comp.container/ChartOptionValue)
+                :update $ render-echarts-on! target $ decode-map-as option (Map Tag app.comp.container/ChartOptionValue)
                 :unmount $ dispose-echarts-on! target
                 _ &unit
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Effect) (:features :js-ffi)
+          :schema $ quote $ Fn (Map Tag app.comp.container/ChartOptionValue) (-> respo.schema/Effect) (:features :js-ffi)
         'effect-mathml $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defeffect effect-mathml (expr display) (action el at?)
             let
@@ -902,7 +903,7 @@
                 plain-option $ contract/expect-object |render-echarts-on! $ to-js-data option
               chart .set-option! plain-option true
           :examples $ []
-          :schema $ quote $ Fn js-ffi.browser/DomElementHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn js-ffi.browser/DomElementHost (Map Tag app.comp.container/ChartOptionValue) (-> Unit) (:features :js-ffi)
         'render-mathml-on $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-mathml-on (el expr display)
             let
