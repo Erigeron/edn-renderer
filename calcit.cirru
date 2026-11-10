@@ -300,7 +300,7 @@
                                   (:none) (Option :none)
                                 if
                                   > (.len storage-entries) 0
-                                  list->
+                                  keyed->
                                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6)
                                     -> storage-entries .to-list $ map-indexed $ fn (idx item)
                                       let
@@ -310,7 +310,7 @@
                                                 = (field current :kind) (Option :some :workspace-report)
                                                 , false $ = (field item :name) (field current :name)
                                             (:none) false
-                                        [] idx $ div
+                                        keyed-element idx $ div
                                           {}
                                             :style $ {} (:padding "|8px 10px") (:border-radius 12)
                                               :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
@@ -332,7 +332,7 @@
                                     <> "|No saved reports for current channel yet."
                               if
                                 > (.len history) 0
-                                list->
+                                keyed->
                                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 6) (:max-height "|calc(100vh - 180px)") (:overflow |auto)
                                   -> history .to-list $ map-indexed $ fn (idx item)
                                     let
@@ -342,7 +342,7 @@
                                           (:none) false
                                         meta-channel $ field-or item :channel |session
                                         meta-request $ field-or item :request-id |-
-                                      [] idx $ div
+                                      keyed-element idx $ div
                                         {}
                                           :style $ {} (:padding "|8px 10px") (:border-radius 12)
                                             :border $ if active? "|1px solid #8a8f98" "|1px solid #d7d7cf"
@@ -525,10 +525,10 @@
                     div
                       {} $ :style $ {} (:font-size 12) (:font-weight |600) (:color |#4b5563)
                       <> |Channels
-                    list->
+                    keyed->
                       {} $ :style $ {} (:display |flex) (:gap 6) (:flex-wrap |wrap)
                       -> channels .to-list $ map-indexed $ fn (idx channel)
-                        [] idx $ button $ {} (:class-name css/button) (:inner-text channel)
+                        keyed-element idx $ button $ {} (:class-name css/button) (:inner-text channel)
                           :style $ {} (:padding "|5px 8px") (:font-size 11)
                             :background-color $ if (selected-channel? selected-channel channel) |#dce3ea |#ffffff
                             :border $ if (selected-channel? selected-channel channel) "|1px solid #8a8f98" "|1px solid #d7d7cf"
@@ -564,15 +564,15 @@
           :code $ quote $ defcomp comp-layout-node (node)
             match node
               (:column children)
-                list->
+                keyed->
                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 12) (:align-items |stretch)
                   -> children .to-list $ map-indexed $ fn (idx child)
-                    [] idx $ comp-layout-node child
+                    keyed-component idx $ comp-layout-node child
               (:row children)
-                list->
+                keyed->
                   {} $ :style $ {} (:display |flex) (:flex-direction |row) (:gap 12) (:flex-wrap |wrap) (:align-items |center)
                   -> children .to-list $ map-indexed $ fn (idx child)
-                    [] idx $ comp-layout-node child
+                    keyed-component idx $ comp-layout-node child
               (:card title children)
                 div
                   {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 12) (:padding 16) (:border "|1px solid #e4d4c6") (:border-radius 16) (:background-color |#fffdf9)
@@ -582,10 +582,10 @@
                         {} $ :style $ {} (:font-size 18) (:font-weight |600) (:color |#7e4f2c)
                         <> title-text
                     (:none) (Option :none)
-                  list->
+                  keyed->
                     {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 10)
                     -> children .to-list $ map-indexed $ fn (idx child)
-                      [] idx $ comp-layout-node child
+                      keyed-component idx $ comp-layout-node child
               (:text text)
                 div
                   {} $ :style $ {} (:font-size 16) (:line-height |1.6) (:color |#2e241c)
@@ -624,10 +624,10 @@
           :code $ quote $ defcomp comp-markdown-block (text)
             let
                 lines $ split-lines text
-              list->
+              keyed->
                 {} $ :style $ {} (:display |flex) (:flex-direction |column) (:gap 8)
                 -> lines .to-list $ map-indexed $ fn (idx line)
-                  [] idx $ cond
+                  keyed-element idx $ cond
                       blank? line
                       div $ {} $ :style
                         {} $ :height 6
@@ -1003,7 +1003,7 @@
           :require (respo-ui.css :as css)
             app.field :refer $ field field-is? field-or put-field
             respo.css :refer $ defstyle
-            respo.core :refer $ defcomp defeffect <> >> div button textarea span input list->
+            respo.core :refer $ defcomp defeffect <> >> div button textarea span input keyed-> keyed-element keyed-component
             respo.comp.space :refer $ =<
             reel.comp.reel :refer $ comp-reel
             app.config :refer $ dev?
