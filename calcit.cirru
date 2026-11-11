@@ -118,34 +118,34 @@
                   (:bar) |bar
                 series-data $ if (= series-type |pie)
                   map points $ fn (point)
-                    hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                    hint-fn $ Fn ChartDatum $ -> ChartOptionValue
                     {}
                       :name $ :label point
                       :value $ :value point
                   map points $ fn (point)
-                    hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                    hint-fn $ Fn ChartDatum $ -> ChartOptionValue
                     :value point
                 option $ assert-type
                   {} (:animation false)
                     :tooltip $ {}
                     :grid $ {} (:left 48) (:right 24) (:top 72) (:bottom 72) (:containLabel true)
                     :series $ [] $ {} (:type series-type) (:data series-data)
-                  Map Tag app.comp.container/ChartOptionValue
+                  Map Tag ChartOptionValue
                 with-title $ match title
                   (:none) option
                   (:some text)
                     .merge option $ assert-type
                       {} $ :title $ {} (:text text)
-                      Map Tag app.comp.container/ChartOptionValue
+                      Map Tag ChartOptionValue
               if (= series-type |pie) with-title $ .merge with-title $ assert-type
                 {}
                   :xAxis $ {} (:type |category)
                     :data $ map points $ fn (point)
-                      hint-fn $ Fn app.comp.container/ChartDatum $ -> app.comp.container/ChartOptionValue
+                      hint-fn $ Fn ChartDatum $ -> ChartOptionValue
                       :label point
                     :axisLabel $ {} (:interval 0) (:rotate 20) (:hideOverlap false)
                   :yAxis $ {} $ :type |value
-                Map Tag app.comp.container/ChartOptionValue
+                Map Tag ChartOptionValue
           :examples $ []
           :schema $ quote $ Fn (List ChartDatum) ChartKind (Option String)
             -> $ Map Tag ChartOptionValue
@@ -155,7 +155,7 @@
                 tag-name $ :tag expr
                 el $ js-cast (browser/create-element-ns mathml-namespace tag-name) 'MathElementHost
               .foldl (:children expr) &unit $ fn (acc child)
-                hint-fn $ Fn Unit app.comp.container/MathChild $ -> Unit
+                hint-fn $ Fn Unit MathChild $ -> Unit
                 append-mathml-child! el child $ str path |/ tag-name
               , el
           :examples $ []
@@ -781,7 +781,7 @@
           :code $ quote $ defn parse-layout-children (children path)
             if (list? children)
               map children $ fn (child)
-                hint-fn $ Fn Dynamic $ -> app.comp.container/LayoutNode
+                hint-fn $ Fn Dynamic $ -> LayoutNode
                 parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
           :examples $ []
@@ -860,7 +860,7 @@
                         map
                           decode-map-as series $ List Dynamic
                           fn (item)
-                            hint-fn $ Fn Dynamic $ -> app.comp.container/ChartDatum
+                            hint-fn $ Fn Dynamic $ -> ChartDatum
                             if (map? item)
                               if
                                 and (field-is? item :label string?) (field-is? item :value number?)
@@ -915,7 +915,7 @@
           :schema $ quote $ Fn MathElementHost MathExpr String (-> Unit) (:features :js-ffi)
         'render-mermaid-on $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-mermaid-on (el payload)
-            hint-fn $ Fn js-ffi.browser/DomElementHost app.comp.container/MermaidPayload (-> Unit) (:features :js-ffi) (:async)
+            hint-fn $ Fn browser/DomElementHost MermaidPayload (-> Unit) (:features :js-ffi) (:async)
             let
                 source $ :source payload
                 graph-id $ :graph-id payload
@@ -989,7 +989,7 @@
                     let
                         children $ map (rest expr)
                           fn (child)
-                            hint-fn $ Fn Dynamic $ -> app.comp.container/MathChild
+                            hint-fn $ Fn Dynamic $ -> MathChild
                             validate-mathml-child child $ str path |/ tag-name
                       MathExpr :tag tag-name :children children
                     raise $ str path "| math expression requires string tag name"
@@ -1897,7 +1897,7 @@
               fn (acc item)
                 hint-fn $ Fn
                   Option $ List Number
-                  , app.main/PathSegment $ ->
+                  , PathSegment $ ->
                     Option $ List Number
                 match acc
                   (:none) None
