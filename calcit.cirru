@@ -765,9 +765,9 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'math-display-value $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn math-display-value (display)
-            if (= display |block) |block |inline
+            if (&= display |block) |block |inline
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> String)
+          :schema $ quote $ Fn T (-> String) (:generics T)
         'mathml-namespace $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mathml-namespace |http://www.w3.org/1998/Math/MathML
           :examples $ []
@@ -785,8 +785,9 @@
                 parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String
+          :schema $ quote $ Fn T String
             -> $ List LayoutNode
+            :generics T
         'parse-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-node (node path)
             if (map? node)
@@ -884,7 +885,7 @@
                   raise $ str path "| is missing string field :type"
               raise $ str path "| expected a map node"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String (-> LayoutNode)
+          :schema $ quote $ Fn T String (-> LayoutNode) (:generics T)
         'present-option $ %{} 'CodeEntry
           :doc "|Read a store slot that may hold nil as an Option, so typed decoding happens on `Option :some` only."
           :code $ quote $ defn present-option (value)
@@ -968,17 +969,17 @@
         'validate-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout (layout) (parse-layout-node layout |root)
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> LayoutNode)
+          :schema $ quote $ Fn T (-> LayoutNode) (:generics T)
         'validate-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout-node (node path) (parse-layout-node node path)
           :examples $ []
-          :schema $ quote $ Fn Dynamic String (-> LayoutNode)
+          :schema $ quote $ Fn T String (-> LayoutNode) (:generics T)
         'validate-mathml-child $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-child (child path)
             if (string? child) child $ if (number? child) child $ if (list? child) (validate-mathml-expr child path)
               raise $ str path "| invalid MathML child, expected string, number, or list"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String (-> MathChild)
+          :schema $ quote $ Fn T String (-> MathChild) (:generics T)
         'validate-mathml-expr $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-mathml-expr (expr path)
             if (list? expr)
@@ -996,7 +997,7 @@
                   raise $ str path "| math expression should not be empty"
               raise $ str path "| math node requires list field :expr"
           :examples $ []
-          :schema $ quote $ Fn Dynamic String (-> MathExpr)
+          :schema $ quote $ Fn T String (-> MathExpr) (:generics T)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.container
           :require (respo-ui.css :as css)
