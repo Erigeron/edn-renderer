@@ -890,8 +890,9 @@
           :code $ quote $ defn present-option (value)
             if (nil? value) None $ Some value
           :examples $ []
-          :schema $ quote $ Fn Dynamic
-            -> $ Option Dynamic
+          :schema $ quote $ Fn T
+            -> $ Option T
+            :generics T
         'render-echarts-on! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-echarts-on! (el option)
             let
@@ -1320,9 +1321,10 @@
               (:some v) (pred v)
               (:none) false
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic
-            Fn Dynamic $ -> Bool
+          :schema $ quote $ Fn (Map K V) K
+            Fn V $ -> Bool
             -> Bool
+            :generics K V
           :tests $ [] $ %{} 'TestEntry (:name |checks-present-values)
             :code $ quote $ let
                 m $ {} (:a |x) (:b nil)
@@ -1791,7 +1793,7 @@
         'internal-storage-channel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def internal-storage-channel |__relay_store__
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn layout-node-at-path (node path)
             if (empty? path) node $ let
