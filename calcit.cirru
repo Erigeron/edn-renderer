@@ -1399,8 +1399,10 @@
             :snapshot $ List Number
             :layout $ List Number
             :node $ List Number
-            :patch (List Number) (Option Dynamic)
-            :replace (List Number) (Option Dynamic)
+            :patch (List Number)
+              Option $ Map Tag Dynamic
+            :replace (List Number)
+              Option $ Map Tag Dynamic
             :invalid
           :examples $ []
           :schema $ quote EnumDef
@@ -1428,6 +1430,15 @@
           :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic)
             -> $ Map Tag Dynamic
             :features :js-ffi
+        'checked-request-map $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn checked-request-map (raw)
+            match
+              try-decode-map-as raw $ Map Tag Dynamic
+              (:ok value) (Some value)
+              (:err _) None
+          :examples $ []
+          :schema $ quote $ Fn Dynamic
+            -> $ Option $ Map Tag Dynamic
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when
@@ -1712,8 +1723,7 @@
                         Option $ Map Tag Dynamic
                       let
                           next-dsl $ replace-layout-node-at-path layout-dsl path $ match next-node
-                            (:some value)
-                              decode-map-as value $ Map Tag Dynamic
+                            (:some value) value
                             (:none) (raise "|Replace request requires map field :node")
                           next-layout $ validate-layout next-dsl
                           next-source $ format-cirru-edn next-dsl
@@ -1854,13 +1864,11 @@
           :code $ quote $ defn merge-layout-node-at-path (node path changes)
             match changes
               (:some value)
-                if (map? value)
-                  replace-layout-node-at-path node path $ .merge (layout-node-at-path node path)
-                    decode-map-as value $ Map Tag Dynamic
-                  raise "|Patch request expects map field :changes"
+                replace-layout-node-at-path node path $ .merge (layout-node-at-path node path) value
               (:none) (raise "|Patch request expects map field :changes")
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (List Number) (Option Dynamic)
+          :schema $ quote $ Fn (Map Tag Dynamic) (List Number)
+            Option $ Map Tag Dynamic
             -> $ Map Tag Dynamic
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mount-target
@@ -1991,12 +1999,12 @@
                 (:patch path changes)
                   if-let
                     normalized $ normalize-layout-path path
-                    RendererRequest :patch normalized $ present-option changes
+                    RendererRequest :patch normalized $ checked-request-map changes
                     RendererRequest :invalid
                 (:replace path next-node)
                   if-let
                     normalized $ normalize-layout-path path
-                    RendererRequest :replace normalized $ present-option next-node
+                    RendererRequest :replace normalized $ checked-request-map next-node
                     RendererRequest :invalid
                 _ $ RendererRequest :invalid
               if (map? payload)
@@ -2027,14 +2035,17 @@
                     |patch $ let
                         normalized $ normalize-payload-path payload
                       if (.some? normalized)
-                        RendererRequest :patch (.unwrap normalized) (field payload :changes)
+                        RendererRequest :patch (.unwrap normalized)
+                          .and-then (field payload :changes) checked-request-map
                         RendererRequest :invalid
                     |replace $ let
                         normalized $ normalize-payload-path payload
                       if (.some? normalized)
                         RendererRequest :replace (.unwrap normalized)
-                          .or-else (field payload :node)
-                            fn () $ field payload :dsl
+                          .and-then
+                            .or-else (field payload :node)
+                              fn () $ field payload :dsl
+                            , checked-request-map
                         RendererRequest :invalid
                     _ $ RendererRequest :invalid
                 RendererRequest :invalid
