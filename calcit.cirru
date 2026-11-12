@@ -39,6 +39,10 @@
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:dispose! |dispose) (:set-option! |setOption)
           :schema $ quote Trait
+        'InputValue $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion InputValue String Number Bool Tag
+          :examples $ []
+          :schema $ quote UnionDef
         'LayoutNode $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum LayoutNode
             :column $ List app.comp.container/LayoutNode
@@ -48,7 +52,7 @@
             :badge String
             :divider
             :button String
-            :input (Option Dynamic) (Option Dynamic) (Option Dynamic)
+            :input (Option InputValue) (Option InputValue) (Option InputValue)
             :markdown String
             :mermaid String
             :chart app.comp.container/ChartKind (Option String) (List app.comp.container/ChartDatum)
@@ -831,7 +835,10 @@
                       raise $ str path "| button node requires non-empty :text"
                     |input $ if
                       or (field-is? node :name non-nil?) (field-is? node :placeholder non-nil?)
-                      LayoutNode :input (field node :name) (field node :placeholder) (field node :text)
+                      LayoutNode :input
+                        decode-map-as (field node :name) (Option InputValue)
+                        decode-map-as (field node :placeholder) (Option InputValue)
+                        decode-map-as (field node :text) (Option InputValue)
                       raise $ str path "| input node requires :name or :placeholder"
                     |markdown $ if (string? text)
                       if

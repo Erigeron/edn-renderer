@@ -47,9 +47,9 @@ Published bootstrap page:
 If Vite fails because `rolldown` native bindings are missing, run `yarn install`
 again so the unplugged package is materialized on disk.
 
-### 0.41.1 升级与部署
+### 0.42.1 升级与部署
 
-CLI 与 `@calcit/procs` 配对使用正式 **0.41.1**，模块固定已发布 Alerts **0.14.2**、Reel **0.10.0**、UI **0.15.2**、Respo **0.19.5** 和 JS FFI **0.2.13**。升级后重新安装完整依赖图、构建前端并刷新。 图表配置在送入 ECharts 前由递归 union 校验。既有布局 DSL、图表参数与显示方式沿用。
+CLI 与 `@calcit/procs` 配对使用正式 **0.42.1**，模块固定已发布 Alerts **0.14.2**、Reel **0.10.0**、UI **0.15.2**、Respo **0.19.5** 和 JS FFI **0.2.13**。升级后重新安装完整依赖图、构建前端并刷新。 图表配置在送入 ECharts 前由递归 union 校验。既有布局 DSL、图表参数与显示方式沿用。
 History、Library 和 Tips 接收 Respo 的具名事件。可选字段写入保留载荷类型，继续兼容开放的布局和消息 Map。
 
 relay 仍接收原布局 DSL，存档与报告存储路径沿用原合同。MathML 列表经校验后构建内部 `MathExpr`，每个子节点用 `MathChild = String | Number | MathExpr` 表达。History、Library、Help 回调的 dispatcher 使用 `AnyEnum`，页面报错仍通过 `hud!` 显示。 Relay 布局路径继续接受原数字、字符串、Tag 与混合列表。路径解码后使用 `LayoutPath` / `PathSegment` union，空路径和非法路径沿用现有响应。
