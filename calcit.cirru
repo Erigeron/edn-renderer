@@ -1031,8 +1031,9 @@
                 :protocol_docs $ select-protocol-docs normalized-topics
                 :examples $ select-example-docs normalized-topics
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
@@ -1043,8 +1044,9 @@
                 :title $ if full? "|edn-renderer Skill (full)" "|edn-renderer Skill"
                 :text text
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
@@ -1055,7 +1057,7 @@
                   .unwrap $ get item :title
                   , "|\n\n" $ .unwrap $ get item :text
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> String)
+          :schema $ quote $ Fn Input (-> String) (:generics Input)
         'build-status-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-status-payload (relay renderer)
             ->
@@ -2066,7 +2068,7 @@
                     _ $ RendererRequest :invalid
                 RendererRequest :invalid
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> RendererRequest)
+          :schema $ quote $ Fn Input (-> RendererRequest) (:generics Input)
         'persist-storage! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-storage! ()
             println "|Saved at" $ :iso $ host/date-now-snapshot
