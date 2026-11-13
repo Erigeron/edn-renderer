@@ -1446,6 +1446,15 @@
           :examples $ []
           :schema $ quote $ Fn Dynamic
             -> $ Option $ Map Tag Dynamic
+        'decode-relay-channels $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn decode-relay-channels (channels)
+            if (list? channels)
+              decode-map-as channels $ List String
+              []
+          :examples $ []
+          :schema $ quote $ Fn Input
+            -> $ List String
+            :generics Input
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when config/dev? $ js/console.log |Dispatch: op
@@ -1493,24 +1502,20 @@
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'handle-channel-state! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn handle-channel-state! (ws client-id channels)
-            let
-                normalized $ if (list? channels)
-                  decode-map-as channels $ List String
-                  []
-              match client-id
-                (:some id)
-                  dispatch! $ :: :relay-connected id normalized
-                (:none)
-                  dispatch! $ :: :relay-channels normalized
-              when
-                and
-                  .none? $ selected-relay-channel
-                  = 1 $ .len normalized
-                dispatch! $ :: :select-channel $ .unwrap (first normalized)
+          :code $ quote $ defn handle-channel-state! (client-id channels)
+            match client-id
+              (:some id)
+                dispatch! $ :: :relay-connected id channels
+              (:none)
+                dispatch! $ :: :relay-channels channels
+            when
+              and
+                .none? $ selected-relay-channel
+                = 1 $ .len channels
+              dispatch! $ :: :select-channel $ .unwrap (first channels)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn browser/WebSocketHost (Option String) Dynamic (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (Option String) (List String) (-> Unit) (:features :js-ffi)
         'handle-genui-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-genui-event! (ws frame)
             let
@@ -1592,13 +1597,13 @@
                 put-field :channel $ field frame :channel
                 put-field :request-id $ field frame :id
               if (= kind |hello-ok)
-                handle-channel-state! ws
+                handle-channel-state!
                   decode-map-as
                     .and-then (get frame :client_id) present-option
                     Option String
-                  field-or frame :channels $ []
+                  decode-relay-channels $ field-or frame :channels $ []
                 if (= kind |channel-state)
-                  handle-channel-state! ws None $ field-or frame :channels $ []
+                  handle-channel-state! None $ decode-relay-channels $ field-or frame :channels ([])
                   if (= kind |event)
                     if
                       and (.some? selected)
