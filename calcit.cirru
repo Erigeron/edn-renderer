@@ -1884,8 +1884,9 @@
                       normalize-layout-path-text $ to-string tag
                 (:err _) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ List Number
+            :generics Input
         'normalize-layout-path-items $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-layout-path-items (items)
             .foldl items
@@ -1922,8 +1923,9 @@
               (:none)
                 Some $ []
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ List Number
+            :generics Input
         'normalize-renderer-topics $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-renderer-topics (topics)
             if (list? topics)
@@ -1938,8 +1940,9 @@
                     , acc
               []
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List String
+            :generics Input
         'parse-layout-path-segment $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-segment (item)
             match item
@@ -2077,8 +2080,9 @@
                 Some $ to-string x
               true None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option String
+            :generics Input
         'relay-ack-frame $ %{} 'CodeEntry
           :doc "|Encode the existing relay acknowledgment wire map."
           :code $ quote $ defn relay-ack-frame (request-id outcome)
