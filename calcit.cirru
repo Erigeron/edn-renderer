@@ -1895,12 +1895,9 @@
                           Some $ [] segment
                         (:none) None
                     (List items) (normalize-layout-path-items items)
-                    _ $ let
-                        raw $ .unwrap $ protocol-name checked
-                      if
-                        or (= raw |) (= raw |root)
-                        Some $ []
-                        normalize-layout-path-items $ split raw |.
+                    (String text) (normalize-layout-path-text text)
+                    (Tag tag)
+                      normalize-layout-path-text $ to-string tag
                 (:err _) None
           :examples $ []
           :schema $ quote $ Fn Dynamic
@@ -1923,6 +1920,15 @@
                       (:none) None
           :examples $ []
           :schema $ quote $ Fn (List PathSegment)
+            -> $ Option $ List Number
+        'normalize-layout-path-text $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn normalize-layout-path-text (text)
+            if
+              or (= text |) (= text |root)
+              Some $ []
+              normalize-layout-path-items $ split text |.
+          :examples $ []
+          :schema $ quote $ Fn String
             -> $ Option $ List Number
         'normalize-payload-path $ %{} 'CodeEntry
           :doc "|Layout path of a map request payload; a missing or nil :path is the root."
@@ -2068,19 +2074,15 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'pick-layout-child $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn pick-layout-child (children position)
-            if (list? children)
-              let
-                  items children
-                if
-                  or (<= position 0) (empty? items)
-                  , None $ if (= position 1)
-                    Some $ decode-map-as
-                      .unwrap $ first items
-                      Map Tag Dynamic
-                    recur (rest items) (dec position)
-              , None
+            if
+              or (<= position 0) (empty? children)
+              , None $ if (= position 1)
+                Some $ decode-map-as
+                  .unwrap $ first children
+                  Map Tag Dynamic
+                recur (rest children) (dec position)
           :examples $ []
-          :schema $ quote $ Fn Dynamic Number
+          :schema $ quote $ Fn (List Dynamic) Number
             -> $ Option $ Map Tag Dynamic
         'protocol-name $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn protocol-name (x)
