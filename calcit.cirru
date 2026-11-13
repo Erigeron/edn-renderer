@@ -1530,13 +1530,13 @@
                     layout $ validate-layout layout-dsl
                     ack-payload $ {} (:status :ok) (:layout_id layout-id)
                   dispatch! $ :: :genui-applied request-id layout-id layout layout-dsl source
-                  send-genui-ack! ws request-id true ack-payload None
+                  send-genui-ack! ws request-id $ Result :ok ack-payload
                 fn (error)
                   let
                       message $ :message $ host/normalize-error error
                     dispatch! $ :: :genui-failed request-id message source
                     host/console-warn! $ str "|[renderer] validation failed: " message
-                    send-genui-ack! ws request-id false nil $ Some message
+                    send-genui-ack! ws request-id $ Result :err message
           :examples $ []
           :schema $ quote $ Fn browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'handle-relay-message! $ %{} 'CodeEntry (:doc |)
@@ -1657,11 +1657,11 @@
                   (:help topics)
                     let
                         response-payload $ config/build-help-payload topics
-                      send-genui-ack! ws request-id true response-payload None
+                      send-genui-ack! ws request-id $ Result :ok response-payload
                   (:skill topics)
-                    send-genui-ack! ws request-id true (config/build-skill-payload topics) None
+                    send-genui-ack! ws request-id $ Result :ok $ config/build-skill-payload topics
                   (:status)
-                    send-genui-ack! ws request-id true (config/build-status-payload relay renderer) None
+                    send-genui-ack! ws request-id $ Result :ok $ config/build-status-payload relay renderer
                   (:snapshot path)
                     if-let
                       layout-dsl $ decode-map-as
@@ -1672,8 +1672,8 @@
                           response-payload $ {} (:status :ok) (:kind :snapshot)
                             :path $ layout-path-display path
                             :tree $ summarize-layout-node target-node path
-                        send-genui-ack! ws request-id true response-payload None
-                      send-genui-ack! ws request-id false nil $ Some "|No layout loaded in renderer"
+                        send-genui-ack! ws request-id $ Result :ok response-payload
+                      send-genui-ack! ws request-id $ Result :err "|No layout loaded in renderer"
                   (:layout path)
                     if-let
                       layout-dsl $ decode-map-as
@@ -1686,8 +1686,8 @@
                               :path $ layout-path-display path
                               :summary $ summarize-layout-node target-node path
                             , :layout_id $ field renderer :layout-id
-                        send-genui-ack! ws request-id true response-payload None
-                      send-genui-ack! ws request-id false nil $ Some "|No layout loaded in renderer"
+                        send-genui-ack! ws request-id $ Result :ok response-payload
+                      send-genui-ack! ws request-id $ Result :err "|No layout loaded in renderer"
                   (:node path)
                     if-let
                       layout-dsl $ decode-map-as
@@ -1702,8 +1702,8 @@
                               :source $ format-cirru-edn target-node
                               :summary $ summarize-layout-node target-node path
                             , :layout_id $ field renderer :layout-id
-                        send-genui-ack! ws request-id true response-payload None
-                      send-genui-ack! ws request-id false nil $ Some "|No layout loaded in renderer"
+                        send-genui-ack! ws request-id $ Result :ok response-payload
+                      send-genui-ack! ws request-id $ Result :err "|No layout loaded in renderer"
                   (:patch path changes)
                     if-let
                       layout-dsl $ decode-map-as
@@ -1719,8 +1719,8 @@
                             :dsl $ layout-node-at-path next-dsl path
                             :summary $ summarize-layout-node (layout-node-at-path next-dsl path) path
                         dispatch! $ :: :layout-mutated request-id next-layout-id next-layout next-dsl next-source
-                        send-genui-ack! ws request-id true response-payload None
-                      send-genui-ack! ws request-id false nil $ Some "|No layout loaded in renderer"
+                        send-genui-ack! ws request-id $ Result :ok response-payload
+                      send-genui-ack! ws request-id $ Result :err "|No layout loaded in renderer"
                   (:replace path next-node)
                     if-let
                       layout-dsl $ decode-map-as
@@ -1738,15 +1738,15 @@
                             :dsl $ layout-node-at-path next-dsl path
                             :summary $ summarize-layout-node (layout-node-at-path next-dsl path) path
                         dispatch! $ :: :layout-mutated request-id next-layout-id next-layout next-dsl next-source
-                        send-genui-ack! ws request-id true response-payload None
-                      send-genui-ack! ws request-id false nil $ Some "|No layout loaded in renderer"
+                        send-genui-ack! ws request-id $ Result :ok response-payload
+                      send-genui-ack! ws request-id $ Result :err "|No layout loaded in renderer"
                   (:invalid)
-                    send-genui-ack! ws request-id false nil $ Some "|Unsupported renderer request"
+                    send-genui-ack! ws request-id $ Result :err "|Unsupported renderer request"
                 fn (error)
                   let
                       message $ :message $ host/normalize-error error
                     host/console-warn! $ str "|[renderer] request failed: " message
-                    send-genui-ack! ws request-id false nil $ Some message
+                    send-genui-ack! ws request-id $ Result :err message
           :examples $ []
           :schema $ quote $ Fn browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
         'handle-storage-ack! $ %{} 'CodeEntry (:doc |)
@@ -2093,6 +2093,28 @@
           :examples $ []
           :schema $ quote $ Fn Dynamic
             -> $ Option String
+        'relay-ack-frame $ %{} 'CodeEntry
+          :doc "|Encode the existing relay acknowledgment wire map."
+          :code $ quote $ defn relay-ack-frame (request-id outcome)
+            match outcome
+              (:ok payload)
+                {} (:kind :ack) (:id request-id) (:ok true) (:payload payload)
+              (:err message)
+                {} (:kind :ack) (:id request-id) (:ok false) (:payload nil) (:error message)
+          :examples $ []
+          :schema $ quote $ Fn String
+            Result (Map Tag Dynamic) String
+            -> $ Map Tag Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |preserves-success-and-error-wire-fields)
+            :code $ quote $ do
+              assert=
+                {} (:kind :ack) (:id |request) (:ok true)
+                  :payload $ {} $ :layout |sample
+                relay-ack-frame |request $ Result :ok $ {} (:layout |sample)
+              assert=
+                {} (:kind :ack) (:id |request) (:ok false) (:payload nil) (:error |missing)
+                relay-ack-frame |request $ Result :err |missing
+            :tags $ #{} :relay-ack
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if (nil? build-errors)
@@ -2204,12 +2226,13 @@
           :schema $ quote $ Fn
             -> $ Option String
         'send-genui-ack! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn send-genui-ack! (ws request-id ok? payload error-message)
-            send-relay-frame! ws $ put-field
-              {} (:kind :ack) (:id request-id) (:ok ok?) (:payload payload)
-              , :error error-message
+          :code $ quote $ defn send-genui-ack! (ws request-id outcome)
+            send-relay-frame! ws $ relay-ack-frame request-id outcome
           :examples $ []
-          :schema $ quote $ Fn browser/WebSocketHost String Bool Dynamic (Option String) (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn browser/WebSocketHost String
+            Result (Map Tag Dynamic) String
+            -> Unit
+            :features :js-ffi
         'send-relay-frame! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-relay-frame! (ws frame)
             browser/web-socket-send! ws $ format-cirru-edn frame
