@@ -1024,29 +1024,24 @@
       :defs $ {}
         'build-help-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-help-payload (topics)
-            let
-                normalized-topics $ if (list? topics) topics $ []
-              {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics normalized-topics)
-                :components $ select-component-docs normalized-topics
-                :protocol_docs $ select-protocol-docs normalized-topics
-                :examples $ select-example-docs normalized-topics
+            {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics topics)
+              :components $ select-component-docs topics
+              :protocol_docs $ select-protocol-docs topics
+              :examples $ select-example-docs topics
           :examples $ []
-          :schema $ quote $ Fn Input
+          :schema $ quote $ Fn (List String)
             -> $ Map Tag Dynamic
-            :generics Input
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
-                normalized-topics $ if (list? topics) topics $ []
-                full? $ includes? normalized-topics |full
-                text $ if full? skill-text $ if (empty? normalized-topics) skill-overview (build-skill-text normalized-topics)
+                full? $ includes? topics |full
+                text $ if full? skill-text $ if (empty? topics) skill-overview (build-skill-text topics)
               {} (:status :ok) (:kind :skill) (:renderer |edn-renderer)
                 :title $ if full? "|edn-renderer Skill (full)" "|edn-renderer Skill"
                 :text text
           :examples $ []
-          :schema $ quote $ Fn Input
+          :schema $ quote $ Fn (List String)
             -> $ Map Tag Dynamic
-            :generics Input
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
@@ -1057,7 +1052,7 @@
                   .unwrap $ get item :title
                   , "|\n\n" $ .unwrap $ get item :text
           :examples $ []
-          :schema $ quote $ Fn Input (-> String) (:generics Input)
+          :schema $ quote $ Fn (List String) (-> String)
         'build-status-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-status-payload (relay renderer)
             ->
@@ -1215,56 +1210,36 @@
           :schema $ quote String
         'select-component-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-component-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |components) component-docs $ filter component-docs $ fn (item)
-                hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |components) component-docs $ filter component-docs $ fn (item)
+              hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Topics
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag Dynamic
-            :generics Topics
         'select-example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-example-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |examples) example-docs $ filter example-docs $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |examples) example-docs $ filter example-docs $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Topics
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
-            :generics Topics
         'select-protocol-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-protocol-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Topics
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
-            :generics Topics
         'select-skill-sections $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-skill-sections (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |all) skill-sections $ filter skill-sections $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |all) skill-sections $ filter skill-sections $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Topics
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
-            :generics Topics
         'site $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def site
             {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
