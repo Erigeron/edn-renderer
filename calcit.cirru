@@ -191,11 +191,9 @@
           :examples $ []
           :schema $ quote $ Fn (List ChartDatum) ChartKind (Option String) (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-container (reel)
+          :code $ quote $ defcomp comp-container (reel on-reel-control)
             let
-                store $ decode-map-as
-                  .unwrap $ get reel :store
-                  Map Tag Dynamic
+                store $ :store reel
                 states $ decode-map-as
                   .unwrap $ get store :states
                   Map Tag Dynamic
@@ -437,7 +435,7 @@
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|Click a message to inspect its raw relay frame."
                         if dev?
-                          Some $ comp-reel (>> states :reel) reel $ {}
+                          Some $ comp-typed-reel (>> states :reel) reel ({}) on-reel-control
                           , None
                 help-alert $ use-alert (>> states :help)
                   {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
@@ -563,7 +561,11 @@
                 .render drawer-plugin
                 .render help-alert
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn
+            reel.typed/State app.schema/DispatchOp $ Map Tag Dynamic
+            Fn reel.typed/Control $ -> Unit
+            -> respo.schema/Component
+            :features :js-ffi
         'comp-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-layout-node (node)
             match node
@@ -1012,7 +1014,7 @@
             respo.css :refer $ defstyle
             respo.core :refer $ defcomp defeffect <> >> div button textarea span input keyed-> keyed-element keyed-component
             respo.comp.space :refer $ =<
-            reel.comp.reel :refer $ comp-reel
+            reel.comp.reel :refer $ comp-typed-reel
             app.config :refer $ dev?
             |echarts :as echarts-lib
             |mermaid :default mermaid-lib
@@ -1382,10 +1384,10 @@
     'app.main $ %{} 'FileEntry
       :defs $ {}
         '*reel $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defref *reel
-            -> reel-schema/reel (assoc :base schema/store) (assoc :store schema/store)
+          :code $ quote $ defref *reel (reel-typed/new-reel schema/store)
           :examples $ []
-          :schema $ quote $ Ref (Map Tag Dynamic)
+          :schema $ quote $ Ref
+            reel.typed/State schema/DispatchOp $ Map Tag Dynamic
         '*ws $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *ws None
           :examples $ []
@@ -1413,6 +1415,12 @@
             :invalid
           :examples $ []
           :schema $ quote EnumDef
+        'apply-reel-control! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn apply-reel-control! (control)
+            reset! *reel $ reel-typed/apply-control updater @*reel control
+            , &unit
+          :examples $ []
+          :schema $ quote $ Fn reel.typed/Control (-> Unit) (:features :state)
         'build-saved-report-entry $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-saved-report-entry (relay renderer)
             let
@@ -1450,13 +1458,7 @@
           :code $ quote $ defn dispatch! (op)
             when config/dev? $ js/console.log |Dispatch: op
             let
-                next-reel $ reel-updater
-                  fn (store op op-id op-time)
-                    hint-fn $ Fn Dynamic Dynamic Dynamic Dynamic $ -> (Map Tag Dynamic)
-                    updater
-                      decode-map-as store $ Map Tag Dynamic
-                      , op (decode-map-as op-id 'String) (decode-map-as op-time 'Number)
-                  , @*reel op
+                next-reel $ reel-typed/record-op updater @*reel op (generate-id!) (host/now-ms)
               reset! *reel next-reel
               match @*ws
                 (:some socket)
@@ -1551,7 +1553,7 @@
                 selected $ selected-relay-channel
                 pending-storage $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :renderer :storage-pending
+                    get-in (:store @*reel) ([] :renderer :storage-pending)
                     (:ok value) (present-option value)
                     (:err _) None
                   Option $ Map Tag Dynamic
@@ -1639,14 +1641,14 @@
                   (:none) (RendererRequest :invalid)
                 relay $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :relay
+                    get-in (:store @*reel) ([] :relay)
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
                   Map Tag Dynamic
                 renderer $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :renderer
+                    get-in (:store @*reel) ([] :renderer)
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
@@ -1757,7 +1759,7 @@
                   , 'String
                 pending $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :renderer :storage-pending
+                    get-in (:store @*reel) ([] :renderer :storage-pending)
                     (:ok value) (present-option value)
                     (:err _) None
                   Option $ Map Tag Dynamic
@@ -1850,7 +1852,7 @@
               (:none) &unit
             render-app!
             add-watch! *reel :changes $ fn (reel prev) (render-app!)
-            listen-devtools! |k dispatch!
+            listen-devtools! |k apply-reel-control!
             browser/add-event-listener! |beforeunload $ fn (event) (persist-storage!)
             browser/add-event-listener! |visibilitychange $ fn (event)
               match (browser/visibility-state)
@@ -2061,7 +2063,7 @@
             println "|Saved at" $ :iso $ host/date-now-snapshot
             .set-item! (browser/window-local-storage)
               .unwrap $ get config/site :storage-key
-              format-cirru-edn $ .unwrap $ get @*reel :store
+              format-cirru-edn $ :store @*reel
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'pick-layout-child $ %{} 'CodeEntry (:doc |)
@@ -2096,7 +2098,7 @@
             if (nil? build-errors)
               do (remove-watch! *reel :changes) (clear-cache!)
                 add-watch! *reel :changes $ fn (reel prev) (render-app!)
-                reset! *reel $ decode-map-as (refresh-reel @*reel schema/store updater) (Map Tag Dynamic)
+                reset! *reel $ reel-typed/refresh updater @*reel schema/store
                 ensure-relay!
                 hud! |ok~ |Ok
               hud! |error build-errors
@@ -2105,7 +2107,7 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
-            render! mount-target (comp-container @*reel) dispatch!
+            render! mount-target (comp-container @*reel apply-reel-control!) dispatch!
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
@@ -2162,14 +2164,14 @@
             let
                 relay $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :relay
+                    get-in (:store @*reel) ([] :relay)
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
                   Map Tag Dynamic
                 renderer $ decode-map-as
                   match
-                    get-in @*reel $ [] :store :renderer
+                    get-in (:store @*reel) ([] :renderer)
                     (:ok value) value
                     (:err error)
                       raise $ str "|Required renderer state path missing: " error
@@ -2193,7 +2195,7 @@
           :code $ quote $ defn selected-relay-channel ()
             match
               data-view $ .unwrap-or
-                get-in @*reel $ [] :store :relay :selected-channel
+                get-in (:store @*reel) ([] :relay :selected-channel)
                 , nil
               (:nil) None
               (:string channel) (Some channel)
@@ -2277,7 +2279,7 @@
           :code $ quote $ defn sync-selected-channel! (ws)
             let
                 client-id $ .unwrap-or
-                  get-in @*reel $ [] :store :relay :client-id
+                  get-in (:store @*reel) ([] :relay :client-id)
                   , nil
                 selected $ selected-relay-channel
                 channels $ match selected
@@ -2295,8 +2297,7 @@
             app.updater :refer $ updater
             app.schema :as schema
             reel.util :refer $ listen-devtools!
-            reel.core :refer $ reel-updater refresh-reel
-            reel.schema :as reel-schema
+            reel.typed :as reel-typed
             app.config :as config
             |./calcit.build-errors :default build-errors
             |bottom-tip :default hud!
@@ -2574,7 +2575,7 @@
                     -> renderer (assoc :layout layout) (assoc :layout-dsl layout-dsl) (assoc :layout-id layout-id) (assoc :layout-source source) (assoc :last-request request-id) (assoc :last-error nil) (assoc :workspace-entry entry) (assoc :selected-storage entry) (assoc :storage-status |workspace) (assoc :storage-error nil)
               _ $ do (eprintln "|unknown op:" op) store
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) app.schema/DispatchOp String Number
             -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
