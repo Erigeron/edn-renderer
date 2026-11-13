@@ -1223,8 +1223,9 @@
                 hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Topics
             -> $ List $ Map Tag Dynamic
+            :generics Topics
         'select-example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-example-docs (topics)
             let
@@ -1235,8 +1236,9 @@
                 hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Topics
             -> $ List $ Map Tag String
+            :generics Topics
         'select-protocol-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-protocol-docs (topics)
             let
@@ -1247,8 +1249,9 @@
                 hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Topics
             -> $ List $ Map Tag String
+            :generics Topics
         'select-skill-sections $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-skill-sections (topics)
             let
@@ -1259,8 +1262,9 @@
                 hint-fn $ Fn (Map Tag String) (-> Bool)
                 includes? normalized-topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Topics
             -> $ List $ Map Tag String
+            :generics Topics
         'site $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def site
             {} (:storage-key |workflow) (:relay-url |ws://127.0.0.1:9100)
