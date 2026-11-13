@@ -1448,9 +1448,7 @@
             -> $ Option $ Map Tag Dynamic
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
-            when
-              and config/dev? $ not= op :states
-              js/console.log |Dispatch: op
+            when config/dev? $ js/console.log |Dispatch: op
             let
                 next-reel $ reel-updater
                   fn (store op op-id op-time)
@@ -1471,7 +1469,7 @@
                     _ &unit
                 (:none) &unit
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/DispatchOp (-> Unit) (:features :js-ffi)
         'ensure-relay! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ensure-relay! ()
             when (.none? @*ws)
