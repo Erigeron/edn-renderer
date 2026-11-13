@@ -2107,7 +2107,9 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
-            render! mount-target (comp-container @*reel apply-reel-control!) dispatch!
+            render-with! mount-target
+              fn () $ comp-container @*reel apply-reel-control!
+              , dispatch!
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
@@ -2291,7 +2293,7 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.main
           :require
-            respo.core :refer $ render! clear-cache!
+            respo.core :refer $ render-with! clear-cache!
             app.comp.container :refer $ comp-container validate-layout present-option
             app.field :refer $ field field-is? field-or put-field
             app.updater :refer $ updater
