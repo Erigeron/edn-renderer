@@ -1026,6 +1026,18 @@
           :code $ quote $ defunion ComponentDocField String (List String)
           :examples $ []
           :schema $ quote UnionDef
+        'HelpListItem $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion HelpListItem String (Map Tag ComponentDocField)
+          :examples $ []
+          :schema $ quote UnionDef
+        'HelpPayloadField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion HelpPayloadField Tag String (List HelpListItem)
+          :examples $ []
+          :schema $ quote UnionDef
+        'SkillPayloadField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion SkillPayloadField Tag String
+          :examples $ []
+          :schema $ quote UnionDef
         'build-help-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-help-payload (topics)
             {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics topics)
@@ -1034,7 +1046,7 @@
               :examples $ select-example-docs topics
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag HelpPayloadField
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
@@ -1045,7 +1057,7 @@
                 :text text
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag SkillPayloadField
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
@@ -2155,8 +2167,9 @@
                 {} (:kind :ack) (:id request-id) (:ok false) (:payload nil) (:error message)
           :examples $ []
           :schema $ quote $ Fn String
-            Result (Map Tag Dynamic) String
+            Result (Map Tag Field) String
             -> $ Map Tag Dynamic
+            :generics Field
           :tests $ [] $ %{} 'TestEntry (:name |preserves-success-and-error-wire-fields)
             :code $ quote $ do
               assert=
@@ -2282,8 +2295,9 @@
             send-relay-frame! ws $ relay-ack-frame request-id outcome
           :examples $ []
           :schema $ quote $ Fn browser/WebSocketHost String
-            Result (Map Tag Dynamic) String
+            Result (Map Tag Field) String
             -> Unit
+            :generics Field
             :features :js-ffi
         'send-relay-frame! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-relay-frame! (ws frame)
