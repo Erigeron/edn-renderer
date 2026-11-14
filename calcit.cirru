@@ -2068,8 +2068,9 @@
                   Map Tag Dynamic
                 recur (rest children) (dec position)
           :examples $ []
-          :schema $ quote $ Fn (List Dynamic) Number
+          :schema $ quote $ Fn (List Child) Number
             -> $ Option $ Map Tag Dynamic
+            :generics Child
         'protocol-name $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn protocol-name (x)
             cond
