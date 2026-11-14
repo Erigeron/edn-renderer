@@ -1379,6 +1379,10 @@
           :code $ quote $ defunion PathSegment Number String Tag
           :examples $ []
           :schema $ quote UnionDef
+        'ProtocolName $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion ProtocolName String Tag
+          :examples $ []
+          :schema $ quote UnionDef
         'RendererRequest $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum RendererRequest
             :help $ List String
@@ -1530,7 +1534,7 @@
           :code $ quote $ defn handle-relay-message! (ws raw)
             let
                 frame $ decode-map-as (parse-cirru-edn raw) (Map Tag Dynamic)
-                kind-name $ .and-then (field frame :kind) protocol-name
+                kind-name $ .and-then (field frame :kind) read-protocol-name
                 kind $ .unwrap-or kind-name |
                 request $ match (field frame :payload)
                   (:some payload) (parse-renderer-request payload)
@@ -1759,7 +1763,7 @@
                           .unwrap $ get frame :payload
                           Map Tag Dynamic
                         kind $ .unwrap-or
-                          .and-then (field payload :kind) protocol-name
+                          .and-then (field payload :kind) read-protocol-name
                           , |
                       if (= kind |storage-list)
                         dispatch! $ :: :storage-listed request-id $ match (field payload :entries)
@@ -1934,7 +1938,7 @@
                 assert-type topics $ List Dynamic
                 []
                 fn (acc item)
-                  match (protocol-name item)
+                  match (read-protocol-name item)
                     (:some name) (append acc name)
                     (:none) acc
               []
@@ -1942,24 +1946,37 @@
           :schema $ quote $ Fn Input
             -> $ List String
             :generics Input
+          :tests $ [] $ %{} 'TestEntry (:name |keeps-text-and-tag-topics-in-order)
+            :code $ quote $ do
+              assert= ([] |layout |storage)
+                normalize-renderer-topics $ [] |layout 17 :storage nil
+              assert= ([]) (normalize-renderer-topics |layout)
+            :tags $ #{} :unit
+        'parse-layout-path-index $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn parse-layout-path-index (text)
+            let
+                digits? $ .foldl (split text |) true $ fn (valid? ch)
+                  hint-fn $ Fn Bool String $ -> Bool
+                  and valid? $ includes? |0123456789 ch
+              if
+                and
+                  not $ empty? text
+                  , digits?
+                match (parse-float text)
+                  (:ok n) (Some n)
+                  (:err _) None
+                , None
+          :examples $ []
+          :schema $ quote $ Fn String
+            -> $ Option Number
         'parse-layout-path-segment $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-segment (item)
             match item
               (Number n)
                 if (> n 0) (Some n) None
-              _ $ let
-                  text $ .unwrap $ protocol-name item
-                  digits? $ .foldl (split text |) true $ fn (valid? ch)
-                    hint-fn $ Fn Bool String $ -> Bool
-                    and valid? $ includes? |0123456789 ch
-                if
-                  and
-                    not $ empty? text
-                    , digits?
-                  match (parse-float text)
-                    (:ok n) (Some n)
-                    (:err _) None
-                  , None
+              (String text) (parse-layout-path-index text)
+              (Tag tag)
+                parse-layout-path-index $ to-string tag
           :examples $ []
           :schema $ quote $ Fn PathSegment
             -> $ Option Number
@@ -2009,7 +2026,7 @@
               if (map? payload)
                 let
                     op-name $ .unwrap-or
-                      .and-then (field payload :op) protocol-name
+                      .and-then (field payload :op) read-protocol-name
                       , |
                     topics $ normalize-renderer-topics $ field-or payload :topics ([])
                   match op-name
@@ -2073,12 +2090,17 @@
             :generics Child
         'protocol-name $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn protocol-name (x)
-            cond
-                string? x
-                Some x
-              (tag? x)
-                Some $ to-string x
-              true None
+            match x
+              (String text) text
+              (Tag tag) (to-string tag)
+          :examples $ []
+          :schema $ quote $ Fn ProtocolName (-> String)
+        'read-protocol-name $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn read-protocol-name (raw)
+            match (try-decode-map-as raw ProtocolName)
+              (:ok name)
+                Some $ protocol-name name
+              (:err _) None
           :examples $ []
           :schema $ quote $ Fn Input
             -> $ Option String
