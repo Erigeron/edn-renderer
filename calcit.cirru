@@ -2112,8 +2112,9 @@
                 {} (:kind :ack) (:id request-id) (:ok false) (:payload nil) (:error message)
           :examples $ []
           :schema $ quote $ Fn String
-            Result (Map Tag Dynamic) String
+            Result (Map Tag Field) String
             -> $ Map Tag Dynamic
+            :generics Field
           :tests $ [] $ %{} 'TestEntry (:name |preserves-success-and-error-wire-fields)
             :code $ quote $ do
               assert=
@@ -2239,8 +2240,9 @@
             send-relay-frame! ws $ relay-ack-frame request-id outcome
           :examples $ []
           :schema $ quote $ Fn browser/WebSocketHost String
-            Result (Map Tag Dynamic) String
+            Result (Map Tag Field) String
             -> Unit
+            :generics Field
             :features :js-ffi
         'send-relay-frame! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-relay-frame! (ws frame)
