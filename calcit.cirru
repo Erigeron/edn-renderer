@@ -1934,11 +1934,9 @@
                 assert-type topics $ List Dynamic
                 []
                 fn (acc item)
-                  hint-fn $ Fn (List String) Dynamic $ -> (List String)
-                  if
-                    or (string? item) (tag? item)
-                    append acc $ .unwrap $ protocol-name item
-                    , acc
+                  match (protocol-name item)
+                    (:some name) (append acc name)
+                    (:none) acc
               []
           :examples $ []
           :schema $ quote $ Fn Input
