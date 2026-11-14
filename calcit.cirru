@@ -469,7 +469,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         d! $ :: :open-history-drawer
                         .show drawer-plugin d!
@@ -479,7 +479,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         d! $ :: :open-library-drawer
                         .show drawer-plugin d!
@@ -494,7 +494,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         .show help-alert d! None
                         , &unit
