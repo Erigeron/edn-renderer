@@ -865,16 +865,18 @@
                             , None $ Some $ str title
                         map series $ fn (item)
                           if (map? item)
-                            if
-                              and (field-is? item :label string?) (field-is? item :value number?)
-                              ChartDatum :label
-                                decode-map-as
-                                  .unwrap $ get item :label
-                                  , String
-                                , :value $ decode-map-as
-                                  .unwrap $ get item :value
-                                  , Number
-                              raise $ str path "| chart series item requires string :label and number :value"
+                            let
+                                invalid $ str path "| chart series item requires string :label and number :value"
+                              match (get item :label)
+                                (:some label)
+                                  match (get item :value)
+                                    (:some value)
+                                      if
+                                        and (string? label) (number? value)
+                                        ChartDatum :label label :value value
+                                        raise invalid
+                                    (:none) (raise invalid)
+                                (:none) (raise invalid)
                             raise $ str path "| chart series item should be a map"
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
