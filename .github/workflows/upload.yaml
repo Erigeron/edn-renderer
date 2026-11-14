@@ -86,22 +86,6 @@ jobs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Build isolated Reel acceptance artifact
-      if: github.event_name == 'pull_request'
-      env:
-        mode: dev
-        VITE_BASE_URL: ./
-      run: yarn build
-
-    - name: Save isolated Reel acceptance artifact
-      if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v7.0.1
-      with:
-        name: reel-dev-${{ github.run_id }}-${{ github.run_attempt }}
-        path: dist
-        if-no-files-found: error
-        retention-days: 1
-
     - name: Check current production revision
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: production
