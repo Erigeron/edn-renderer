@@ -1451,16 +1451,49 @@
               reset! *reel next-reel
               match @*ws
                 (:some socket)
-                  match op
-                    (:select-channel _) (sync-selected-channel! socket)
-                    (:request-storage-list) (request-storage-list! socket)
-                    (:save-current-report) (request-storage-save! socket)
-                    (:load-stored-report name)
-                      request-storage-load! socket $ decode-map-as name 'String
-                    _ &unit
+                  match (dispatch-relay-effect op)
+                    (:some effect)
+                      match effect
+                        (:sync-channel) (sync-selected-channel! socket)
+                        (:list-reports) (request-storage-list! socket)
+                        (:save-report) (request-storage-save! socket)
+                        (:load-report name) (request-storage-load! socket name)
+                    (:none) &unit
                 (:none) &unit
           :examples $ []
           :schema $ quote $ Fn schema/DispatchOp (-> Unit) (:features :js-ffi)
+        'dispatch-relay-effect $ %{} 'CodeEntry
+          :doc "|Decode legacy dispatch events at the relay boundary. Other Respo or Reel events have no WebSocket effect."
+          :code $ quote $ defn dispatch-relay-effect (op)
+            match op
+              (:select-channel _)
+                Some $ schema/RelayEffect :sync-channel
+              (:request-storage-list)
+                Some $ schema/RelayEffect :list-reports
+              (:save-current-report)
+                Some $ schema/RelayEffect :save-report
+              (:load-stored-report name)
+                Some $ schema/RelayEffect :load-report $ decode-map-as name 'String
+              _ None
+          :examples $ []
+          :schema $ quote $ Fn schema/DispatchOp
+            -> $ Option schema/RelayEffect
+          :tests $ [] $ %{} 'TestEntry (:name |legacy-dispatch-maps-to-closed-effects)
+            :code $ quote $ do
+              assert=
+                Some $ schema/RelayEffect :sync-channel
+                dispatch-relay-effect $ :: :select-channel |reports
+              assert=
+                Some $ schema/RelayEffect :list-reports
+                dispatch-relay-effect $ :: :request-storage-list
+              assert=
+                Some $ schema/RelayEffect :save-report
+                dispatch-relay-effect $ :: :save-current-report
+              assert=
+                Some $ schema/RelayEffect :load-report |weekly
+                dispatch-relay-effect $ :: :load-stored-report |weekly
+              assert= None $ dispatch-relay-effect $ :: :states ([] :report) nil
+            :tags $ #{} :unit
         'ensure-relay! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn ensure-relay! ()
             when (.none? @*ws)
@@ -2323,6 +2356,11 @@
           :code $ quote $ def DispatchOp (:: :unhandled)
           :examples $ []
           :schema $ quote AnyEnum
+        'RelayEffect $ %{} 'CodeEntry
+          :doc "|Closed set of WebSocket effects initiated by an application dispatch."
+          :code $ quote $ defenum RelayEffect (:sync-channel) (:list-reports) (:save-report) (:load-report String)
+          :examples $ []
+          :schema $ quote EnumDef
         'store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def store
             {}
