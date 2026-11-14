@@ -1022,6 +1022,14 @@
             js-ffi.contract :as contract
     'app.config $ %{} 'FileEntry
       :defs $ {}
+        'ComponentDocField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion ComponentDocField String (List String)
+          :examples $ []
+          :schema $ quote UnionDef
+        'SkillPayloadField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion SkillPayloadField Tag String
+          :examples $ []
+          :schema $ quote UnionDef
         'build-help-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-help-payload (topics)
             {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics topics)
@@ -1041,7 +1049,7 @@
                 :text text
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag SkillPayloadField
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
@@ -1110,7 +1118,7 @@
                 :fields $ [] |name |placeholder |text
                 :example "|{} (:type |input) (:name |email) (:placeholder |Email)"
           :examples $ []
-          :schema $ quote $ List (Map Tag Dynamic)
+          :schema $ quote $ List (Map Tag ComponentDocField)
         'current-page-title $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-page-title () (browser/document-title)
           :examples $ []
@@ -1211,11 +1219,14 @@
         'select-component-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-component-docs (topics)
             if (includes? topics |components) component-docs $ filter component-docs $ fn (item)
-              hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
-              includes? topics $ .unwrap $ get item :name
+              hint-fn $ Fn (Map Tag ComponentDocField) (-> Bool)
+              includes? topics $ match
+                .unwrap $ get item :name
+                (String name) name
+                (List _) (raise |Expected-component-name)
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ List $ Map Tag Dynamic
+            -> $ List $ Map Tag ComponentDocField
         'select-example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-example-docs (topics)
             if (includes? topics |examples) example-docs $ filter example-docs $ fn (item)
