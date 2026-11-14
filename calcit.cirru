@@ -1293,7 +1293,7 @@
                 if (nil? v) None $ Some v
               (:none) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic
+          :schema $ quote $ Fn Dynamic Tag
             -> $ Option Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |folds-nil-into-none)
             :code $ quote $ let
