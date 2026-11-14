@@ -832,13 +832,16 @@
                         LayoutNode :button text
                         raise $ str path "| button node requires non-empty :text"
                       raise $ str path "| button node requires non-empty :text"
-                    |input $ if
-                      or (field-is? node :name non-nil?) (field-is? node :placeholder non-nil?)
-                      LayoutNode :input
-                        decode-map-as (field node :name) (Option InputValue)
-                        decode-map-as (field node :placeholder) (Option InputValue)
-                        decode-map-as (field node :text) (Option InputValue)
-                      raise $ str path "| input node requires :name or :placeholder"
+                    |input $ let
+                        name $ field node :name
+                        placeholder $ field node :placeholder
+                      if
+                        or (.some? name) (.some? placeholder)
+                        LayoutNode :input
+                          decode-map-as name $ Option InputValue
+                          decode-map-as placeholder $ Option InputValue
+                          decode-map-as (field node :text) (Option InputValue)
+                        raise $ str path "| input node requires :name or :placeholder"
                     |markdown $ if (string? text)
                       if
                         > (.len text) 0
