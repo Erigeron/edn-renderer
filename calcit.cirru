@@ -2230,9 +2230,11 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
-            render! mount-target (comp-container @*reel on-control!) dispatch!
+            respo.core/render-with! mount-target
+              fn () $ comp-container @*reel on-control!
+              , dispatch!
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn replace-layout-node-at-path (node path next-node)
             if (empty? path) next-node $ let
