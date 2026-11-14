@@ -1022,6 +1022,10 @@
             js-ffi.contract :as contract
     'app.config $ %{} 'FileEntry
       :defs $ {}
+        'SkillPayloadField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion SkillPayloadField Tag String
+          :examples $ []
+          :schema $ quote UnionDef
         'build-help-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-help-payload (topics)
             {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics topics)
@@ -1041,7 +1045,7 @@
                 :text text
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag SkillPayloadField
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
             let
