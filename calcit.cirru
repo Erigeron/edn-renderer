@@ -1425,8 +1425,9 @@
               (:ok value) (Some value)
               (:err _) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ Map Tag Dynamic
+            :generics Input
         'decode-relay-channels $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-relay-channels (channels)
             if (list? channels)
