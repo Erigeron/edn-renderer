@@ -785,7 +785,6 @@
           :code $ quote $ defn parse-layout-children (children path)
             if (list? children)
               map children $ fn (child)
-                hint-fn $ Fn Dynamic $ -> LayoutNode
                 parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
           :examples $ []
