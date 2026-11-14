@@ -1293,7 +1293,7 @@
                 if (nil? v) None $ Some v
               (:none) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic
+          :schema $ quote $ Fn Dynamic Tag
             -> $ Option Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |folds-nil-into-none)
             :code $ quote $ let
@@ -1328,7 +1328,7 @@
               (:some v) (or v fallback)
               (:none) fallback
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic Dynamic (-> Dynamic)
+          :schema $ quote $ Fn Dynamic Tag Fallback (-> Dynamic) (:generics Fallback)
           :tests $ [] $ %{} 'TestEntry (:name |falls-back-like-or)
             :code $ quote $ let
                 m $ {} (:a |x) (:b nil) (:c false)
