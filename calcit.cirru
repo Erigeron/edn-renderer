@@ -997,7 +997,6 @@
                     let
                         children $ map (rest expr)
                           fn (child)
-                            hint-fn $ Fn Dynamic $ -> MathChild
                             validate-mathml-child child $ str path |/ tag-name
                       MathExpr :tag tag-name :children children
                     raise $ str path "| math expression requires string tag name"
