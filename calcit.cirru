@@ -469,7 +469,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         d! $ :: :open-history-drawer
                         .show drawer-plugin d!
@@ -479,7 +479,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         d! $ :: :open-library-drawer
                         .show drawer-plugin d!
@@ -494,7 +494,7 @@
                       :style $ {} (:padding "|5px 8px") (:font-size 11)
                       :on-click $ fn (e d!)
                         hint-fn $ Fn respo.schema/RespoEvent
-                          Fn AnyEnum $ -> Unit
+                          Fn *dispatch-op $ -> Unit
                           -> Unit
                         .show help-alert d! None
                         , &unit
@@ -785,7 +785,6 @@
           :code $ quote $ defn parse-layout-children (children path)
             if (list? children)
               map children $ fn (child)
-                hint-fn $ Fn Dynamic $ -> LayoutNode
                 parse-layout-node child $ str path |.children
               raise $ str path "| field :children should be a list"
           :examples $ []
@@ -833,13 +832,16 @@
                         LayoutNode :button text
                         raise $ str path "| button node requires non-empty :text"
                       raise $ str path "| button node requires non-empty :text"
-                    |input $ if
-                      or (field-is? node :name non-nil?) (field-is? node :placeholder non-nil?)
-                      LayoutNode :input
-                        decode-map-as (field node :name) (Option InputValue)
-                        decode-map-as (field node :placeholder) (Option InputValue)
-                        decode-map-as (field node :text) (Option InputValue)
-                      raise $ str path "| input node requires :name or :placeholder"
+                    |input $ let
+                        name $ field node :name
+                        placeholder $ field node :placeholder
+                      if
+                        or (.some? name) (.some? placeholder)
+                        LayoutNode :input
+                          decode-map-as name $ Option InputValue
+                          decode-map-as placeholder $ Option InputValue
+                          decode-map-as (field node :text) (Option InputValue)
+                        raise $ str path "| input node requires :name or :placeholder"
                     |markdown $ if (string? text)
                       if
                         > (.len text) 0
@@ -864,22 +866,21 @@
                           if
                             or (nil? title) (= title |)
                             , None $ Some $ str title
-                        map
-                          decode-map-as series $ List Dynamic
-                          fn (item)
-                            hint-fn $ Fn Dynamic $ -> ChartDatum
-                            if (map? item)
-                              if
-                                and (field-is? item :label string?) (field-is? item :value number?)
-                                ChartDatum :label
-                                  decode-map-as
-                                    .unwrap $ get item :label
-                                    , String
-                                  , :value $ decode-map-as
-                                    .unwrap $ get item :value
-                                    , Number
-                                raise $ str path "| chart series item requires string :label and number :value"
-                              raise $ str path "| chart series item should be a map"
+                        map series $ fn (item)
+                          if (map? item)
+                            let
+                                invalid $ str path "| chart series item requires string :label and number :value"
+                              match (get item :label)
+                                (:some label)
+                                  match (get item :value)
+                                    (:some value)
+                                      if
+                                        and (string? label) (number? value)
+                                        ChartDatum :label label :value value
+                                        raise invalid
+                                    (:none) (raise invalid)
+                                (:none) (raise invalid)
+                            raise $ str path "| chart series item should be a map"
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
                       match (field node :expr)
@@ -996,7 +997,6 @@
                     let
                         children $ map (rest expr)
                           fn (child)
-                            hint-fn $ Fn Dynamic $ -> MathChild
                             validate-mathml-child child $ str path |/ tag-name
                       MathExpr :tag tag-name :children children
                     raise $ str path "| math expression requires string tag name"
@@ -1024,26 +1024,23 @@
       :defs $ {}
         'build-help-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-help-payload (topics)
-            let
-                normalized-topics $ if (list? topics) topics $ []
-              {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics normalized-topics)
-                :components $ select-component-docs normalized-topics
-                :protocol_docs $ select-protocol-docs normalized-topics
-                :examples $ select-example-docs normalized-topics
+            {} (:status :ok) (:kind :help) (:renderer |edn-renderer) (:summary renderer-help-overview) (:commands relay-commands) (:topics topics)
+              :components $ select-component-docs topics
+              :protocol_docs $ select-protocol-docs topics
+              :examples $ select-example-docs topics
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ Map Tag Dynamic
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
-                normalized-topics $ if (list? topics) topics $ []
-                full? $ includes? normalized-topics |full
-                text $ if full? skill-text $ if (empty? normalized-topics) skill-overview (build-skill-text normalized-topics)
+                full? $ includes? topics |full
+                text $ if full? skill-text $ if (empty? topics) skill-overview (build-skill-text topics)
               {} (:status :ok) (:kind :skill) (:renderer |edn-renderer)
                 :title $ if full? "|edn-renderer Skill (full)" "|edn-renderer Skill"
                 :text text
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ Map Tag Dynamic
         'build-skill-text $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-text (topics)
@@ -1055,7 +1052,7 @@
                   .unwrap $ get item :title
                   , "|\n\n" $ .unwrap $ get item :text
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> String)
+          :schema $ quote $ Fn (List String) (-> String)
         'build-status-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-status-payload (relay renderer)
             ->
@@ -1213,51 +1210,35 @@
           :schema $ quote String
         'select-component-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-component-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |components) component-docs $ filter component-docs $ fn (item)
-                hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |components) component-docs $ filter component-docs $ fn (item)
+              hint-fn $ Fn (Map Tag Dynamic) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag Dynamic
         'select-example-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-example-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |examples) example-docs $ filter example-docs $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |examples) example-docs $ filter example-docs $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
         'select-protocol-docs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-protocol-docs (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |protocol) protocol-docs $ filter protocol-docs $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
         'select-skill-sections $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn select-skill-sections (topics)
-            let
-                normalized-topics $ if (list? topics)
-                  assert-type topics $ List Dynamic
-                  []
-              if (includes? normalized-topics |all) skill-sections $ filter skill-sections $ fn (item)
-                hint-fn $ Fn (Map Tag String) (-> Bool)
-                includes? normalized-topics $ .unwrap $ get item :name
+            if (includes? topics |all) skill-sections $ filter skill-sections $ fn (item)
+              hint-fn $ Fn (Map Tag String) (-> Bool)
+              includes? topics $ .unwrap $ get item :name
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn (List String)
             -> $ List $ Map Tag String
         'site $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def site
@@ -1444,8 +1425,9 @@
               (:ok value) (Some value)
               (:err _) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ Map Tag Dynamic
+            :generics Input
         'decode-relay-channels $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-relay-channels (channels)
             if (list? channels)
@@ -1903,8 +1885,9 @@
                       normalize-layout-path-text $ to-string tag
                 (:err _) None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ List Number
+            :generics Input
         'normalize-layout-path-items $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-layout-path-items (items)
             .foldl items
@@ -1941,8 +1924,9 @@
               (:none)
                 Some $ []
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option $ List Number
+            :generics Input
         'normalize-renderer-topics $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn normalize-renderer-topics (topics)
             if (list? topics)
@@ -1950,15 +1934,14 @@
                 assert-type topics $ List Dynamic
                 []
                 fn (acc item)
-                  hint-fn $ Fn (List String) Dynamic $ -> (List String)
-                  if
-                    or (string? item) (tag? item)
-                    append acc $ .unwrap $ protocol-name item
-                    , acc
+                  match (protocol-name item)
+                    (:some name) (append acc name)
+                    (:none) acc
               []
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List String
+            :generics Input
         'parse-layout-path-segment $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-segment (item)
             match item
@@ -2066,7 +2049,7 @@
                     _ $ RendererRequest :invalid
                 RendererRequest :invalid
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> RendererRequest)
+          :schema $ quote $ Fn Input (-> RendererRequest) (:generics Input)
         'persist-storage! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-storage! ()
             println "|Saved at" $ :iso $ host/date-now-snapshot
@@ -2096,8 +2079,9 @@
                 Some $ to-string x
               true None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option String
+            :generics Input
         'relay-ack-frame $ %{} 'CodeEntry
           :doc "|Encode the existing relay acknowledgment wire map."
           :code $ quote $ defn relay-ack-frame (request-id outcome)
