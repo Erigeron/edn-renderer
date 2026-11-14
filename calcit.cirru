@@ -864,22 +864,19 @@
                           if
                             or (nil? title) (= title |)
                             , None $ Some $ str title
-                        map
-                          decode-map-as series $ List Dynamic
-                          fn (item)
-                            hint-fn $ Fn Dynamic $ -> ChartDatum
-                            if (map? item)
-                              if
-                                and (field-is? item :label string?) (field-is? item :value number?)
-                                ChartDatum :label
-                                  decode-map-as
-                                    .unwrap $ get item :label
-                                    , String
-                                  , :value $ decode-map-as
-                                    .unwrap $ get item :value
-                                    , Number
-                                raise $ str path "| chart series item requires string :label and number :value"
-                              raise $ str path "| chart series item should be a map"
+                        map series $ fn (item)
+                          if (map? item)
+                            if
+                              and (field-is? item :label string?) (field-is? item :value number?)
+                              ChartDatum :label
+                                decode-map-as
+                                  .unwrap $ get item :label
+                                  , String
+                                , :value $ decode-map-as
+                                  .unwrap $ get item :value
+                                  , Number
+                              raise $ str path "| chart series item requires string :label and number :value"
+                            raise $ str path "| chart series item should be a map"
                       raise $ str path "| chart node requires list field :series"
                     |math $ LayoutNode :math
                       match (field node :expr)
