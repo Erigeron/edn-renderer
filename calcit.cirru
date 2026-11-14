@@ -1026,6 +1026,14 @@
           :code $ quote $ defunion ComponentDocField String (List String)
           :examples $ []
           :schema $ quote UnionDef
+        'HelpListItem $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion HelpListItem String (Map Tag ComponentDocField)
+          :examples $ []
+          :schema $ quote UnionDef
+        'HelpPayloadField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion HelpPayloadField Tag String (List HelpListItem)
+          :examples $ []
+          :schema $ quote UnionDef
         'SkillPayloadField $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defunion SkillPayloadField Tag String
           :examples $ []
@@ -1038,7 +1046,7 @@
               :examples $ select-example-docs topics
           :examples $ []
           :schema $ quote $ Fn (List String)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag HelpPayloadField
         'build-skill-payload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn build-skill-payload (topics)
             let
