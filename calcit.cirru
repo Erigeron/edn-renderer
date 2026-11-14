@@ -1454,6 +1454,34 @@
           :schema $ quote $ Fn Input
             -> $ Option $ Map Tag Dynamic
             :generics Input
+        'control-to-wire $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn control-to-wire (control)
+            match control
+              (:toggle) (:: :reel/toggle)
+              (:recall idx) (:: :reel/recall idx)
+              (:run) (:: :reel/run)
+              (:step) (:: :reel/step)
+              (:merge) (:: :reel/merge)
+              (:reset) (:: :reel/reset)
+              (:remove idx) (:: :reel/remove idx)
+          :examples $ []
+          :schema $ quote $ Fn reel.typed/Control (-> schema/DispatchOp)
+          :tests $ [] $ %{} 'TestEntry (:name |preserves-all-reel-controls)
+            :code $ quote $ do
+              assert= (:: :reel/toggle)
+                control-to-wire $ reel.typed/Control :toggle
+              assert= (:: :reel/recall 2)
+                control-to-wire $ reel.typed/Control :recall 2
+              assert= (:: :reel/run)
+                control-to-wire $ reel.typed/Control :run
+              assert= (:: :reel/step)
+                control-to-wire $ reel.typed/Control :step
+              assert= (:: :reel/merge)
+                control-to-wire $ reel.typed/Control :merge
+              assert= (:: :reel/reset)
+                control-to-wire $ reel.typed/Control :reset
+              assert= (:: :reel/remove 3)
+                control-to-wire $ reel.typed/Control :remove 3
         'decode-relay-channels $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-relay-channels (channels)
             if (list? channels)
@@ -2009,21 +2037,7 @@
             :tags $ #{} :unit
         'on-control! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-control! (control)
-            match control
-              (:toggle)
-                dispatch! $ :: :reel/toggle
-              (:recall idx)
-                dispatch! $ :: :reel/recall idx
-              (:run)
-                dispatch! $ :: :reel/run
-              (:step)
-                dispatch! $ :: :reel/step
-              (:merge)
-                dispatch! $ :: :reel/merge
-              (:reset)
-                dispatch! $ :: :reel/reset
-              (:remove idx)
-                dispatch! $ :: :reel/remove idx
+            dispatch! $ control-to-wire control
           :examples $ []
           :schema $ quote $ Fn reel.typed/Control (-> Unit) (:features :io :js-ffi :state)
         'parse-layout-path-index $ %{} 'CodeEntry (:doc |)
