@@ -191,7 +191,7 @@
           :examples $ []
           :schema $ quote $ Fn (List ChartDatum) ChartKind (Option String) (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-container (reel)
+          :code $ quote $ defcomp comp-container (reel on-control)
             let
                 store $ decode-map-as
                   .unwrap $ get reel :store
@@ -437,7 +437,7 @@
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|Click a message to inspect its raw relay frame."
                         if dev?
-                          Some $ comp-reel (>> states :reel) reel $ {}
+                          Some $ comp-reel (>> states :reel) reel ({}) on-control
                           , None
                 help-alert $ use-alert (>> states :help)
                   {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
@@ -563,7 +563,10 @@
                 .render drawer-plugin
                 .render help-alert
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            Fn reel.typed/Control (-> Unit) (:features :io :state)
+            -> respo.schema/Component
+            :features :js-ffi :state
         'comp-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-layout-node (node)
             match node
@@ -1893,7 +1896,7 @@
               (:none) &unit
             render-app!
             add-watch! *reel :changes $ fn (reel prev) (render-app!)
-            listen-devtools! |k dispatch!
+            listen-devtools! |k on-control!
             browser/add-event-listener! |beforeunload $ fn (event) (persist-storage!)
             browser/add-event-listener! |visibilitychange $ fn (event)
               match (browser/visibility-state)
@@ -2004,6 +2007,25 @@
                 normalize-renderer-topics $ [] |layout 17 :storage nil
               assert= ([]) (normalize-renderer-topics |layout)
             :tags $ #{} :unit
+        'on-control! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn on-control! (control)
+            match control
+              (:toggle)
+                dispatch! $ :: :reel/toggle
+              (:recall idx)
+                dispatch! $ :: :reel/recall idx
+              (:run)
+                dispatch! $ :: :reel/run
+              (:step)
+                dispatch! $ :: :reel/step
+              (:merge)
+                dispatch! $ :: :reel/merge
+              (:reset)
+                dispatch! $ :: :reel/reset
+              (:remove idx)
+                dispatch! $ :: :reel/remove idx
+          :examples $ []
+          :schema $ quote $ Fn reel.typed/Control (-> Unit) (:features :io :js-ffi :state)
         'parse-layout-path-index $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-index (text)
             let
@@ -2194,7 +2216,7 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
-            render! mount-target (comp-container @*reel) dispatch!
+            render! mount-target (comp-container @*reel on-control!) dispatch!
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
