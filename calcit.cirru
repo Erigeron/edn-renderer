@@ -191,7 +191,7 @@
           :examples $ []
           :schema $ quote $ Fn (List ChartDatum) ChartKind (Option String) (-> respo.schema/Component) (:features :js-ffi)
         'comp-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-container (reel)
+          :code $ quote $ defcomp comp-container (reel on-control)
             let
                 store $ decode-map-as
                   .unwrap $ get reel :store
@@ -437,7 +437,7 @@
                                     {} $ :style $ {} (:padding "|10px 12px") (:border-radius 12) (:border "|1px dashed #d7d7cf") (:background-color |#fcfcfa) (:font-size 12) (:line-height |1.6) (:color |#6b7280)
                                     <> "|Click a message to inspect its raw relay frame."
                         if dev?
-                          Some $ comp-reel (>> states :reel) reel $ {}
+                          Some $ comp-reel (>> states :reel) reel ({}) on-control
                           , None
                 help-alert $ use-alert (>> states :help)
                   {} $ :text "|Use History to inspect recent relay frames and the raw Cirru EDN being rendered."
@@ -563,7 +563,10 @@
                 .render drawer-plugin
                 .render help-alert
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn (Map Tag Dynamic)
+            Fn reel.typed/Control (-> Unit) (:features :io :state)
+            -> respo.schema/Component
+            :features :js-ffi :state
         'comp-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-layout-node (node)
             match node
@@ -1451,6 +1454,34 @@
           :schema $ quote $ Fn Input
             -> $ Option $ Map Tag Dynamic
             :generics Input
+        'control-to-wire $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn control-to-wire (control)
+            match control
+              (:toggle) (:: :reel/toggle)
+              (:recall idx) (:: :reel/recall idx)
+              (:run) (:: :reel/run)
+              (:step) (:: :reel/step)
+              (:merge) (:: :reel/merge)
+              (:reset) (:: :reel/reset)
+              (:remove idx) (:: :reel/remove idx)
+          :examples $ []
+          :schema $ quote $ Fn reel.typed/Control (-> schema/DispatchOp)
+          :tests $ [] $ %{} 'TestEntry (:name |preserves-all-reel-controls)
+            :code $ quote $ do
+              assert= (:: :reel/toggle)
+                control-to-wire $ reel.typed/Control :toggle
+              assert= (:: :reel/recall 2)
+                control-to-wire $ reel.typed/Control :recall 2
+              assert= (:: :reel/run)
+                control-to-wire $ reel.typed/Control :run
+              assert= (:: :reel/step)
+                control-to-wire $ reel.typed/Control :step
+              assert= (:: :reel/merge)
+                control-to-wire $ reel.typed/Control :merge
+              assert= (:: :reel/reset)
+                control-to-wire $ reel.typed/Control :reset
+              assert= (:: :reel/remove 3)
+                control-to-wire $ reel.typed/Control :remove 3
         'decode-relay-channels $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-relay-channels (channels)
             if (list? channels)
@@ -1893,7 +1924,7 @@
               (:none) &unit
             render-app!
             add-watch! *reel :changes $ fn (reel prev) (render-app!)
-            listen-devtools! |k dispatch!
+            listen-devtools! |k on-control!
             browser/add-event-listener! |beforeunload $ fn (event) (persist-storage!)
             browser/add-event-listener! |visibilitychange $ fn (event)
               match (browser/visibility-state)
@@ -2004,6 +2035,11 @@
                 normalize-renderer-topics $ [] |layout 17 :storage nil
               assert= ([]) (normalize-renderer-topics |layout)
             :tags $ #{} :unit
+        'on-control! $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn on-control! (control)
+            dispatch! $ control-to-wire control
+          :examples $ []
+          :schema $ quote $ Fn reel.typed/Control (-> Unit) (:features :io :js-ffi :state)
         'parse-layout-path-index $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn parse-layout-path-index (text)
             let
@@ -2194,9 +2230,11 @@
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
-            render! mount-target (comp-container @*reel) dispatch!
+            respo.core/render-with! mount-target
+              fn () $ comp-container @*reel on-control!
+              , dispatch!
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'replace-layout-node-at-path $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn replace-layout-node-at-path (node path next-node)
             if (empty? path) next-node $ let
@@ -2443,8 +2481,9 @@
         'pick-renderer-channel-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn pick-renderer-channel-state (renderer) (select-keys renderer renderer-channel-keys)
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
-            -> $ Map Tag Dynamic
+          :schema $ quote $ Fn (Map Tag V)
+            -> $ Map Tag V
+            :generics V
         'renderer-channel-default $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def renderer-channel-default
             {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil) (:storage-status |idle) (:storage-error nil) (:storage-pending nil)
