@@ -2481,8 +2481,9 @@
         'pick-renderer-channel-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn pick-renderer-channel-state (renderer) (select-keys renderer renderer-channel-keys)
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
-            -> $ Map Tag Dynamic
+          :schema $ quote $ Fn (Map Tag V)
+            -> $ Map Tag V
+            :generics V
         'renderer-channel-default $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def renderer-channel-default
             {} (:layout nil) (:layout-dsl nil) (:layout-id nil) (:layout-source |) (:last-request nil) (:last-error nil) (:storage-status |idle) (:storage-error nil) (:storage-pending nil)
