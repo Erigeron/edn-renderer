@@ -1580,7 +1580,7 @@
               dispatch! $ :: :select-channel $ .unwrap (first channels)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (calcit.core/Option String) (List String) (-> Unit) (:features :js-ffi :state)
+          :schema $ quote $ Fn (Option String) (List String) (-> Unit) (:features :js-ffi :state)
         'handle-genui-event! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn handle-genui-event! (ws frame)
             let
@@ -2316,7 +2316,7 @@
               _ $ raise "|Renderer selected channel must be a string or nil"
           :examples $ []
           :schema $ quote $ Fn
-            -> $ calcit.core/Option String
+            -> $ Option String
             :features :state
         'send-genui-ack! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn send-genui-ack! (ws request-id outcome)
