@@ -6,7 +6,7 @@
     {} (:description |) (:init-fn 'app.main/main!) (:mode :js) (:reload-fn 'app.main/reload!) (:target :browser)
       :feature-policy $ {}
       :modules $ [] |respo.calcit/ |respo-ui.calcit/ |reel.calcit/ |alerts.calcit/ |js-ffi/
-      :type-slots $ {} $ :dispatch-op 'app.schema/DispatchOp
+      :type-slots $ {} $ :dispatch-op 'app.schema/dispatch-slot
   :files $ {}
     'app.comp.container $ %{} 'FileEntry
       :defs $ {}
@@ -2421,15 +2421,18 @@
             js-ffi.browser :as browser
     'app.schema $ %{} 'FileEntry
       :defs $ {}
-        'DispatchOp $ %{} 'CodeEntry (:doc "|Respo 入口事件合同，容纳应用和 Reel 控制事件；代表值不发送。")
-          :code $ quote $ def DispatchOp (:: :unhandled)
+        'DispatchOp $ %{} 'CodeEntry (:doc "|Respo 入口的匿名事件类型，兼容应用及 Reel 控制事件。")
+          :code $ quote $ deftype DispatchOp AnyEnum
           :examples $ []
-          :schema $ quote AnyEnum
         'RelayEffect $ %{} 'CodeEntry
           :doc "|Closed set of WebSocket effects initiated by an application dispatch."
           :code $ quote $ defenum RelayEffect (:sync-channel) (:list-reports) (:save-report) (:load-report String)
           :examples $ []
           :schema $ quote EnumDef
+        'dispatch-slot $ %{} 'CodeEntry (:doc "|Respo 入口类型槽的代表值，不发送到运行时。")
+          :code $ quote $ def dispatch-slot (:: :unhandled)
+          :examples $ []
+          :schema $ quote AnyEnum
         'store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def store
             {}
