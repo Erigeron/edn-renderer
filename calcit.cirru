@@ -974,8 +974,8 @@
               (:none) false
           :examples $ []
           :schema $ quote $ Fn
-            Option $ Map Tag Dynamic
-            , Tag (-> Bool)
+            Option $ Map Tag V
+            , Tag (-> Bool) (:generics V)
         'validate-layout $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn validate-layout (layout) (parse-layout-node layout |root)
           :examples $ []
