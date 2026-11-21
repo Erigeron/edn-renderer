@@ -2331,7 +2331,7 @@
           :code $ quote $ defn send-relay-frame! (ws frame)
             browser/web-socket-send! ws $ format-cirru-edn frame
           :examples $ []
-          :schema $ quote $ Fn browser/WebSocketHost (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn browser/WebSocketHost (Map Tag Field) (-> Unit) (:generics Field) (:features :js-ffi)
         'summarize-layout-node $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn summarize-layout-node (node path)
             let
